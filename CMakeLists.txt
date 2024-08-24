@@ -11,5 +11,6 @@ else()
     set(THIRD_PARTY_DIR /home/andtokm/Projects/third_party)
 endif()
 
+add_subdirectory(DaVinchiTest)
 add_subdirectory(MatchingEngine)
 add_subdirectory(Utilities)

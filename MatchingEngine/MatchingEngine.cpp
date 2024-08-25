@@ -7,6 +7,7 @@ Copyright   : Your copyright notice
 Description : MatchingEngine.cpp
 ============================================================================**/
 
+#include "MatchingEngine.h"
 #include "PerfUtilities.h"
 #include "Order.h"
 
@@ -215,7 +216,7 @@ namespace TestMatchingEngine
         void handleOrderAmend(Order& order)
         {
             if (const auto orderByIDIter = orderByIDMap.find(order.orderId);
-                orderByIDMap.end() != orderByIDIter)
+                    orderByIDMap.end() != orderByIDIter)
             {
                 // TODO: Remove branching ???
                 Order& orderOriginal = *(orderByIDIter->second.orderIter);
@@ -266,8 +267,279 @@ namespace TestMatchingEngine
     };
 }
 
-namespace TestMatchingEngine::Tests
+namespace TestMatchingEngine_ListPtr
 {
+    using namespace Common;
+
+    struct Trade
+    {
+        struct OrderInfo
+        {
+            Order::OrderID id = 0;
+            Order::OrderID price = 0;
+        };
+
+        OrderInfo buyOrderInfo;
+        OrderInfo sellOrderInfo;
+        uint32_t  quantity = 0;
+
+        static void addOrder(const Order& order, OrderInfo& orderInfo)
+        {
+            orderInfo.id = order.orderId;
+            orderInfo.price = order.price;
+        }
+
+        Trade& setBuyOrder(const Order& order) {
+            addOrder(order, buyOrderInfo);
+            return *this;
+        }
+
+        Trade& setSellOrder(const Order& order) {
+            addOrder(order, sellOrderInfo);
+            return *this;
+        }
+
+        Trade& setQuantity(const uint32_t qnty) {
+            quantity = qnty;
+            return *this;
+        }
+    };
+
+
+    struct Trades
+    {
+        std::vector<Trade> trades {};
+
+        Trades()
+        {
+            trades.reserve(10'000'000);
+        }
+
+        Trade& addTrade() {
+            return trades.emplace_back();
+        }
+    };
+
+
+    /*
+    struct Trades
+    {
+        // std::vector<Trade> trades {};
+        Trade dummyTread;
+
+        Trade& addTrade() {
+            // return trades.emplace_back();
+            return dummyTread;
+        }
+    };
+     */
+
+    struct OrderMatchingEngine
+    {
+        using OrderIter = typename std::list<Order>::iterator;
+        using PriceOrderList = std::list<OrderIter>;
+        using PriceOrderListPtr = PriceOrderList*;
+        using PriceOrderListIter = typename PriceOrderList::iterator;
+
+        struct ReferencesBlock
+        {
+            OrderIter orderIter;
+            PriceOrderListIter priceOrderIter;
+            PriceOrderListPtr priceLevelOrderList;
+        };
+
+        std::list<Order> orders {};
+        std::unordered_map<Order::IDType, ReferencesBlock> orderByIDMap;
+
+        // TODO: Test replace std::map --> boost::flat_map [std::list --> shall be pointer?]
+        //       Since look performance of this lookup is more critical one
+
+#if 0
+        std::map<Order::Price, PriceOrderListPtr, std::less<>> buyOrders;
+        std::map<Order::Price, PriceOrderListPtr, std::greater<>> sellOrders;
+#else
+        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::less<>> buyOrders;
+        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::greater<>> sellOrders;
+#endif
+
+        Trades trades;
+
+        void processOrder(Order& order)
+        {
+            // TODO: Remove branching ???
+            switch (order.action)
+            {
+                case OrderActionType::NEW:
+                    return handleOrderNew(order);
+                case OrderActionType::CANCEL:
+                    return handleOrderCancel(order);
+                case OrderActionType::AMEND:
+                    return handleOrderAmend(order);
+                default:
+                    return;
+            }
+        }
+
+        unsigned long long matchOrder(Order& order)
+        {
+            // TODO: Remove branching ???
+            if (OrderSide::SELL == order.side) {
+                matchOrder(order, buyOrders);
+            } else {
+                matchOrder(order, sellOrders);
+            }
+
+            // Return remaining quantity
+            return order.quantity;
+        }
+
+        template<typename OrderSideMap>
+        void matchOrder(Order& order, OrderSideMap& oppositeSideOrdersPriceMap)
+        {
+            auto matchedPriceLevelIter = oppositeSideOrdersPriceMap.lower_bound(order.price);
+            while (oppositeSideOrdersPriceMap.end() != matchedPriceLevelIter && order.quantity > 0)
+            {
+                matchOrderList(order, matchedPriceLevelIter->second);
+                ++matchedPriceLevelIter;
+            }
+        }
+
+        void matchOrderList(Order& order,
+                            PriceOrderList* matchedOrderList)
+        {
+            for (auto orderIter = matchedOrderList->begin(); matchedOrderList->end() != orderIter;)
+            {
+                Order& matchedOrder = *(*orderIter);
+
+                // FIXME : Required performance improvements: cause of ~35% CPU usage
+#if 1
+                Trade& trade = trades.addTrade();
+                trade.setQuantity(std::min(matchedOrder.quantity,order.quantity));
+                // TODO: Remove branching ???
+                if (OrderSide::SELL == order.side) {
+                    trade.setBuyOrder(matchedOrder).setSellOrder(order);
+                } else {
+                    trade.setBuyOrder(order).setSellOrder(matchedOrder);
+                }
+#endif
+
+                if (order.quantity >= matchedOrder.quantity)
+                {
+                    order.quantity -= matchedOrder.quantity;
+                    matchedOrder.quantity = 0;
+
+                    /** Deleting order **/
+                    orderByIDMap.erase(matchedOrder.orderId);
+                    matchedOrderList->erase(orderIter++);
+                } else {
+                    matchedOrder.quantity -= order.quantity;
+                    order.quantity = 0;
+                    ++orderIter;
+                    return;;
+                }
+            }
+        }
+
+        template<class Map>
+        PriceOrderListPtr getOrderPriceList(Map& map, const Order::Price& price)
+        {
+            const auto [iter, inserted] = map.emplace(price, nullptr);
+            if (inserted) {
+                iter->second = new PriceOrderList ;
+            }
+            return iter->second;
+        };
+
+        void handleOrderNew(Order& order)
+        {
+            if (0 == matchOrder(order)) {
+                return;
+            }
+
+            const auto [iterOrderMap, inserted] = orderByIDMap.emplace(order.orderId, ReferencesBlock{});
+            if (inserted)
+            {
+                auto& [orderIter, priceOrderIter, priceLevelOrderList] = iterOrderMap->second;
+                orderIter = orders.insert(orders.end(), order);
+                // TODO: Remove branching ???
+                priceLevelOrderList = (OrderSide::BUY == order.side) ? getOrderPriceList(buyOrders, order.price) :
+                                      getOrderPriceList(sellOrders, order.price);
+                priceOrderIter = priceLevelOrderList->insert(priceLevelOrderList->end(), orderIter);
+            }
+        }
+
+        void handleOrderCancel(const Order& order)
+        {
+            if (const auto orderByIDIter = orderByIDMap.find(order.orderId);
+                    orderByIDMap.end() != orderByIDIter)
+            {
+                auto& [orderIter, priceOrderIter, priceLevelOrderList] = orderByIDIter->second;
+                priceLevelOrderList->erase(priceOrderIter);
+                orders.erase(orderIter);
+                orderByIDMap.erase(orderByIDIter);
+            }
+        }
+
+        void handleOrderAmend(Order& order)
+        {
+            if (const auto orderByIDIter = orderByIDMap.find(order.orderId);
+                    orderByIDMap.end() != orderByIDIter)
+            {
+                // TODO: Remove branching ???
+                Order& orderOriginal = *(orderByIDIter->second.orderIter);
+                if (orderOriginal.side != order.side) {
+                    return;
+                } else if (orderOriginal.price != order.price) {
+                    handleOrderCancel(order);
+                    handleOrderNew(order);
+                } else if (orderOriginal.price == order.price) {
+                    // TODO: update order parameters
+                    orderOriginal.quantity = order.quantity;
+                }
+            }
+        }
+
+        void info(bool printTrades = true)
+        {
+            for (const auto& [orderId, orderIter]: orderByIDMap) {
+                Order& orderOne = *orderIter.orderIter;
+                Order& orderTwo = *(*orderIter.priceOrderIter);
+                if (orderId != orderOne.orderId || orderId != orderTwo.orderId) {
+                    std::cerr << "ERROR: ID: " << orderId << "!= " << orderOne.orderId << std::endl;
+                }
+            }
+
+            auto printOrders = [](const auto& orderMap) {
+                for (const auto& [price, ordersList]: orderMap) {
+                    std::cout << "\tPrice: [" << price << "]" << std::endl;
+                    for (const auto & orderIter: *ordersList) {
+                        Common::printOrder(*orderIter);
+                    }
+                }
+            };
+
+            std::cout << "BUY:  " << std::endl; printOrders(buyOrders);
+            std::cout << "SELL: " << std::endl; printOrders(sellOrders);
+
+            std::cout << std::string(160, '=') << std::endl;
+            /*
+            if (!printTrades)
+                return;
+            for (const auto& trade: trades.trades)
+            {
+                std::cout << "Trade(Buy: {id: " << trade.buyOrderInfo.id  << ", price: " << trade.buyOrderInfo.price << "}, "
+                          << "Sell: {id: " << trade.sellOrderInfo.id << ", price: " << trade.sellOrderInfo.price << "}, "
+                          << "quantity: " << trade.quantity << ")\n";
+            }*/
+        }
+    };
+}
+
+namespace Tests
+{
+    // using namespace TestMatchingEngine;
+    using namespace TestMatchingEngine_ListPtr;
+
 
     void Trade_SELL()
     {
@@ -493,15 +765,15 @@ namespace TestMatchingEngine::Tests
 //  1. Add allocator to create Orders --> may help when Order size is large
 //     OrderPool -- Tests
 
-void OrderMatchingEngineTests()
+void MatchingEngine::TestAll()
 {
-    using namespace TestMatchingEngine::Tests;
+    using namespace Tests;
 
     // Trade_SELL();
     // Trade_BUY();
     // Trade_AMEND();
     // Trade_AMEND_PriceUpdate();
 
-    // Load_Test();
+    Load_Test();
 
 }

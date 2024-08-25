@@ -15,11 +15,7 @@ void MatchingEngine_WithAllocator_Tests();
 
 namespace MatchingEngine
 {
-    void TestAll()
-    {
-        OrderMatchingEngineTests();
-        // MatchingEngine_WithAllocator_Tests();
-    }
+    void TestAll();
 }
 
 #endif //CPPPROJECTS_MATCHINGENGINE_H

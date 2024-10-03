@@ -1,13 +1,14 @@
 /**============================================================================
-Name        : MatchingEngine.cpp
-Created on  : 10.08.2024
+Name        : MatchingEngine_PriceLvLPtr.cpp
+Created on  : 03.10.2024
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : MatchingEngine.cpp
+Description : MatchingEngine_PriceLvLPtr.cpp
 ============================================================================**/
 
 #include "MatchingEngine.h"
+
 #include "PerfUtilities.h"
 #include "Order.h"
 
@@ -34,7 +35,8 @@ namespace
 }
 
 
-namespace TestMatchingEngine
+
+namespace TestMatchingEngine_ListPtr
 {
     using namespace Common;
 
@@ -72,26 +74,47 @@ namespace TestMatchingEngine
         }
     };
 
+
     struct Trades
     {
         std::vector<Trade> trades {};
+
+        Trades()
+        {
+            trades.reserve(10'000'000);
+        }
 
         Trade& addTrade() {
             return trades.emplace_back();
         }
     };
 
+
+    /*
+    struct Trades
+    {
+        // std::vector<Trade> trades {};
+        Trade dummyTread;
+
+        Trade& addTrade() {
+            // return trades.emplace_back();
+            return dummyTread;
+        }
+    };
+     */
+
     struct OrderMatchingEngine
     {
         using OrderIter = typename std::list<Order>::iterator;
         using PriceOrderList = std::list<OrderIter>;
-        using PriceOrderIter = typename PriceOrderList::iterator;
+        using PriceOrderListPtr = PriceOrderList*;
+        using PriceOrderListIter = typename PriceOrderList::iterator;
 
         struct ReferencesBlock
         {
             OrderIter orderIter;
-            PriceOrderIter priceOrderIter;
-            PriceOrderList* priceLevelOrderList;
+            PriceOrderListIter priceOrderIter;
+            PriceOrderListPtr priceLevelOrderList;
         };
 
         std::list<Order> orders {};
@@ -101,11 +124,11 @@ namespace TestMatchingEngine
         //       Since look performance of this lookup is more critical one
 
 #if 0
-        std::map<Order::Price, PriceOrderList, std::less<>> buyOrders;
-        std::map<Order::Price, PriceOrderList, std::greater<>> sellOrders;
+        std::map<Order::Price, PriceOrderListPtr, std::less<>> buyOrders;
+        std::map<Order::Price, PriceOrderListPtr, std::greater<>> sellOrders;
 #else
-        boost::container::flat_map<Order::Price, PriceOrderList, std::less<>> buyOrders;
-        boost::container::flat_map<Order::Price, PriceOrderList, std::greater<>> sellOrders;
+        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::less<>> buyOrders;
+        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::greater<>> sellOrders;
 #endif
 
         Trades trades;
@@ -151,12 +174,14 @@ namespace TestMatchingEngine
         }
 
         void matchOrderList(Order& order,
-                            PriceOrderList& matchedOrderList)
+                            PriceOrderList* matchedOrderList)
         {
-            for (auto orderIter = matchedOrderList.begin(); matchedOrderList.end() != orderIter;)
+            for (auto orderIter = matchedOrderList->begin(); matchedOrderList->end() != orderIter;)
             {
                 Order& matchedOrder = *(*orderIter);
 
+                // FIXME : Required performance improvements: cause of ~35% CPU usage
+#if 1
                 Trade& trade = trades.addTrade();
                 trade.setQuantity(std::min(matchedOrder.quantity,order.quantity));
                 // TODO: Remove branching ???
@@ -165,6 +190,7 @@ namespace TestMatchingEngine
                 } else {
                     trade.setBuyOrder(order).setSellOrder(matchedOrder);
                 }
+#endif
 
                 if (order.quantity >= matchedOrder.quantity)
                 {
@@ -173,7 +199,7 @@ namespace TestMatchingEngine
 
                     /** Deleting order **/
                     orderByIDMap.erase(matchedOrder.orderId);
-                    matchedOrderList.erase(orderIter++);
+                    matchedOrderList->erase(orderIter++);
                 } else {
                     matchedOrder.quantity -= order.quantity;
                     order.quantity = 0;
@@ -182,6 +208,16 @@ namespace TestMatchingEngine
                 }
             }
         }
+
+        template<class Map>
+        PriceOrderListPtr getOrderPriceList(Map& map, const Order::Price& price)
+        {
+            const auto [iter, inserted] = map.emplace(price, nullptr);
+            if (inserted) {
+                iter->second = new PriceOrderList ;
+            }
+            return iter->second;
+        };
 
         void handleOrderNew(Order& order)
         {
@@ -195,8 +231,8 @@ namespace TestMatchingEngine
                 auto& [orderIter, priceOrderIter, priceLevelOrderList] = iterOrderMap->second;
                 orderIter = orders.insert(orders.end(), order);
                 // TODO: Remove branching ???
-                priceLevelOrderList = (OrderSide::BUY == order.side) ?
-                                      &buyOrders[order.price] : &sellOrders[order.price];
+                priceLevelOrderList = (OrderSide::BUY == order.side) ? getOrderPriceList(buyOrders, order.price) :
+                                      getOrderPriceList(sellOrders, order.price);
                 priceOrderIter = priceLevelOrderList->insert(priceLevelOrderList->end(), orderIter);
             }
         }
@@ -245,7 +281,7 @@ namespace TestMatchingEngine
             auto printOrders = [](const auto& orderMap) {
                 for (const auto& [price, ordersList]: orderMap) {
                     std::cout << "\tPrice: [" << price << "]" << std::endl;
-                    for (const auto & orderIter: ordersList) {
+                    for (const auto & orderIter: *ordersList) {
                         Common::printOrder(*orderIter);
                     }
                 }
@@ -255,6 +291,7 @@ namespace TestMatchingEngine
             std::cout << "SELL: " << std::endl; printOrders(sellOrders);
 
             std::cout << std::string(160, '=') << std::endl;
+            /*
             if (!printTrades)
                 return;
             for (const auto& trade: trades.trades)
@@ -262,14 +299,15 @@ namespace TestMatchingEngine
                 std::cout << "Trade(Buy: {id: " << trade.buyOrderInfo.id  << ", price: " << trade.buyOrderInfo.price << "}, "
                           << "Sell: {id: " << trade.sellOrderInfo.id << ", price: " << trade.sellOrderInfo.price << "}, "
                           << "quantity: " << trade.quantity << ")\n";
-            }
+            }*/
         }
     };
 }
 
-namespace Tests
+
+namespace Tests_ListPtr
 {
-    using namespace TestMatchingEngine;
+    using namespace TestMatchingEngine_ListPtr;
 
     void Trade_SELL()
     {
@@ -495,15 +533,15 @@ namespace Tests
 //  1. Add allocator to create Orders --> may help when Order size is large
 //     OrderPool -- Tests
 
-void MatchingEngine::TestAll()
+void MatchingEngine_PriceLvLPtr::TestAll()
 {
-    using namespace Tests;
+    using namespace Tests_ListPtr;
 
     // Trade_SELL();
     // Trade_BUY();
     // Trade_AMEND();
     // Trade_AMEND_PriceUpdate();
 
-    Load_Test(); // 0.977487 seconds
+    Load_Test();
 
 }

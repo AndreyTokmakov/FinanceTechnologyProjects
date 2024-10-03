@@ -18,4 +18,14 @@ namespace MatchingEngine
     void TestAll();
 }
 
+namespace MatchingEngine_PriceLvLPtr
+{
+    void TestAll();
+};
+
+namespace MatchingEngine_OrderAsPtr
+{
+    void TestAll();
+};
+
 #endif //CPPPROJECTS_MATCHINGENGINE_H

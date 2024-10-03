@@ -10,8 +10,10 @@ add_compile_options(-c -Wall -Wextra -O3 -std=c++2c)
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
-        Order.cpp Order.h
-        MatchingEngine.cpp MatchingEngine.h
+        Order.cpp
+        MatchingEngine.cpp
+        MatchingEngine_PriceLvLPtr.cpp
+        MatchingEngine_OrderAsPtr.cpp
         MatchingEngineWithAlloc.cpp
 )
 

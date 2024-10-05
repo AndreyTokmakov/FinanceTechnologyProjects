@@ -465,7 +465,7 @@ namespace Tests_OrderAsPtr
         iDs.reserve(pricesCount * buyOrders * 10);
 
 
-        PerfUtilities::ScopedTimer timer { "TEST"};
+        PerfUtilities::ScopedTimer timer { "MatchingEngine_OrderAsPtr"};
         uint64_t count = 0;
 
         for (int i = 0; i < 400; ++i)

@@ -597,7 +597,7 @@ namespace Tests_OrderAsPtr_Alloc
         iDs.reserve(pricesCount * buyOrders * 10);
 
 
-        PerfUtilities::ScopedTimer timer { "TEST"};
+        PerfUtilities::ScopedTimer timer { "Tests_OrderAsPtr_Alloc"};
         uint64_t count = 0;
 
         for (int i = 0; i < 400; ++i)

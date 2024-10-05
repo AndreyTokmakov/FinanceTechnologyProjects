@@ -10,9 +10,6 @@ Description : MatchingEngine.cpp
 #ifndef CPPPROJECTS_MATCHINGENGINE_H
 #define CPPPROJECTS_MATCHINGENGINE_H
 
-void OrderMatchingEngineTests();
-void MatchingEngine_WithAllocator_Tests();
-
 namespace MatchingEngine
 {
     void TestAll();
@@ -21,9 +18,14 @@ namespace MatchingEngine
 namespace MatchingEngine_PriceLvLPtr
 {
     void TestAll();
-};
+}
 
 namespace MatchingEngine_OrderAsPtr
+{
+    void TestAll();
+}
+
+namespace MatchingEngine_OrderAsPtr_Alloc
 {
     void TestAll();
 };

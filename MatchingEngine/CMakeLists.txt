@@ -14,7 +14,7 @@ add_executable(${PROJECT_NAME}
         MatchingEngine.cpp
         MatchingEngine_PriceLvLPtr.cpp
         MatchingEngine_OrderAsPtr.cpp
-        MatchingEngineWithAlloc.cpp
+        MatchingEngine_OrderAsPtr_Alloc.cpp
 )
 
 message("CMAKE_SOURCE_DIR       : ${CMAKE_SOURCE_DIR}")

@@ -13,15 +13,10 @@ Description : MatchingEngine_OrderAsPtr.cpp
 #include "Order.h"
 
 #include <iostream>
-#include <numbers>
 #include <numeric>
-
 #include <list>
-#include <forward_list>
 #include <vector>
-#include <map>
 #include <unordered_map>
-#include <cstdint>
 
 #include <boost/container/flat_map.hpp>
 
@@ -33,8 +28,6 @@ namespace
         return id++;
     }
 }
-
-
 
 namespace MatchingEngine_OrderAsPtr
 {
@@ -105,7 +98,8 @@ namespace MatchingEngine_OrderAsPtr
 
     struct OrderMatchingEngine
     {
-        using OrderIter = typename std::list<std::unique_ptr<Order>>::iterator;
+        using OrderPtr = std::unique_ptr<Order>;
+        using OrderIter = typename std::list<OrderPtr>::iterator;
         using PriceOrderList = std::list<OrderIter>;
         using PriceOrderListPtr = PriceOrderList*;
         using PriceOrderListIter = typename PriceOrderList::iterator;
@@ -117,7 +111,7 @@ namespace MatchingEngine_OrderAsPtr
             PriceOrderListPtr priceLevelOrderList;
         };
 
-        std::list<std::unique_ptr<Order>> orders {};
+        std::list<OrderPtr> orders {};
         std::unordered_map<Order::IDType, ReferencesBlock> orderByIDMap;
 
         // TODO: Test replace std::map --> boost::flat_map [std::list --> shall be pointer?]
@@ -133,7 +127,7 @@ namespace MatchingEngine_OrderAsPtr
 
         Trades trades;
 
-        void processOrder(std::unique_ptr<Order>&& order)
+        void processOrder(OrderPtr&& order)
         {
             // TODO: Remove branching ???
             switch (order->action)
@@ -219,7 +213,7 @@ namespace MatchingEngine_OrderAsPtr
             return iter->second;
         };
 
-        void handleOrderNew(std::unique_ptr<Order>&& order)
+        void handleOrderNew(OrderPtr&& order)
         {
             if (0 == matchOrder(*order)) {
                 return;
@@ -249,7 +243,7 @@ namespace MatchingEngine_OrderAsPtr
             }
         }
 
-        void handleOrderAmend(std::unique_ptr<Order>&& order)
+        void handleOrderAmend(OrderPtr&& order)
         {
             if (const auto orderByIDIter = orderByIDMap.find(order->orderId);
                     orderByIDMap.end() != orderByIDIter)
@@ -301,12 +295,13 @@ namespace MatchingEngine_OrderAsPtr
 namespace Tests_OrderAsPtr
 {
     using namespace MatchingEngine_OrderAsPtr;
+    using OrderPtr = MatchingEngine_OrderAsPtr::OrderMatchingEngine::OrderPtr ;
 
     void Trade_DEBUG()
     {
         OrderMatchingEngine engine;
 
-        std::unique_ptr<Order> order { std::make_unique<Order>()};
+        OrderPtr order { std::make_unique<Order>()};
         order->side = OrderSide::BUY;
         order->price = 123;
         order->quantity = 3;
@@ -325,7 +320,7 @@ namespace Tests_OrderAsPtr
             if (price > 16)
                 price = 10;
 
-            std::unique_ptr<Order> order { std::make_unique<Order>()};
+            OrderPtr order { std::make_unique<Order>()};
             order->side = OrderSide::BUY;
             order->price = price+=2;
             order->quantity = 3;
@@ -337,7 +332,7 @@ namespace Tests_OrderAsPtr
         std::cout << std::string(160, '=') << std::endl;
 
         {
-            std::unique_ptr<Order> order { std::make_unique<Order>()};
+            OrderPtr order { std::make_unique<Order>()};
             order->side = OrderSide::SELL;
             order->price = 15;
             order->quantity = 10;
@@ -475,11 +470,11 @@ namespace Tests_OrderAsPtr
 
         for (int i = 0; i < 400; ++i)
         {
-            for (int32_t price: prices) {
-                for (int32_t n = 0; n < buyOrders; ++n) {
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < buyOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
-                    std::unique_ptr<Order> order { std::make_unique<Order>()};
+                    OrderPtr order { std::make_unique<Order>()};
                     order->side = OrderSide::BUY;
                     order->price = price;
                     order->quantity = 10;
@@ -489,11 +484,11 @@ namespace Tests_OrderAsPtr
                     ++count;
                 }
             }
-            for (int32_t price: prices) {
-                for (int32_t n = 0; n < sellOrders; ++n) {
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < sellOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
-                    std::unique_ptr<Order> order { std::make_unique<Order>()};
+                    OrderPtr order { std::make_unique<Order>()};
                     order->side = OrderSide::SELL;
                     order->price = price;
                     order->quantity = 10;
@@ -503,11 +498,11 @@ namespace Tests_OrderAsPtr
                     ++count;
                 }
             }
-            for (int32_t price: prices) {
-                for (int32_t n = 0; n < sellOrders; ++n) {
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < sellOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
-                    std::unique_ptr<Order> order { std::make_unique<Order>()};
+                    OrderPtr order { std::make_unique<Order>()};
                     order->side = OrderSide::SELL;
                     order->price = price;
                     order->quantity = 10;
@@ -517,11 +512,11 @@ namespace Tests_OrderAsPtr
                     ++count;
                 }
             }
-            for (int32_t price: prices) {
-                for (int32_t n = 0; n < buyOrders; ++n) {
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < buyOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
-                    std::unique_ptr<Order> order { std::make_unique<Order>()};
+                    OrderPtr order { std::make_unique<Order>()};
                     order->side = OrderSide::BUY;
                     order->price = price;
                     order->quantity = 10;

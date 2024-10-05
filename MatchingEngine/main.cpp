@@ -17,12 +17,16 @@ int main([[maybe_unused]] int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
+    const int value = args.empty() ? 1 : std::atoi(args.front().data());;
 
-    MatchingEngine::TestAll();
-    MatchingEngine_PriceLvLPtr::TestAll();
-    MatchingEngine_OrderAsPtr::TestAll();
-    MatchingEngine_OrderAsPtr_Alloc::TestAll();
-
-
+    if (1 == value) {
+        MatchingEngine::TestAll();
+    } else if (2 == value)  {
+        MatchingEngine_PriceLvLPtr::TestAll();
+    } else if (3 == value)  {
+        MatchingEngine_OrderAsPtr::TestAll();
+    } else if (4 == value)  {
+        MatchingEngine_OrderAsPtr_Alloc::TestAll();
+    }
     return EXIT_SUCCESS;
 }

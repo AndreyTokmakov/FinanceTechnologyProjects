@@ -13,4 +13,5 @@ endif()
 
 add_subdirectory(DaVinchiTest)
 add_subdirectory(MatchingEngine)
+add_subdirectory(MatchingEngine_Pulsar)
 add_subdirectory(Utilities)

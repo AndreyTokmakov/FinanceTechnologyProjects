@@ -48,7 +48,6 @@ namespace Memory
         static constexpr size_type GROWTH_STRATEGY { 4 };
 
         size_type _new_block_size { DEFAULT_CHUNK_SIZE };
-        size_type _size { 0 };
         size_type _capacity { 0 };
 
         void addChunk()
@@ -81,7 +80,6 @@ namespace Memory
 
                 // Return object mem pointer back to pool
                 pool->available.push_back(object);
-                --pool->_size;
             }
         };
 
@@ -133,16 +131,11 @@ namespace Memory
 
             // Remove the object from the list of free objects.
             available.pop_back();
-            ++_size;
 
             // Wrap the initialized object and return it.
             return std::unique_ptr<object_type, Deleter> { objectPtr, Deleter{this}};
         }
 
-        [[nodiscard]]
-        size_type size() const noexcept {
-            return _size;
-        }
 
         [[nodiscard]]
         size_type capacity() const noexcept {

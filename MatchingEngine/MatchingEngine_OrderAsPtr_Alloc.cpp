@@ -351,8 +351,8 @@ namespace MatchingEngine_OrderAsPtr_Alloc
             {
                 auto& [orderIter, priceOrderIter, priceLevelOrderList] = iterOrderMap->second;
                 orderIter = orders.insert(orders.end(), nullptr);
-                priceLevelOrderList = (OrderSide::BUY == order->side) ? getOrderPriceList(buyOrders, order->price ) :
-                                      getOrderPriceList(sellOrders, order->price );
+                priceLevelOrderList = (OrderSide::BUY == order->side) ? getOrderPriceList(buyOrders, order->price) :
+                                      getOrderPriceList(sellOrders, order->price);
                 priceOrderIter = priceLevelOrderList->insert(priceLevelOrderList->end(), orderIter);
                 *orderIter = std::move(order);
             }

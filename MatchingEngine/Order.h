@@ -132,7 +132,7 @@ namespace Common
         unsigned long long amount { 0 };
         unsigned long long remainAmount { 0 };
 
-        // unsigned char buffer[1024] {};
+        unsigned char buffer[512] {};
     };
 
     struct OrderBuilder

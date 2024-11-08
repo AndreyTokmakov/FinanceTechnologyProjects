@@ -11,15 +11,15 @@ Description : Tests C++ project
 #include <iostream>
 #include <string_view>
 
-#include "MatchingEngine.h"
+#include "Includes.h"
 
 int main([[maybe_unused]] int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
-    const int value = args.empty() ? 1 : std::atoi(args.front().data());;
 
-    if (1 == value) {
+    /*
+    if (const int value = args.empty() ? 1 : std::atoi(args.front().data()); 1 == value) {
         MatchingEngine::TestAll();
     } else if (2 == value)  {
         MatchingEngine_PriceLvLPtr::TestAll();
@@ -28,5 +28,21 @@ int main([[maybe_unused]] int argc,
     } else if (4 == value)  {
         MatchingEngine_OrderAsPtr_Alloc::TestAll();
     }
+    */
+
+    MatchingEngine_Simple::LoadTest();
+    MatchingEngine_PriceLvLPtr::LoadTest();
+    MatchingEngine_OrderAsPtr::LoadTest();
+    MatchingEngine_OrderAsPtr_Alloc::LoadTest();
+
+    std::cout << std::string(160, '-') << std::endl;
+
+    MatchingEngine_Simple::LoadTest();
+    MatchingEngine_PriceLvLPtr::LoadTest();
+    MatchingEngine_OrderAsPtr::LoadTest();
+    MatchingEngine_OrderAsPtr_Alloc::LoadTest();
+
+
+
     return EXIT_SUCCESS;
 }

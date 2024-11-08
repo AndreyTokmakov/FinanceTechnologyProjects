@@ -107,7 +107,7 @@ namespace
 
     template<typename ... Args>
     [[nodiscard]]
-    static PulsarConsumerPtr makePulsarConsumer(Args&&... params) {
+    PulsarConsumerPtr makePulsarConsumer(Args&&... params) {
         return PulsarConsumerPtr(new pulsar::Consumer(std::forward<Args>(params)...), ConsumerDeleter{});
     }
 
@@ -533,10 +533,8 @@ namespace MatchingEngine_Pulsar
     Common::Order orderFromJson(const std::string& jsonStr)
     {
         const nlohmann::json orderJson = nlohmann::json::parse(jsonStr);
-        // std::cout << orderJson << std::endl;
 
         Common::Order order;
-
         order.orderId = orderJson["id"].get<decltype(order.orderId)>();
         order.marketId = orderJson["mid"].get<decltype(order.marketId)>();
         order.price = orderJson["p"].get<decltype(order.price)>();
@@ -547,14 +545,11 @@ namespace MatchingEngine_Pulsar
         order.displayQuantity = orderJson["dq"].get<decltype(order.displayQuantity)>();
         order.remainQuantity = orderJson["rq"].get<decltype(order.remainQuantity)>();
 
-
-
         // order.timestamp = orderJson["t"].get<decltype(order.timestamp)>();
         // order.upperBound = orderJson["ub"].get<decltype(order.upperBound)>();
         // order.lowerBound = orderJson["lb"].get<decltype(order.lowerBound)>();
         // order.parentAccountId = orderJson["paid"].get<decltype(order.parentAccountId)>();
         // order.timestamp = orderJson["t"].get<decltype(order.timestamp)>();
-
 
         std::string value = orderJson["ac"].get<std::string>();
         {
@@ -592,7 +587,7 @@ namespace MatchingEngine_Pulsar
                 order.status = OrderStatusType::OPEN;
             else if ("PARTIAL_FILL"s == value)
                 order.status = OrderStatusType::PARTIAL_FILL;
-            else if ("FILLEDs" == value)
+            else if ("FILLED"s == value)
                 order.status = OrderStatusType::FILLED;
             else if ("CANCELED_BY_USER"s == value)
                 order.status = OrderStatusType::CANCELED_BY_USER;
@@ -694,7 +689,7 @@ namespace MatchingEngine_Pulsar
         const std::unique_ptr<pulsar::Client, ClientDeleter> pulsarClient { getPulsarClient() };
         const std::unique_ptr<pulsar::Consumer, ConsumerDeleter> consumer { makePulsarConsumer() };
 
-        pulsar::ConsumerConfiguration config;
+        const ConsumerConfiguration config;
         // config.setSubscriptionInitialPosition(pulsar::InitialPositionEarliest);
 
         Result result = pulsarClient->subscribe(orderTopic, "consumer-1", config, *consumer);
@@ -722,7 +717,7 @@ namespace MatchingEngine_Pulsar
 }
 
 
-int main([[maybe_unused]] int argc,
+int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
@@ -731,14 +726,6 @@ int main([[maybe_unused]] int argc,
     // Pulsar::ConsumeMessages();
 
     MatchingEngine_Pulsar::consumeOrders();
-
-    /*
-    const std::string orderStr { R"({"id": 492995, "aid": 1234567, "paid": 2, "mid": 123123123123,
-"p": 240.74373570439812, "dq": 11, "rq": 31, "a": 25, "ra": 25, "ub": 10, "lb": 22,
- "it": true, "t": 1233, "s": "SELL", "ac": "NEW", "ty": "LIMIT", "stc": "GREATER_EQUAL",
- "tc": "MAKER_ONLY_REPRICE", "tt": "MARK_PRICE", "stp": "EXPIRE_BOTH", "st": "OPEN", "mt": "TAKER"})"};
-    MatchingEngine_Pulsar::orderFromJson(orderStr);
-    */
 
     return EXIT_SUCCESS;
 }

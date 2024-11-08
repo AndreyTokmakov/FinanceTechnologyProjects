@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : MatchingEngine_OrderAsPtr.cpp
 ============================================================================**/
 
-#include "MatchingEngine.h"
+#include "Includes.h"
 
 #include "PerfUtilities.h"
 #include "Order.h"
@@ -233,13 +233,13 @@ namespace MatchingEngine_OrderAsPtr
 
         void handleOrderCancel(const Order& order)
         {
-            if (const auto orderByIDIter = orderByIDMap.find(order.orderId);
-                    orderByIDMap.end() != orderByIDIter)
+            if (const auto itOrderById = orderByIDMap.find(order.orderId);
+                orderByIDMap.end() != itOrderById)
             {
-                auto& [orderIter, priceOrderIter, priceLevelOrderList] = orderByIDIter->second;
+                auto& [orderIter, priceOrderIter, priceLevelOrderList] = itOrderById->second;
                 priceLevelOrderList->erase(priceOrderIter);
                 orders.erase(orderIter);
-                orderByIDMap.erase(orderByIDIter);
+                orderByIDMap.erase(itOrderById);
             }
         }
 
@@ -262,7 +262,7 @@ namespace MatchingEngine_OrderAsPtr
             }
         }
 
-        void info(bool printTrades = true)
+        void info([[maybe_unused]] bool printTrades = true)
         {
             auto printOrders = [](const auto& orderMap) {
                 for (const auto& [price, ordersList]: orderMap) {
@@ -454,7 +454,7 @@ namespace Tests_OrderAsPtr
     void Load_Test()
     {
         constexpr uint32_t pricesCount { 50  }, initialPrice { 10 };
-        constexpr uint32_t buyOrders { 100 }, sellOrders { 100 }, cancelOrders { 30 };
+        constexpr uint32_t buyOrders { 100 }, sellOrders { 100 };
 
         OrderMatchingEngine engine;
 
@@ -549,5 +549,11 @@ void MatchingEngine_OrderAsPtr::TestAll()
     // Trade_BUY();
     // Trade_AMEND();
     // Trade_AMEND_PriceUpdate();
+    // Load_Test
+}
+
+void MatchingEngine_OrderAsPtr::LoadTest()
+{
+    using namespace Tests_OrderAsPtr;
     Load_Test();
 }

@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : MatchingEngine_PriceLvLPtr.cpp
 ============================================================================**/
 
-#include "MatchingEngine.h"
+#include "Includes.h"
 
 #include "PerfUtilities.h"
 #include "Order.h"
@@ -532,11 +532,15 @@ void MatchingEngine_PriceLvLPtr::TestAll()
 {
     using namespace Tests_ListPtr;
 
-    // Trade_SELL();
+    Trade_SELL();
     // Trade_BUY();
     // Trade_AMEND();
     // Trade_AMEND_PriceUpdate();
+    // Load_Test();
+}
 
+void MatchingEngine_PriceLvLPtr::LoadTest()
+{
+    using namespace Tests_ListPtr;
     Load_Test();
-
 }

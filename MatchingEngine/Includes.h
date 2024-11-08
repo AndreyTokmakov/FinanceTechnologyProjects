@@ -1,10 +1,10 @@
 /**============================================================================
-Name        : MatchingEngine.h
+Name        : Include.h
 Created on  : 12.08.2024
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : MatchingEngine.cpp
+Description : Include.cpp
 ============================================================================**/
 
 #ifndef CPPPROJECTS_MATCHINGENGINE_H
@@ -13,21 +13,31 @@ Description : MatchingEngine.cpp
 namespace MatchingEngine
 {
     void TestAll();
+    void LoadTest();
+}
+
+namespace MatchingEngine_Simple
+{
+    void TestAll();
+    void LoadTest();
 }
 
 namespace MatchingEngine_PriceLvLPtr
 {
     void TestAll();
+    void LoadTest();
 }
 
 namespace MatchingEngine_OrderAsPtr
 {
     void TestAll();
+    void LoadTest();
 }
 
 namespace MatchingEngine_OrderAsPtr_Alloc
 {
     void TestAll();
+    void LoadTest();
 };
 
 #endif //CPPPROJECTS_MATCHINGENGINE_H

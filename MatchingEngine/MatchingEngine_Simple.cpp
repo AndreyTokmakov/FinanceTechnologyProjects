@@ -1,14 +1,13 @@
 /**============================================================================
-Name        : MatchingEngine_OrderAsPtr_Alloc.cpp
-Created on  : 05.10.2024
+Name        : MatchingEngine_Simple.cpp
+Created on  : 10.08.2024
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : MatchingEngine_OrderAsPtr_Alloc.cpp
+Description : MatchingEngine_Simple.cpp
 ============================================================================**/
 
 #include "Includes.h"
-
 #include "PerfUtilities.h"
 #include "Order.h"
 
@@ -30,131 +29,7 @@ namespace
 }
 
 
-namespace Memory
-{
-    template <typename Ty, typename Allocator = std::allocator<Ty>>
-    class ObjectPool final
-    {
-        using object_type = Ty;
-        using pointer = object_type*;
-        using size_type = typename std::vector<pointer>::size_type;
-
-        static_assert(!std::is_same_v<object_type, void>,
-                      "Type of the Objects in the pool can not be void");
-
-    private:
-        std::vector<pointer> pool;
-        std::vector<pointer> available;
-
-        static constexpr size_type DEFAULT_CHUNK_SIZE { 10 };
-        static constexpr size_type GROWTH_STRATEGY { 4 };
-
-        size_type _new_block_size { DEFAULT_CHUNK_SIZE };
-        size_type _size { 0 };
-        size_type _capacity { 0 };
-
-        void addChunk()
-        {
-            // Allocate a new chunk of uninitialized memory
-            pointer newBlock { m_allocator.allocate(_new_block_size) };
-
-            // Keep all allocated blocks in 'pool' to delete them later:
-            pool.push_back(newBlock);
-
-            available.resize(_new_block_size);
-            std::iota(std::begin(available), std::end(available), newBlock);
-
-            _capacity += _new_block_size;
-            _new_block_size *= GROWTH_STRATEGY;
-        }
-
-        // The allocator to use for allocating and deallocating chunks.
-        Allocator m_allocator;
-
-    public:
-
-        struct Deleter final
-        {
-            ObjectPool* pool {nullptr};
-
-            void operator()(pointer object) const noexcept
-            {
-                std::destroy_at(object);
-
-                // Return object mem pointer back to pool
-                pool->available.push_back(object);
-                --pool->_size;
-            }
-        };
-
-    public:
-        using ObjectPtr = std::unique_ptr<object_type, Deleter>;
-
-    public:
-        ObjectPool() = default;
-
-        explicit ObjectPool(const Allocator& allocator) : m_allocator{ allocator } {
-            // Trivial
-        }
-
-        virtual ~ObjectPool()
-        {   // Note: this implementation assumes that all objects handed out by this
-            // pool have been returned to the pool before the pool is destroyed.
-            // The following statement asserts if that is not the case.
-            assert(available.size() == DEFAULT_CHUNK_SIZE * (std::pow(2, pool.size()) - 1));
-
-            // Deallocate all allocated memory.
-            size_t chunkSize{ DEFAULT_CHUNK_SIZE };
-            for (auto* chunk : pool) {
-                m_allocator.deallocate(chunk, chunkSize);
-                chunkSize *= GROWTH_STRATEGY;
-            }
-        }
-
-        // Allow move construction and move assignment.
-        ObjectPool(ObjectPool&& src) noexcept = default;
-        ObjectPool& operator=(ObjectPool&& rhs) noexcept = default;
-
-        // Prevent copy construction and copy assignment.
-        ObjectPool(const ObjectPool& src) = delete;
-        ObjectPool& operator=(const ObjectPool& rhs) = delete;
-
-        // Reserves and returns an object from the pool. Arguments can be
-        // provided which are perfectly forwarded to a constructor of T.
-        template<typename... Args>
-        std::unique_ptr<object_type, Deleter> acquireObject(Args... args)
-        {
-            // If there are no free objects, allocate a new chunk.
-            if (available.empty()) {
-                addChunk();
-            }
-
-            // Initialize, i.e. construct, an instance of T in an uninitialized block of memory
-            // using placement new, and perfectly forward any provided arguments to the constructor.
-            pointer objectPtr = new (available.back()) object_type { std::forward<Args>(args)... };
-
-            // Remove the object from the list of free objects.
-            available.pop_back();
-            ++_size;
-
-            // Wrap the initialized object and return it.
-            return std::unique_ptr<object_type, Deleter> { objectPtr, Deleter{this}};
-        }
-
-        [[nodiscard]]
-        size_type size() const noexcept {
-            return _size;
-        }
-
-        [[nodiscard]]
-        size_type capacity() const noexcept {
-            return _capacity;
-        }
-    };
-}
-
-
-namespace MatchingEngine_OrderAsPtr_Alloc
+namespace MatchingEngine_Simple
 {
     using namespace Common;
 
@@ -192,79 +67,55 @@ namespace MatchingEngine_OrderAsPtr_Alloc
         }
     };
 
-
     struct Trades
     {
         std::vector<Trade> trades {};
-
-        Trades()
-        {
-            trades.reserve(10'000'000);
-        }
 
         Trade& addTrade() {
             return trades.emplace_back();
         }
     };
 
-
-    /*
-    struct Trades
-    {
-        // std::vector<Trade> trades {};
-        Trade dummyTread;
-
-        Trade& addTrade() {
-            // return trades.emplace_back();
-            return dummyTread;
-        }
-    };
-     */
-
     struct OrderMatchingEngine
     {
-        // using OrderPtr = std::unique_ptr<Order>;
-        using OrderPtr = std::unique_ptr<Order, Memory::ObjectPool<Order>::Deleter>;
-
-        using OrderIter = typename std::list<OrderPtr>::iterator;
+        using OrderIter = typename std::list<Order>::iterator;
         using PriceOrderList = std::list<OrderIter>;
-        using PriceOrderListPtr = PriceOrderList*;
-        using PriceOrderListIter = typename PriceOrderList::iterator;
+        using PriceOrderIter = typename PriceOrderList::iterator;
 
         struct ReferencesBlock
         {
             OrderIter orderIter;
-            PriceOrderListIter priceOrderIter;
-            PriceOrderListPtr priceLevelOrderList;
+            PriceOrderIter priceOrderIter;
+            PriceOrderList* priceLevelOrderList;
         };
 
-        std::list<OrderPtr> orders {};
+        std::list<Order> orders {};
         std::unordered_map<Order::IDType, ReferencesBlock> orderByIDMap;
 
         // TODO: Test replace std::map --> boost::flat_map [std::list --> shall be pointer?]
         //       Since look performance of this lookup is more critical one
 
 #if 0
-        std::map<Order::Price, PriceOrderListPtr, std::less<>> buyOrders;
-        std::map<Order::Price, PriceOrderListPtr, std::greater<>> sellOrders;
+        std::map<Order::Price, PriceOrderList, std::less<>> buyOrders;
+        std::map<Order::Price, PriceOrderList, std::greater<>> sellOrders;
 #else
-        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::less<>> buyOrders;
-        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::greater<>> sellOrders;
+        boost::container::flat_map<Order::Price, PriceOrderList, std::less<>> buyOrders;
+        boost::container::flat_map<Order::Price, PriceOrderList, std::greater<>> sellOrders;
 #endif
 
         Trades trades;
 
-        void processOrder(OrderPtr&& order)
+        void processOrder(Order& order)
         {
             // TODO: Remove branching ???
-            switch (order->action)
+            switch (order.action)
             {
                 case OrderActionType::NEW:
-                    return handleOrderNew(std::move(order));
+                    return handleOrderNew(order);
                 case OrderActionType::CANCEL:
-                    return handleOrderCancel(*order);
+                    return handleOrderCancel(order);
                 case OrderActionType::AMEND:
-                    return handleOrderAmend(std::move(order));
+                    return handleOrderAmend(order);
                 default:
                     return;
             }
@@ -295,14 +146,12 @@ namespace MatchingEngine_OrderAsPtr_Alloc
         }
 
         void matchOrderList(Order& order,
-                            PriceOrderList* matchedOrderList)
+                            PriceOrderList& matchedOrderList)
         {
-            for (auto orderIter = matchedOrderList->begin(); matchedOrderList->end() != orderIter;)
+            for (auto orderIter = matchedOrderList.begin(); matchedOrderList.end() != orderIter;)
             {
-                Order& matchedOrder = **(*orderIter);
+                Order& matchedOrder = *(*orderIter);
 
-                // FIXME : Required performance improvements: cause of ~35% CPU usage
-#if 1
                 Trade& trade = trades.addTrade();
                 trade.setQuantity(std::min(matchedOrder.quantity,order.quantity));
                 // TODO: Remove branching ???
@@ -311,7 +160,6 @@ namespace MatchingEngine_OrderAsPtr_Alloc
                 } else {
                     trade.setBuyOrder(order).setSellOrder(matchedOrder);
                 }
-#endif
 
                 if (order.quantity >= matchedOrder.quantity)
                 {
@@ -320,7 +168,7 @@ namespace MatchingEngine_OrderAsPtr_Alloc
 
                     /** Deleting order **/
                     orderByIDMap.erase(matchedOrder.orderId);
-                    matchedOrderList->erase(orderIter++);
+                    matchedOrderList.erase(orderIter++);
                 } else {
                     matchedOrder.quantity -= order.quantity;
                     order.quantity = 0;
@@ -330,31 +178,21 @@ namespace MatchingEngine_OrderAsPtr_Alloc
             }
         }
 
-        template<class Map>
-        PriceOrderListPtr getOrderPriceList(Map& map, const Order::Price& price)
+        void handleOrderNew(Order& order)
         {
-            const auto [iter, inserted] = map.emplace(price, nullptr);
-            if (inserted) {
-                iter->second = new PriceOrderList() ;
-            }
-            return iter->second;
-        };
-
-        void handleOrderNew(OrderPtr&& order)
-        {
-            if (0 == matchOrder(*order)) {
+            if (0 == matchOrder(order)) {
                 return;
             }
 
-            const auto [iterOrderMap, inserted] = orderByIDMap.emplace(order->orderId, ReferencesBlock{});
+            const auto [iterOrderMap, inserted] = orderByIDMap.emplace(order.orderId, ReferencesBlock{});
             if (inserted)
             {
                 auto& [orderIter, priceOrderIter, priceLevelOrderList] = iterOrderMap->second;
-                orderIter = orders.insert(orders.end(), nullptr);
-                priceLevelOrderList = (OrderSide::BUY == order->side) ? getOrderPriceList(buyOrders, order->price ) :
-                                      getOrderPriceList(sellOrders, order->price );
+                orderIter = orders.insert(orders.end(), order);
+                // TODO: Remove branching ???
+                priceLevelOrderList = (OrderSide::BUY == order.side) ?
+                                      &buyOrders[order.price] : &sellOrders[order.price];
                 priceOrderIter = priceLevelOrderList->insert(priceLevelOrderList->end(), orderIter);
-                *orderIter = std::move(order);
             }
         }
 
@@ -370,42 +208,48 @@ namespace MatchingEngine_OrderAsPtr_Alloc
             }
         }
 
-        void handleOrderAmend(OrderPtr&& order)
+        void handleOrderAmend(Order& order)
         {
-            if (const auto orderByIDIter = orderByIDMap.find(order->orderId);
+            if (const auto orderByIDIter = orderByIDMap.find(order.orderId);
                     orderByIDMap.end() != orderByIDIter)
             {
                 // TODO: Remove branching ???
-                Order& orderOriginal = **(orderByIDIter->second.orderIter);
-                if (orderOriginal.side != order->side) {
+                Order& orderOriginal = *(orderByIDIter->second.orderIter);
+                if (orderOriginal.side != order.side) {
                     return;
-                } else if (orderOriginal.price != order->price) {
-                    handleOrderCancel(*order);
-                    handleOrderNew(std::move(order));
-                } else if (orderOriginal.price == order->price) {
+                } else if (orderOriginal.price != order.price) {
+                    handleOrderCancel(order);
+                    handleOrderNew(order);
+                } else if (orderOriginal.price == order.price) {
                     // TODO: update order parameters
-                    orderOriginal.quantity = order->quantity;
+                    orderOriginal.quantity = order.quantity;
                 }
             }
         }
 
-        void info([[maybe_unused]] bool printTrades = true)
+        void info(bool printTrades = true)
         {
+            for (const auto& [orderId, orderIter]: orderByIDMap) {
+                Order& orderOne = *orderIter.orderIter;
+                Order& orderTwo = *(*orderIter.priceOrderIter);
+                if (orderId != orderOne.orderId || orderId != orderTwo.orderId) {
+                    std::cerr << "ERROR: ID: " << orderId << "!= " << orderOne.orderId << std::endl;
+                }
+            }
+
             auto printOrders = [](const auto& orderMap) {
                 for (const auto& [price, ordersList]: orderMap) {
                     std::cout << "\tPrice: [" << price << "]" << std::endl;
-                    for (const auto & orderIter: *ordersList) {
-                        Common::printOrder(**orderIter);
+                    for (const auto & orderIter: ordersList) {
+                        Common::printOrder(*orderIter);
                     }
                 }
             };
 
-
             std::cout << "BUY:  " << std::endl; printOrders(buyOrders);
             std::cout << "SELL: " << std::endl; printOrders(sellOrders);
-            std::cout << std::string(160, '=') << std::endl;
 
-            /*
+            std::cout << std::string(160, '=') << std::endl;
             if (!printTrades)
                 return;
             for (const auto& trade: trades.trades)
@@ -413,33 +257,14 @@ namespace MatchingEngine_OrderAsPtr_Alloc
                 std::cout << "Trade(Buy: {id: " << trade.buyOrderInfo.id  << ", price: " << trade.buyOrderInfo.price << "}, "
                           << "Sell: {id: " << trade.sellOrderInfo.id << ", price: " << trade.sellOrderInfo.price << "}, "
                           << "quantity: " << trade.quantity << ")\n";
-            }*/
+            }
         }
     };
 }
 
-
-namespace Tests_OrderAsPtr_Alloc
+namespace MatchingEngine_Simple_Tests
 {
-    using namespace MatchingEngine_OrderAsPtr_Alloc;
-    using OrderPtr = MatchingEngine_OrderAsPtr_Alloc::OrderMatchingEngine::OrderPtr ;
-
-    Memory::ObjectPool<Order> ordersPool;
-
-    void Trade_DEBUG()
-    {
-        OrderMatchingEngine engine;
-
-        OrderPtr order { ordersPool.acquireObject() };
-        order->side = OrderSide::BUY;
-        order->price = 123;
-        order->quantity = 3;
-        order->orderId = getNextOrderID();
-
-        engine.processOrder(std::move(order));
-
-        engine.info();
-    }
+    using namespace MatchingEngine_Simple;
 
     void Trade_SELL()
     {
@@ -449,24 +274,25 @@ namespace Tests_OrderAsPtr_Alloc
             if (price > 16)
                 price = 10;
 
-            OrderPtr order { ordersPool.acquireObject() };
-            order->side = OrderSide::BUY;
-            order->price = price+=2;
-            order->quantity = 3;
-            order->orderId = getNextOrderID();
+            Order order;
+            order.side = OrderSide::BUY;
+            order.price = price+=2;
+            order.quantity = 3;
+            order.orderId = getNextOrderID();
 
-            engine.processOrder(std::move(order));
+            engine.processOrder(order);
         }
         engine.info();
         std::cout << std::string(160, '=') << std::endl;
 
+
         {
-            OrderPtr order { ordersPool.acquireObject() };
-            order->side = OrderSide::SELL;
-            order->price = 15;
-            order->quantity = 10;
-            order->orderId = getNextOrderID();
-            engine.processOrder(std::move(order));
+            Order order;
+            order.side = OrderSide::SELL;
+            order.price = 15;
+            order.quantity = 10;
+            order.orderId = getNextOrderID();
+            engine.processOrder(order);
         }
 
         std::cout << std::string(160, '=') << std::endl;
@@ -474,7 +300,7 @@ namespace Tests_OrderAsPtr_Alloc
         engine.info();
         std::cout << std::string(160, '=') << std::endl;
     }
-    /*
+
     void Trade_BUY()
     {
         OrderMatchingEngine engine;
@@ -578,12 +404,14 @@ namespace Tests_OrderAsPtr_Alloc
 
         engine.info();
     }
-    */
 
     void Load_Test()
     {
         constexpr uint32_t pricesCount { 50  }, initialPrice { 10 };
         constexpr uint32_t buyOrders { 100 }, sellOrders { 100 };
+
+        [[maybe_unused]]
+        constexpr uint32_t cancelOrders { 30 };
 
         OrderMatchingEngine engine;
 
@@ -594,8 +422,9 @@ namespace Tests_OrderAsPtr_Alloc
         iDs.reserve(pricesCount * buyOrders * 10);
 
 
-        PerfUtilities::ScopedTimer timer { "Tests_OrderAsPtr_Alloc"};
+        PerfUtilities::ScopedTimer timer { "MatchingEngine"};
         uint64_t count = 0;
+        Order order;
 
         for (int i = 0; i < 400; ++i)
         {
@@ -603,13 +432,12 @@ namespace Tests_OrderAsPtr_Alloc
                 for (uint32_t n = 0; n < buyOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
-                    OrderPtr order { ordersPool.acquireObject() };
-                    order->side = OrderSide::BUY;
-                    order->price = price;
-                    order->quantity = 10;
-                    order->orderId = iDs.back();
+                    order.side = OrderSide::BUY;
+                    order.price = price;
+                    order.quantity = 10;
+                    order.orderId = iDs.back();
 
-                    engine.processOrder(std::move(order));
+                    engine.processOrder(order);
                     ++count;
                 }
             }
@@ -617,13 +445,12 @@ namespace Tests_OrderAsPtr_Alloc
                 for (uint32_t n = 0; n < sellOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
-                    OrderPtr order { ordersPool.acquireObject() };
-                    order->side = OrderSide::SELL;
-                    order->price = price;
-                    order->quantity = 10;
-                    order->orderId = iDs.back();
+                    order.side = OrderSide::SELL;
+                    order.price = price;
+                    order.quantity = 10;
+                    order.orderId = iDs.back();
 
-                    engine.processOrder(std::move(order));
+                    engine.processOrder(order);
                     ++count;
                 }
             }
@@ -631,13 +458,12 @@ namespace Tests_OrderAsPtr_Alloc
                 for (uint32_t n = 0; n < sellOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
-                    OrderPtr order { ordersPool.acquireObject() };
-                    order->side = OrderSide::SELL;
-                    order->price = price;
-                    order->quantity = 10;
-                    order->orderId = iDs.back();
+                    order.side = OrderSide::SELL;
+                    order.price = price;
+                    order.quantity = 10;
+                    order.orderId = iDs.back();
 
-                    engine.processOrder(std::move(order));
+                    engine.processOrder(order);
                     ++count;
                 }
             }
@@ -645,20 +471,18 @@ namespace Tests_OrderAsPtr_Alloc
                 for (uint32_t n = 0; n < buyOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
-                    OrderPtr order { ordersPool.acquireObject() };
-                    order->side = OrderSide::BUY;
-                    order->price = price;
-                    order->quantity = 10;
-                    order->orderId = iDs.back();
+                    order.side = OrderSide::BUY;
+                    order.price = price;
+                    order.quantity = 10;
+                    order.orderId = iDs.back();
 
-                    engine.processOrder(std::move(order));
+                    engine.processOrder(order);
                     ++count;
                 }
             }
 
             iDs.clear();
         }
-
 
         //engine.info(false);
         std::cout << count << std::endl;
@@ -669,20 +493,21 @@ namespace Tests_OrderAsPtr_Alloc
 //  1. Add allocator to create Orders --> may help when Order size is large
 //     OrderPool -- Tests
 
-void MatchingEngine_OrderAsPtr_Alloc::TestAll()
+void MatchingEngine_Simple::TestAll()
 {
-    using namespace Tests_OrderAsPtr_Alloc;
+    using namespace MatchingEngine_Simple_Tests;
 
-    // Trade_DEBUG();
     // Trade_SELL();
     // Trade_BUY();
     // Trade_AMEND();
     // Trade_AMEND_PriceUpdate();
+
+    Load_Test(); // 0.977487 seconds
+
 }
 
-void MatchingEngine_OrderAsPtr_Alloc::LoadTest()
+void MatchingEngine_Simple::LoadTest()
 {
-
-    using namespace Tests_OrderAsPtr_Alloc;
-    Load_Test();
+    using namespace MatchingEngine_Simple_Tests;
+    Load_Test(); // 0.977487 seconds
 }

@@ -11,10 +11,18 @@ Description : Order.cpp
 
 namespace Common
 {
-    void printOrder(const Order& order, const std::string& offset)
+    void printOrder(const Order& order,
+                    const std::string& offset)
     {
         std::cout << offset << "Order (id: " << order.orderId << ", price: " << order.price
                   << ", quantity: " << order.quantity << ")\n";
+    }
+
+
+    std::ostream& operator<<(std::ostream& stream, const Order& order)
+    {
+        stream << "Order { id: " << order.orderId << ", price: " << order.price << ", quantity: " << order.quantity << '}';
+        return stream;
     }
 }
 

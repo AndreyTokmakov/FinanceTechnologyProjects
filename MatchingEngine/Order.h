@@ -125,7 +125,7 @@ namespace Common
         IDType accountId { 0 };
         IDType parentAccountId { 0 };
         IDType marketId { 0 };
-        long long price { 0 };
+        Price price { 0 };
         unsigned long long quantity { 0 };
         unsigned long long displayQuantity { 0 };
         unsigned long long remainQuantity { 0 };
@@ -164,6 +164,7 @@ namespace Common
     };
 
     void printOrder(const Order& order, const std::string& offset = "\t\t");
+    std::ostream& operator<<(std::ostream& stream, const Order& order);
 }
 
 #endif //CPPPROJECTS_ORDER_H

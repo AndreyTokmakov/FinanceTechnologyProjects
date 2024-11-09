@@ -279,6 +279,12 @@ namespace MatchingEngine
             auto matchedPriceLevelIter = oppositeSideOrdersPriceMap.lower_bound(order.price);
             while (oppositeSideOrdersPriceMap.end() != matchedPriceLevelIter && order.quantity > 0)
             {
+                {
+                    const std::list<OrderIter> &priceLvlOrderList = *matchedPriceLevelIter->second;
+                    const OrderIter& firstOrder = *priceLvlOrderList.begin();
+                    std::cout << "=====> "; printOrder(**firstOrder);
+                }
+
                 matchOrderList(order, matchedPriceLevelIter->second);
                 ++matchedPriceLevelIter;
             }
@@ -292,7 +298,7 @@ namespace MatchingEngine
                 Order& matchedOrder = **(*orderIter);
 
                 // FIXME : Required performance improvements: cause of ~35% CPU usage
-#if 1
+#if 0
                 Trade& trade = trades.addTrade();
                 trade.setQuantity(std::min(matchedOrder.quantity,order.quantity));
                 // TODO: Remove branching ???
@@ -302,6 +308,8 @@ namespace MatchingEngine
                     trade.setBuyOrder(order).setSellOrder(matchedOrder);
                 }
 #endif
+
+                 std::cout << order <<  " ==> " << matchedOrder << std::endl;
 
                 if (order.quantity >= matchedOrder.quantity)
                 {
@@ -381,9 +389,10 @@ namespace MatchingEngine
 
         void info([[maybe_unused]] bool printTrades = true)
         {
-            auto printOrders = [](const auto& orderMap) {
+            auto printOrders = [](const auto& orderMap)
+            {
                 for (const auto& [price, ordersList]: orderMap) {
-                    std::cout << "\tPrice: [" << price << "]" << std::endl;
+                    std::cout << "\tPrice Level : [" << price << "]" << std::endl;
                     for (const auto & orderIter: *ordersList) {
                         Common::printOrder(**orderIter);
                     }
@@ -415,7 +424,7 @@ namespace MatchingEngine_Tests
 
     Memory::ObjectPool<Order> ordersPool;
 
-    void PostOrder_BUY()
+    void PostOrder_Single_BUY()
     {
         OrderMatchingEngine engine;
 
@@ -429,10 +438,77 @@ namespace MatchingEngine_Tests
 
         engine.info();
     }
+
+
+    void PostOrder_Multiple_BUY()
+    {
+        OrderMatchingEngine engine;
+
+        const std::array<Order::Price, 5> prices { 5, 6, 7, 8, 9 };
+        for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 5; ++n)
+        {
+            OrderPtr order { ordersPool.acquireObject() };
+            order->side = OrderSide::BUY;
+            order->price = prices[priceIdx++];
+            order->quantity = 3;
+            order->orderId = getNextOrderID();
+
+            engine.processOrder(std::move(order));
+
+            if (priceIdx >= prices.size())
+                priceIdx = 0;
+        }
+
+
+        engine.info();
+    }
+
+    void Trade_SELL()
+    {
+        OrderMatchingEngine engine;
+
+
+        const std::array<Order::Price, 5> prices { 5, 6, 7, 8, 9 };
+        for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 3; ++n)
+        {
+            OrderPtr order { ordersPool.acquireObject() };
+            order->side = OrderSide::BUY;
+            order->price = prices[priceIdx++];
+            order->quantity = 2;
+            order->orderId = getNextOrderID();
+
+            engine.processOrder(std::move(order));
+
+            if (priceIdx >= prices.size())
+                priceIdx = 0;
+        }
+        engine.info();
+
+
+        {
+            OrderPtr order { ordersPool.acquireObject() };
+            order->side = OrderSide::SELL;
+            order->price = 8;
+            order->quantity = 10;
+            order->orderId = getNextOrderID();
+
+            printOrder(*order.get());
+            std::cout << std::string(160, '=') << std::endl;
+
+            engine.processOrder(std::move(order));
+        }
+
+        std::cout << std::string(160, '=') << std::endl;
+
+        engine.info();
+    }
 }
 
 
 void MatchingEngine::TestAll()
 {
-    MatchingEngine_Tests::PostOrder_BUY();
+    // MatchingEngine_Tests::PostOrder_Single_BUY();
+    // MatchingEngine_Tests::PostOrder_Multiple_BUY();
+
+    MatchingEngine_Tests::Trade_SELL();
 }

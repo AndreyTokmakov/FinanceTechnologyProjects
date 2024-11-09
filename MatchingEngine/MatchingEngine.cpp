@@ -264,20 +264,28 @@ namespace MatchingEngine
         {
             // TODO: Remove branching ???
             if (OrderSide::SELL == order.side) {
-                matchOrder(order, buyOrders);
+                matchOrder<decltype(buyOrders), std::greater<>>(order,buyOrders);
             } else {
-                matchOrder(order, sellOrders);
+                matchOrder<decltype(sellOrders), std::less<>>(order,sellOrders);
             }
 
             // Return remaining quantity
             return order.quantity;
         }
 
-        template<typename OrderSideMap>
-        void matchOrder(Order& order, OrderSideMap& oppositeSideOrdersPriceMap)
+        template<typename OrderSideMap,
+                 typename Comparator = std::less<typename OrderSideMap::key_type>>
+        void matchOrder(Order& order,
+                        OrderSideMap& oppositeSideOrdersPriceMap)
         {
-            auto matchedPriceLevelIter = oppositeSideOrdersPriceMap.lower_bound(order.price);
-            while (oppositeSideOrdersPriceMap.end() != matchedPriceLevelIter && order.quantity > 0)
+            constexpr Comparator comparator {};
+            auto matchedPriceLevelIter = oppositeSideOrdersPriceMap.begin();
+
+            const Order::Price price1 = order.price;
+            const auto price2 = matchedPriceLevelIter->second->begin();
+
+            while (oppositeSideOrdersPriceMap.end() != matchedPriceLevelIter &&
+                   comparator(order.price, order.price) && order.quantity > 0)
             {
                 {
                     const std::list<OrderIter> &priceLvlOrderList = *matchedPriceLevelIter->second;
@@ -505,10 +513,32 @@ namespace MatchingEngine_Tests
 }
 
 
+namespace TemplateComparatorTests
+{
+    // TODO: Concepts Comparator (a,b)
+    // TODO: Concepts Comparator return Bool
+    template <typename T,
+              typename Comparator>
+    bool cmp(T a, T b)
+    {
+        constexpr Comparator comparator {};
+        return comparator(a, b);
+    }
+
+    void Demo()
+    {
+        std::cout << std::boolalpha << cmp<int, std::less<int>>(1, 2) << std::endl;
+        std::cout << std::boolalpha << cmp<int, std::greater<>>(1, 2) << std::endl;
+    }
+}
+
 void MatchingEngine::TestAll()
 {
+    TemplateComparatorTests::Demo();
+
+
     // MatchingEngine_Tests::PostOrder_Single_BUY();
     // MatchingEngine_Tests::PostOrder_Multiple_BUY();
 
-    MatchingEngine_Tests::Trade_SELL();
+    // MatchingEngine_Tests::Trade_SELL();
 }

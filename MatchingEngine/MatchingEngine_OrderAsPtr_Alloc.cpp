@@ -400,7 +400,6 @@ namespace MatchingEngine_OrderAsPtr_Alloc
                 }
             };
 
-
             std::cout << "BUY:  " << std::endl; printOrders(buyOrders);
             std::cout << "SELL: " << std::endl; printOrders(sellOrders);
             std::cout << std::string(160, '=') << std::endl;

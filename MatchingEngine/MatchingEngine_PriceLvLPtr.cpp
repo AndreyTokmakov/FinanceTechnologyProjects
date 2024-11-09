@@ -263,7 +263,7 @@ namespace TestMatchingEngine_ListPtr
             }
         }
 
-        void info(bool printTrades = true)
+        void info([[maybe_unused]] bool printTrades = true)
         {
             for (const auto& [orderId, orderIter]: orderByIDMap) {
                 Order& orderOne = *orderIter.orderIter;
@@ -446,7 +446,7 @@ namespace Tests_ListPtr
     void Load_Test()
     {
         constexpr uint32_t pricesCount { 50  }, initialPrice { 10 };
-        constexpr uint32_t buyOrders { 100 }, sellOrders { 100 }, cancelOrders { 30 };
+        constexpr uint32_t buyOrders { 100 }, sellOrders { 100 };
 
         OrderMatchingEngine engine;
 
@@ -463,8 +463,8 @@ namespace Tests_ListPtr
 
         for (int i = 0; i < 400; ++i)
         {
-            for (int32_t price: prices) {
-                for (int32_t n = 0; n < buyOrders; ++n) {
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < buyOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
                     order.side = OrderSide::BUY;
@@ -476,8 +476,8 @@ namespace Tests_ListPtr
                     ++count;
                 }
             }
-            for (int32_t price: prices) {
-                for (int32_t n = 0; n < sellOrders; ++n) {
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < sellOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
                     order.side = OrderSide::SELL;
@@ -489,8 +489,8 @@ namespace Tests_ListPtr
                     ++count;
                 }
             }
-            for (int32_t price: prices) {
-                for (int32_t n = 0; n < sellOrders; ++n) {
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < sellOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
                     order.side = OrderSide::SELL;
@@ -502,8 +502,8 @@ namespace Tests_ListPtr
                     ++count;
                 }
             }
-            for (int32_t price: prices) {
-                for (int32_t n = 0; n < buyOrders; ++n) {
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < buyOrders; ++n) {
                     iDs.push_back(getNextOrderID());
 
                     order.side = OrderSide::BUY;

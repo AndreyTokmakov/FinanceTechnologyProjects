@@ -345,6 +345,7 @@ namespace Tests_OrderAsPtr
         engine.info();
         std::cout << std::string(160, '=') << std::endl;
     }
+
     /*
     void Trade_BUY()
     {

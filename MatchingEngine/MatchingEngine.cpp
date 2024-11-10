@@ -238,8 +238,8 @@ namespace MatchingEngine
         std::map<Order::Price, PriceOrderListPtr, std::less<>> buyOrders;
         std::map<Order::Price, PriceOrderListPtr, std::greater<>> sellOrders;
 #else
-        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::less<>> buyOrders;
-        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::greater<>> sellOrders;
+        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::greater<>> buyOrders;
+        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::less<>> sellOrders;
 #endif
 
         Trades trades;
@@ -264,9 +264,9 @@ namespace MatchingEngine
         {
             // TODO: Remove branching ???
             if (OrderSide::SELL == order.side) {
-                matchOrder<decltype(buyOrders), std::greater<>>(order,buyOrders);
+                matchOrder<decltype(buyOrders), std::greater_equal<>>(order,buyOrders);
             } else {
-                matchOrder<decltype(sellOrders), std::less<>>(order,sellOrders);
+                matchOrder<decltype(sellOrders), std::less_equal<>>(order,sellOrders);
             }
 
             // Return remaining quantity
@@ -276,23 +276,22 @@ namespace MatchingEngine
         template<typename OrderSideMap,
                  typename Comparator = std::less<typename OrderSideMap::key_type>>
         void matchOrder(Order& order,
-                        OrderSideMap& oppositeSideOrdersPriceMap)
-        {
-            constexpr Comparator comparator {};
+                        OrderSideMap& oppositeSideOrdersPriceMap) {
+            constexpr Comparator comparator{};
             auto matchedPriceLevelIter = oppositeSideOrdersPriceMap.begin();
 
-            const Order::Price price1 = order.price;
-            const auto price2 = matchedPriceLevelIter->second->begin();
+#if 0
+            // FIXME: **** DEBUG ****
+            if (oppositeSideOrdersPriceMap.end() != matchedPriceLevelIter)
+            {
+                std::cout << __PRETTY_FUNCTION__ << std::endl;
+                std::cout << order <<  " ==> " << (**(*matchedPriceLevelIter->second->begin())) << std::endl;
+            }
+#endif
 
             while (oppositeSideOrdersPriceMap.end() != matchedPriceLevelIter &&
-                   comparator(order.price, order.price) && order.quantity > 0)
+                   comparator((*(*matchedPriceLevelIter->second->begin()))->price, order.price) && order.quantity > 0)
             {
-                {
-                    const std::list<OrderIter> &priceLvlOrderList = *matchedPriceLevelIter->second;
-                    const OrderIter& firstOrder = *priceLvlOrderList.begin();
-                    std::cout << "=====> "; printOrder(**firstOrder);
-                }
-
                 matchOrderList(order, matchedPriceLevelIter->second);
                 ++matchedPriceLevelIter;
             }
@@ -317,7 +316,8 @@ namespace MatchingEngine
                 }
 #endif
 
-                 std::cout << order <<  " ==> " << matchedOrder << std::endl;
+                // FIXME: **** DEBUG ****
+                std::cout << order <<  " ==> " << matchedOrder << std::endl;
 
                 if (order.quantity >= matchedOrder.quantity)
                 {
@@ -476,7 +476,7 @@ namespace MatchingEngine_Tests
         OrderMatchingEngine engine;
 
 
-        const std::array<Order::Price, 5> prices { 5, 6, 7, 8, 9 };
+        const std::vector<Order::Price> prices { 5, 6, 7, 8, 9 };
         for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 3; ++n)
         {
             OrderPtr order { ordersPool.acquireObject() };
@@ -497,7 +497,47 @@ namespace MatchingEngine_Tests
             OrderPtr order { ordersPool.acquireObject() };
             order->side = OrderSide::SELL;
             order->price = 8;
-            order->quantity = 10;
+            order->quantity = 11;
+            order->orderId = getNextOrderID();
+
+            printOrder(*order.get());
+            std::cout << std::string(160, '=') << std::endl;
+
+            engine.processOrder(std::move(order));
+        }
+
+        std::cout << std::string(160, '=') << std::endl;
+
+        engine.info();
+    }
+
+    void Trade_BUY()
+    {
+        OrderMatchingEngine engine;
+
+
+        const std::vector<Order::Price> prices { 5, 6, 7, 8, 9 };
+        for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 3; ++n)
+        {
+            OrderPtr order { ordersPool.acquireObject() };
+            order->side = OrderSide::SELL;
+            order->price = prices[priceIdx++];
+            order->quantity = 2;
+            order->orderId = getNextOrderID();
+
+            engine.processOrder(std::move(order));
+
+            if (priceIdx >= prices.size())
+                priceIdx = 0;
+        }
+        engine.info();
+
+
+        {
+            OrderPtr order { ordersPool.acquireObject() };
+            order->side = OrderSide::BUY;
+            order->price = 6;
+            order->quantity = 11;
             order->orderId = getNextOrderID();
 
             printOrder(*order.get());
@@ -532,13 +572,21 @@ namespace TemplateComparatorTests
     }
 }
 
+
+// TODO:
+//  - Сделать тестовый класс MatchingEngineTester --> что бы добавить тестовую функциональность не меняя MatchingEngine
+
+// TODO:
+//  - Сделать тесты такие что проветь автоматически
+
 void MatchingEngine::TestAll()
 {
-    TemplateComparatorTests::Demo();
+    // TemplateComparatorTests::Demo();
 
 
     // MatchingEngine_Tests::PostOrder_Single_BUY();
     // MatchingEngine_Tests::PostOrder_Multiple_BUY();
 
     // MatchingEngine_Tests::Trade_SELL();
+    MatchingEngine_Tests::Trade_BUY();
 }

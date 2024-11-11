@@ -15,6 +15,7 @@ Description : MatchingEngine.cpp
 #include <numeric>
 #include <list>
 #include <vector>
+#include <map>
 #include <unordered_map>
 
 #include <boost/container/flat_map.hpp>
@@ -235,10 +236,16 @@ namespace MatchingEngine
         //       Since look performance of this lookup is more critical one
 
 #if 0
-        std::map<Order::Price, PriceOrderListPtr, std::less<>> buyOrders;
-        std::map<Order::Price, PriceOrderListPtr, std::greater<>> sellOrders;
+        /** BID's (BUY Orders) PriceLevels **/
+        std::map<Order::Price, PriceOrderListPtr, std::greater<>> buyOrders;
+
+        /** ASK's (SELL Orders) PriceLevels **/
+        std::map<Order::Price, PriceOrderListPtr, std::less<>> sellOrders;
 #else
+        /** BID's (BUY Orders) PriceLevels **/
         boost::container::flat_map<Order::Price, PriceOrderListPtr, std::greater<>> buyOrders;
+
+        /** ASK's (SELL Orders) PriceLevels **/
         boost::container::flat_map<Order::Price, PriceOrderListPtr, std::less<>> sellOrders;
 #endif
 
@@ -276,24 +283,21 @@ namespace MatchingEngine
         template<typename OrderSideMap,
                  typename Comparator = std::less<typename OrderSideMap::key_type>>
         void matchOrder(Order& order,
-                        OrderSideMap& oppositeSideOrdersPriceMap) {
+                        OrderSideMap& oppositeSideOrdersPriceMap)
+        {
             constexpr Comparator comparator{};
             auto matchedPriceLevelIter = oppositeSideOrdersPriceMap.begin();
 
-#if 0
-            // FIXME: **** DEBUG ****
-            if (oppositeSideOrdersPriceMap.end() != matchedPriceLevelIter)
-            {
-                std::cout << __PRETTY_FUNCTION__ << std::endl;
-                std::cout << order <<  " ==> " << (**(*matchedPriceLevelIter->second->begin())) << std::endl;
-            }
-#endif
-
             while (oppositeSideOrdersPriceMap.end() != matchedPriceLevelIter &&
-                   comparator((*(*matchedPriceLevelIter->second->begin()))->price, order.price) && order.quantity > 0)
+                   order.quantity > 0 &&
+                   comparator(matchedPriceLevelIter->first, order.price))
             {
                 matchOrderList(order, matchedPriceLevelIter->second);
-                ++matchedPriceLevelIter;
+                if (matchedPriceLevelIter->second->empty()) {
+                    oppositeSideOrdersPriceMap.erase(matchedPriceLevelIter++);
+                } else {
+                    ++matchedPriceLevelIter;
+                }
             }
         }
 
@@ -305,7 +309,7 @@ namespace MatchingEngine
                 Order& matchedOrder = **(*orderIter);
 
                 // FIXME : Required performance improvements: cause of ~35% CPU usage
-#if 0
+#if 1
                 Trade& trade = trades.addTrade();
                 trade.setQuantity(std::min(matchedOrder.quantity,order.quantity));
                 // TODO: Remove branching ???
@@ -316,8 +320,7 @@ namespace MatchingEngine
                 }
 #endif
 
-                // FIXME: **** DEBUG ****
-                std::cout << order <<  " ==> " << matchedOrder << std::endl;
+
 
                 if (order.quantity >= matchedOrder.quantity)
                 {
@@ -476,8 +479,8 @@ namespace MatchingEngine_Tests
         OrderMatchingEngine engine;
 
 
-        const std::vector<Order::Price> prices { 5, 6, 7, 8, 9 };
-        for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 3; ++n)
+        const std::vector<Order::Price> prices { 5, 6, 7 };
+        for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 1; ++n)
         {
             OrderPtr order { ordersPool.acquireObject() };
             order->side = OrderSide::BUY;
@@ -492,12 +495,11 @@ namespace MatchingEngine_Tests
         }
         engine.info();
 
-
         {
             OrderPtr order { ordersPool.acquireObject() };
             order->side = OrderSide::SELL;
-            order->price = 8;
-            order->quantity = 11;
+            order->price = 7;
+            order->quantity = 2;
             order->orderId = getNextOrderID();
 
             printOrder(*order.get());
@@ -507,14 +509,12 @@ namespace MatchingEngine_Tests
         }
 
         std::cout << std::string(160, '=') << std::endl;
-
         engine.info();
     }
 
     void Trade_BUY()
     {
         OrderMatchingEngine engine;
-
 
         const std::vector<Order::Price> prices { 5, 6, 7, 8, 9 };
         for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 3; ++n)
@@ -547,8 +547,131 @@ namespace MatchingEngine_Tests
         }
 
         std::cout << std::string(160, '=') << std::endl;
-
         engine.info();
+    }
+
+    void Trade_BUY_vs_SELL_EqualNum()
+    {
+        OrderMatchingEngine engine;
+
+        constexpr uint32_t pricesCount { 20 }, initialPrice { 10 };
+        constexpr uint32_t buyOrders { 2 }, sellOrders { 100 };
+
+        std::vector<int32_t> prices(pricesCount);
+        std::iota(prices.begin(), prices.end(), initialPrice);
+
+        std::vector<uint64_t> iDs;
+        iDs.reserve(pricesCount * buyOrders * 10);
+
+
+        for (const uint32_t price: prices)
+        {
+            for (uint32_t n = 0; n < buyOrders; ++n)
+            {
+                OrderPtr order { ordersPool.acquireObject() };
+                order->side = OrderSide::SELL;
+                order->price = price;
+                order->quantity = 2;
+                order->orderId = iDs.emplace_back(getNextOrderID());
+
+                engine.processOrder(std::move(order));
+            }
+        }
+
+        for (const uint32_t price: prices)
+        {
+            for (uint32_t n = 0; n < buyOrders; ++n)
+            {
+                OrderPtr order { ordersPool.acquireObject() };
+                order->side = OrderSide::BUY;
+                order->price = price;
+                order->quantity = 2;
+                order->orderId = iDs.emplace_back(getNextOrderID());
+
+                engine.processOrder(std::move(order));
+            }
+        }
+        engine.info();
+    }
+
+    void Load_Test()
+    {
+        constexpr uint32_t pricesCount { 50  }, initialPrice { 10 };
+        constexpr uint32_t buyOrders { 100 }, sellOrders { 100 };
+
+        OrderMatchingEngine engine;
+
+        std::vector<int32_t> prices(pricesCount);
+        std::iota(prices.begin(), prices.end(), initialPrice);
+
+        std::vector<uint64_t> iDs;
+        iDs.reserve(pricesCount * buyOrders * 10);
+
+
+        PerfUtilities::ScopedTimer timer { "Tests_OrderAsPtr_Alloc"};
+        uint64_t count = 0;
+
+        for (int i = 0; i < 400; ++i)
+        {
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < buyOrders; ++n) {
+                    iDs.push_back(getNextOrderID());
+
+                    OrderPtr order { ordersPool.acquireObject() };
+                    order->side = OrderSide::BUY;
+                    order->price = price;
+                    order->quantity = 10;
+                    order->orderId = iDs.back();
+
+                    engine.processOrder(std::move(order));
+                    ++count;
+                }
+            }
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < sellOrders; ++n) {
+                    iDs.push_back(getNextOrderID());
+
+                    OrderPtr order { ordersPool.acquireObject() };
+                    order->side = OrderSide::SELL;
+                    order->price = price;
+                    order->quantity = 10;
+                    order->orderId = iDs.back();
+
+                    engine.processOrder(std::move(order));
+                    ++count;
+                }
+            }
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < sellOrders; ++n) {
+                    iDs.push_back(getNextOrderID());
+
+                    OrderPtr order { ordersPool.acquireObject() };
+                    order->side = OrderSide::SELL;
+                    order->price = price;
+                    order->quantity = 10;
+                    order->orderId = iDs.back();
+
+                    engine.processOrder(std::move(order));
+                    ++count;
+                }
+            }
+            for (uint32_t price: prices) {
+                for (uint32_t n = 0; n < buyOrders; ++n) {
+                    iDs.push_back(getNextOrderID());
+
+                    OrderPtr order { ordersPool.acquireObject() };
+                    order->side = OrderSide::BUY;
+                    order->price = price;
+                    order->quantity = 10;
+                    order->orderId = iDs.back();
+
+                    engine.processOrder(std::move(order));
+                    ++count;
+                }
+            }
+            iDs.clear();
+        }
+        std::cout << count << std::endl;
     }
 }
 
@@ -588,5 +711,15 @@ void MatchingEngine::TestAll()
     // MatchingEngine_Tests::PostOrder_Multiple_BUY();
 
     // MatchingEngine_Tests::Trade_SELL();
-    MatchingEngine_Tests::Trade_BUY();
+    // MatchingEngine_Tests::Trade_BUY();
+    // MatchingEngine_Tests::Trade_BUY_vs_SELL_EqualNum();
+
+    MatchingEngine_Tests::Load_Test();
+}
+
+
+void MatchingEngine::LoadTest()
+{
+
+    MatchingEngine_Tests::Load_Test();
 }

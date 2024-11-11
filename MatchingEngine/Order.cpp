@@ -14,7 +14,9 @@ namespace Common
     void printOrder(const Order& order,
                     const std::string& offset)
     {
-        std::cout << offset << "Order (id: " << order.orderId << ", price: " << order.price
+        std::cout << offset << "Order (id: " << order.orderId
+                  << ", side: " << (order.side == OrderSide::BUY ? "BUY" : "SELL")
+                  << ", price: " << order.price
                   << ", quantity: " << order.quantity << ")\n";
     }
 

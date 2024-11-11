@@ -32,13 +32,12 @@ int main([[maybe_unused]] int argc,
 
 
 
-
-
-    /*
+    //*
     MatchingEngine_Simple::LoadTest();
     MatchingEngine_PriceLvLPtr::LoadTest();
     MatchingEngine_OrderAsPtr::LoadTest();
     MatchingEngine_OrderAsPtr_Alloc::LoadTest();
+    MatchingEngine::LoadTest();
 
     std::cout << std::string(160, '-') << std::endl;
 
@@ -46,9 +45,11 @@ int main([[maybe_unused]] int argc,
     MatchingEngine_PriceLvLPtr::LoadTest();
     MatchingEngine_OrderAsPtr::LoadTest();
     MatchingEngine_OrderAsPtr_Alloc::LoadTest();
-    */
+    MatchingEngine::LoadTest();
 
-    MatchingEngine::TestAll();
+    //*/
+
+    //MatchingEngine::TestAll();
 
     return EXIT_SUCCESS;
 }

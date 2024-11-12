@@ -32,7 +32,7 @@ int main([[maybe_unused]] int argc,
 
 
 
-    //*
+    /*
     MatchingEngine_Simple::LoadTest();
     MatchingEngine_PriceLvLPtr::LoadTest();
     MatchingEngine_OrderAsPtr::LoadTest();
@@ -47,9 +47,9 @@ int main([[maybe_unused]] int argc,
     MatchingEngine_OrderAsPtr_Alloc::LoadTest();
     MatchingEngine::LoadTest();
 
-    //*/
+    */
 
-    //MatchingEngine::TestAll();
+    MatchingEngine::TestAll();
 
     return EXIT_SUCCESS;
 }

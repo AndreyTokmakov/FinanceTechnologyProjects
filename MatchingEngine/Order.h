@@ -107,9 +107,11 @@ namespace Common
 
     struct Order
     {
-        using IDType  = uint64_t;
-        using OrderID = IDType;
-        using Price   = uint64_t;
+        using IDType   = uint64_t;
+        using OrderID  = IDType;
+        using Price    = uint64_t;
+        using Quantity = uint64_t;
+        using Amount   = uint64_t;
 
         OrderSide side { OrderSide::BUY };
         OrderType type { OrderType::LIMIT };
@@ -126,11 +128,11 @@ namespace Common
         IDType parentAccountId { 0 };
         IDType marketId { 0 };
         Price price { 0 };
-        unsigned long long quantity { 0 };
-        unsigned long long displayQuantity { 0 };
-        unsigned long long remainQuantity { 0 };
-        unsigned long long amount { 0 };
-        unsigned long long remainAmount { 0 };
+        Quantity quantity { 0 };
+        Quantity displayQuantity { 0 };
+        Quantity remainQuantity { 0 };
+        Amount amount { 0 };
+        Amount remainAmount { 0 };
 
         // unsigned char buffer[512] {};
     };

@@ -289,28 +289,28 @@ namespace MatchingEngine
         template<typename OrderSideMap,
                  typename Comparator = std::less<typename OrderSideMap::key_type>>
         void matchOrder(Order& order,
-                        OrderSideMap& oppositeSideOrdersPriceMap)
+                        OrderSideMap& oppositeSidePriceLvlMap)
         {
             constexpr Comparator comparator{};
-            auto matchedPriceLevelIter = oppositeSideOrdersPriceMap.begin();
+            auto itBestLevel = oppositeSidePriceLvlMap.begin();
 
-            while (oppositeSideOrdersPriceMap.end() != matchedPriceLevelIter &&
+            while (oppositeSidePriceLvlMap.end() != itBestLevel &&
                    order.quantity > 0 &&
-                   comparator(matchedPriceLevelIter->first, order.price))
+                   comparator(itBestLevel->first, order.price))
             {
-                const bool levelEmpty = matchOrderList(order, matchedPriceLevelIter->second);
+                const bool levelEmpty = matchOrderList(order, itBestLevel->second);
                 if (levelEmpty) {
-                    oppositeSideOrdersPriceMap.erase(matchedPriceLevelIter);
+                    oppositeSidePriceLvlMap.erase(itBestLevel);
                 } else {
-                    ++matchedPriceLevelIter;
+                    ++itBestLevel;
                 }
             }
         }
 
         bool matchOrderList(Order& order,
-                            PriceOrderList* matchedOrderList)
+                            PriceOrderList* priceLvlOrdersList)
         {
-            for (auto orderIter = matchedOrderList->begin(); matchedOrderList->end() != orderIter;)
+            for (auto orderIter = priceLvlOrdersList->begin(); priceLvlOrdersList->end() != orderIter;)
             {
                 Order& matchedOrder = **(*orderIter);
 
@@ -333,7 +333,7 @@ namespace MatchingEngine
 
                     /** Deleting order **/
                     orderByIDMap.erase(matchedOrder.orderId);
-                    matchedOrderList->erase(orderIter++);
+                    priceLvlOrdersList->erase(orderIter++);
                 } else {
                     matchedOrder.quantity -= order.quantity;
                     order.quantity = 0;
@@ -341,7 +341,7 @@ namespace MatchingEngine
                     break;
                 }
             }
-            return matchedOrderList->empty();
+            return priceLvlOrdersList->empty();
         }
 
         template<class Map>
@@ -377,13 +377,20 @@ namespace MatchingEngine
             if (const auto orderByIDIter = orderByIDMap.find(order.orderId);
                     orderByIDMap.end() != orderByIDIter)
             {
-                auto& [orderIter, priceOrderIter, priceLevelOrderList] = orderByIDIter->second;
+                auto& [orderIter, iterPriceLvlOrder, priceLevelOrderList] = orderByIDIter->second;
 
-                priceLevelOrderList->erase(priceOrderIter);
+                priceLevelOrderList->erase(iterPriceLvlOrder);
                 orders.erase(orderIter);
                 orderByIDMap.erase(orderByIDIter);
-                if (priceLevelOrderList->empty()) {
-                    if ;
+
+                // FIXME: Performance impact
+                if (priceLevelOrderList->empty())
+                {
+                    if (Common::OrderSide::BUY == order.side) {
+                        bidPriceLevelMap.erase(order.price);
+                    } else {
+                        askPriceLevelMap.erase(order.price);
+                    }
                 }
             }
         }
@@ -469,10 +476,26 @@ namespace MatchingEngine
 
         size_t getBuyOrdersCount() const noexcept
         {
-            return bidPriceLevelMap.size();
+            size_t count { 0 };
+            for (const auto& [price, orderList]: bidPriceLevelMap)
+                count += orderList->size();
+            return count;
         }
 
         size_t getSellOrdersCount() const noexcept
+        {
+            size_t count { 0 };
+            for (const auto& [price, orderList]: askPriceLevelMap)
+                count += orderList->size();
+            return count;
+        }
+
+        size_t getBuyPriceLevelCount() const noexcept
+        {
+            return bidPriceLevelMap.size();
+        }
+
+        size_t getSellPriceLevelsCount() const noexcept
         {
             return askPriceLevelMap.size();
         }
@@ -554,11 +577,136 @@ namespace Testsing::MatchingEngine_Utilities_Tests
         ASSERT_TRUE(bestSell.has_value());
     }
 
+    void Test_CANCEL_Order_PriceLevel_Deleted()
+    {
+        OrderMatchingEngineTester engine;
+
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getOrdersCount() == 1);
+
+
+        //OrderPtr cancelOrder = createOrder(OrderSide::BUY, OrderActionType::CANCEL, 3, 3, orderId);
+        //engine.processOrder(std::move(cancelOrder));
+        //engine.info();
+    }
+
+    void Test_CANCEL_Order_TotalOrderCount()
+    {
+        OrderMatchingEngineTester engine;
+
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getOrdersCount() == 1);
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::CANCEL, 3, 3, orderId));
+        ASSERT_TRUE(engine.getOrdersCount() == 0);
+    }
+
+    void Test_CANCEL_Order_PriceLevels_Count_BUY()
+    {
+        OrderMatchingEngineTester engine;
+
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 1);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::CANCEL, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 0);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
+    }
+
+    void Test_CANCEL_Order_PriceLevels_Count_SELL()
+    {
+        OrderMatchingEngineTester engine;
+
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::NEW, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 0);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 1);
+
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::CANCEL, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 0);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
+    }
+
+    void Test_CANCEL_Order_PriceLevels_Count_BUY_Multiple()
+    {
+        OrderMatchingEngineTester engine;
+        constexpr size_t ordersToSend { 100 };
+
+        std::vector<uint64_t> iDs;
+        iDs.reserve(ordersToSend);
+
+        for (size_t idx = 0; idx < ordersToSend; ++idx) {
+            engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW,
+                                            3, 3, iDs.emplace_back(getNextOrderID())));
+        }
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 1);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
+        ASSERT_TRUE(engine.getBuyOrdersCount() == 100);
+
+        for (uint64_t orderId: iDs) {
+            engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::CANCEL,3, 3, orderId));
+        }
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 0);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
+        ASSERT_TRUE(engine.getBuyOrdersCount() == 0);
+    }
+
+    void Test_CANCEL_Order_PriceLevels_Count_NotMatchingActions()
+    {
+        OrderMatchingEngineTester engine;
+
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::NEW, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 0);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 1);
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::CANCEL, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 0);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 1);
+    }
+
+    void Test_CANCEL_Order_PriceLevels_Count_NotMatchingActions_1()
+    {
+        OrderMatchingEngineTester engine;
+
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 1);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
+
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::CANCEL, 3, 3, orderId));
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 1);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
+    }
+
     void TestAll()
     {
         Test_getBestBuyOrder();
         Test_getBestBuyOrder_No_BUY_Orders();
         Test_getBestBuyOrder_SELL_Orders_Only();
+
+        Test_CANCEL_Order_TotalOrderCount();
+        Test_CANCEL_Order_PriceLevels_Count_BUY();
+        Test_CANCEL_Order_PriceLevels_Count_SELL();
+        Test_CANCEL_Order_PriceLevels_Count_BUY_Multiple();
+        Test_CANCEL_Order_PriceLevels_Count_NotMatchingActions();
+        Test_CANCEL_Order_PriceLevels_Count_NotMatchingActions_1();
 
         std::cout << "All tests passed\n";
     }
@@ -600,6 +748,23 @@ namespace Testsing::MatchingEngine_Tests
         OrderPtr cancelOrder = createOrder(OrderSide::BUY, OrderActionType::CANCEL, 3, 3, orderId);
         engine.processOrder(std::move(cancelOrder));
         engine.info();
+    }
+
+    void PostOrder_Single_SELL_and_Cancel()
+    {
+        OrderMatchingEngineTester engine;
+
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::NEW, 3, 3, orderId));
+
+        std::cout << "ASK's Count: " << engine.getSellPriceLevelsCount()
+                  << ", BID's Count: " << engine.getBuyPriceLevelCount() << std::endl;
+
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::CANCEL, 3, 3, orderId));
+
+        // engine.info();
+        std::cout << "ASK's Count: " << engine.getSellPriceLevelsCount()
+                  << ", BID's Count: " << engine.getBuyPriceLevelCount() << std::endl;
     }
 
     void Trade_SELL()
@@ -789,13 +954,16 @@ namespace Testsing::MatchingEngine_Tests
 //  - Проверка Qunantiry  PriceLevel - BID
 //  - Проверка Qunantiry  PriceLevel - ASK
 //  -
-//  - Проверка Cancel: Cancel 1 BUY
-//  - Проверка Cancel: Cancel 1 SELL
+//  + Проверка Cancel: Cancel 1 BUY
+//  + Проверка Cancel: Cancel 1 SELL
 //  - Проверка Cancel: Cancel 100 BUY
 //  - Проверка Cancel: Cancel 100 SELL
-//  - Проверка Cancel: Cancel Not-existing SELL
-//  - Проверка Cancel: Cancel Not-existing BUY
-
+//  + Проверка Cancel: Cancel Not-existing SELL
+//  + Проверка Cancel: Cancel Not-existing BUY
+//  - Проверка Cancel: Check total order count
+//  - Проверка Cancel: Check BID's orders count ( SELL cancel order )
+//  - Проверка Cancel: Check ASK's orders count ( BUY cancel order )
+//  - Проверка Cancel: Check price level deleted
 
 
 
@@ -808,10 +976,11 @@ void MatchingEngine::TestAll()
 {
     using namespace Testsing;
 
-    // MatchingEngine_Utilities_Tests::TestAll();
+    MatchingEngine_Utilities_Tests::TestAll();
 
 
-    MatchingEngine_Tests::PostOrder_Single_BUY_and_Cancel();
+    // MatchingEngine_Tests::PostOrder_Single_BUY_and_Cancel();
+    // MatchingEngine_Tests::PostOrder_Single_SELL_and_Cancel();
     // MatchingEngine_Tests::PostOrder_Single_BUY();
     // MatchingEngine_Tests::PostOrder_Multiple_BUY();
 

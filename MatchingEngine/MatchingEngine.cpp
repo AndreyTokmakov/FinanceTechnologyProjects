@@ -15,6 +15,7 @@ Description : MatchingEngine.cpp
 #include <numeric>
 #include <optional>
 #include <list>
+#include <ranges>
 #include <vector>
 #include <map>
 #include <unordered_map>
@@ -384,6 +385,7 @@ namespace MatchingEngine
                 orderByIDMap.erase(orderByIDIter);
 
                 // FIXME: Performance impact
+                // FIXME: BUG -- нужно использовать что-то другое а не PRICE входного Order-a
                 if (priceLevelOrderList->empty())
                 {
                     if (Common::OrderSide::BUY == order.side) {
@@ -474,6 +476,7 @@ namespace MatchingEngine
             return orderByIDMap.size();
         }
 
+        // TODO: Add MetaData [quantity, ...] to each askPriceLevelMap
         size_t getBuyOrdersCount() const noexcept
         {
             size_t count { 0 };
@@ -482,6 +485,7 @@ namespace MatchingEngine
             return count;
         }
 
+        // TODO: Add MetaData [quantity, ...] to each askPriceLevelMap
         size_t getSellOrdersCount() const noexcept
         {
             size_t count { 0 };
@@ -547,6 +551,8 @@ namespace Testsing
 
 namespace Testsing::MatchingEngine_Utilities_Tests
 {
+    /// * * * * * * TEST BIDS * * * * * * *
+
     void Test_getBestBuyOrder()
     {
         OrderMatchingEngineTester engine;
@@ -575,6 +581,94 @@ namespace Testsing::MatchingEngine_Utilities_Tests
 
         const std::optional<Order*> bestSell = engine.getBestSellOrder();
         ASSERT_TRUE(bestSell.has_value());
+    }
+
+    /// * * * * * * TEST AKS's * * * * * * *
+
+    void Test_getBestSellOrder()
+    {
+        OrderMatchingEngineTester engine;
+        PostOrders(engine, { 5, 6, 7, 8, 9 }, OrderSide::SELL, OrderActionType::NEW,  5, 3);
+
+        const std::optional<Order*> bestSell = engine.getBestSellOrder();
+        ASSERT_TRUE(bestSell.has_value());
+        ASSERT_TRUE(bestSell.value()->price == 5);
+    }
+
+    void Test_getBestSellOrder_No_SELL_Orders()
+    {
+        OrderMatchingEngineTester engine;
+
+        const std::optional<Order*> bestSell = engine.getBestSellOrder();
+        ASSERT_TRUE(not bestSell.has_value());
+    }
+
+    void Test_getBestSellOrder_SELL_Orders_Only()
+    {
+        OrderMatchingEngineTester engine;
+        PostOrders(engine, { 5, 6, 7, 8, 9 }, OrderSide::BUY, OrderActionType::NEW, 5, 3);
+
+        const std::optional<Order*> bestSell = engine.getBestSellOrder();
+        ASSERT_TRUE(not bestSell.has_value());
+
+        const std::optional<Order*> bestBuy = engine.getBestBuyOrder();
+        ASSERT_TRUE(bestSell.has_value());
+    }
+
+    void Test_getBestBuyOrder_Cancel_CheckBID_Updated ()
+    {
+        OrderMatchingEngineTester engine;
+        const std::vector<Common::Order::Price> prices { 5, 6, 7, 8, 9 };
+
+        std::unordered_map<Common::Order::Price, uint64_t> priceIdMap;
+        for (Common::Order::Price price : prices ) {
+            const auto& [iter, ok] = priceIdMap.emplace(price, getNextOrderID());
+            engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW,
+                                            price, 3, iter->second));
+        }
+
+        /// Backward loop the 'prices' collection:
+        for (unsigned long price : std::ranges::reverse_view(prices))
+        {
+            const uint64_t orderId = priceIdMap[price];
+            const std::optional<Order*> bidOrder = engine.getBestBuyOrder();
+
+            ASSERT_TRUE(bidOrder.has_value());
+            ASSERT_TRUE(bidOrder.value()->price == price);
+
+            engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::CANCEL, price, 3, orderId));
+        }
+
+        /// No BUY orders shall be in the OrderBook at this moment
+        ASSERT_TRUE(!engine.getBestBuyOrder().has_value());
+    }
+
+    void Test_getBestSellOrder_Cancel_CheckBID_Updated ()
+    {
+        OrderMatchingEngineTester engine;
+        const std::vector<Common::Order::Price> prices { 5, 6, 7, 8, 9 };
+
+        std::unordered_map<Common::Order::Price, uint64_t> priceIdMap;
+        for (Common::Order::Price price : prices ) {
+            const auto& [iter, ok] = priceIdMap.emplace(price, getNextOrderID());
+            engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::NEW,
+                                            price, 3, iter->second));
+        }
+
+        /// Backward loop the 'prices' collection:
+        for (Common::Order::Price price : prices )
+        {
+            const uint64_t orderId = priceIdMap[price];
+            const std::optional<Order*> askOrder = engine.getBestSellOrder();
+
+            ASSERT_TRUE(askOrder.has_value());
+            ASSERT_TRUE(askOrder.value()->price == price);
+
+            engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::CANCEL, price, 3, orderId));
+        }
+
+        /// No SELL orders shall be in the OrderBook at this moment
+        ASSERT_TRUE(!engine.getBestSellOrder().has_value());
     }
 
     void Test_CANCEL_Order_PriceLevel_Deleted()
@@ -653,6 +747,7 @@ namespace Testsing::MatchingEngine_Utilities_Tests
         ASSERT_TRUE(engine.getBuyPriceLevelCount() == 1);
         ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
         ASSERT_TRUE(engine.getBuyOrdersCount() == 100);
+        ASSERT_TRUE(engine.getSellOrdersCount() == 0);
 
         for (uint64_t orderId: iDs) {
             engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::CANCEL,3, 3, orderId));
@@ -661,6 +756,35 @@ namespace Testsing::MatchingEngine_Utilities_Tests
         ASSERT_TRUE(engine.getBuyPriceLevelCount() == 0);
         ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
         ASSERT_TRUE(engine.getBuyOrdersCount() == 0);
+        ASSERT_TRUE(engine.getSellOrdersCount() == 0);
+    }
+
+    void Test_CANCEL_Order_PriceLevels_Count_SELL_Multiple()
+    {
+        OrderMatchingEngineTester engine;
+        constexpr size_t ordersToSend { 100 };
+
+        std::vector<uint64_t> iDs;
+        iDs.reserve(ordersToSend);
+
+        for (size_t idx = 0; idx < ordersToSend; ++idx) {
+            engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::NEW,
+                                            3, 3, iDs.emplace_back(getNextOrderID())));
+        }
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 0);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 1);
+        ASSERT_TRUE(engine.getBuyOrdersCount() == 0);
+        ASSERT_TRUE(engine.getSellOrdersCount() == 100);
+
+        for (uint64_t orderId: iDs) {
+            engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::CANCEL,3, 3, orderId));
+        }
+
+        ASSERT_TRUE(engine.getBuyPriceLevelCount() == 0);
+        ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
+        ASSERT_TRUE(engine.getBuyOrdersCount() == 0);
+        ASSERT_TRUE(engine.getSellOrdersCount() == 0);
     }
 
     void Test_CANCEL_Order_PriceLevels_Count_NotMatchingActions()
@@ -700,13 +824,26 @@ namespace Testsing::MatchingEngine_Utilities_Tests
         Test_getBestBuyOrder();
         Test_getBestBuyOrder_No_BUY_Orders();
         Test_getBestBuyOrder_SELL_Orders_Only();
+        Test_getBestBuyOrder_Cancel_CheckBID_Updated();
+        Test_getBestSellOrder_Cancel_CheckBID_Updated();
+        ///  - Проверка BID - после Amend
+        ///  - Проверка BID - после добавления Order-ов с одной ценой
+        ///  - Проверка BID - после Trade
+
+        Test_getBestSellOrder();
+        Test_getBestSellOrder_No_SELL_Orders();
+        Test_getBestSellOrder_SELL_Orders_Only();
+
 
         Test_CANCEL_Order_TotalOrderCount();
         Test_CANCEL_Order_PriceLevels_Count_BUY();
         Test_CANCEL_Order_PriceLevels_Count_SELL();
         Test_CANCEL_Order_PriceLevels_Count_BUY_Multiple();
+        Test_CANCEL_Order_PriceLevels_Count_SELL_Multiple();
         Test_CANCEL_Order_PriceLevels_Count_NotMatchingActions();
         Test_CANCEL_Order_PriceLevels_Count_NotMatchingActions_1();
+
+        Test_CANCEL_Order_PriceLevel_Deleted();
 
         std::cout << "All tests passed\n";
     }
@@ -934,7 +1071,7 @@ namespace Testsing::MatchingEngine_Tests
 //  + Проверка BID
 //  + Проверка BID - пустой список BID
 //  + Проверка BID - пустой список BID | SELL's only
-//  - Проверка BID - после Cancel
+//  + Проверка BID - после Cancel
 //  - Проверка BID - после Amend
 //  - Проверка BID - после добавления Order-ов с одной ценой
 //  - Проверка BID - после Trade
@@ -942,7 +1079,7 @@ namespace Testsing::MatchingEngine_Tests
 //  - Проверка ASK
 //  - Проверка ASK - пустой список ASK
 //  - Проверка ASK - пустой список ASK | BUY's only
-//  - Проверка ASK - после Cancel
+//  + Проверка ASK - после Cancel
 //  - Проверка ASK - после Amend
 //  - Проверка ASK - после добавления Order-ов с одной ценой
 //  - Проверка ASK - после Trade
@@ -956,8 +1093,8 @@ namespace Testsing::MatchingEngine_Tests
 //  -
 //  + Проверка Cancel: Cancel 1 BUY
 //  + Проверка Cancel: Cancel 1 SELL
-//  - Проверка Cancel: Cancel 100 BUY
-//  - Проверка Cancel: Cancel 100 SELL
+//  + Проверка Cancel: Cancel 100 BUY
+//  + Проверка Cancel: Cancel 100 SELL
 //  + Проверка Cancel: Cancel Not-existing SELL
 //  + Проверка Cancel: Cancel Not-existing BUY
 //  - Проверка Cancel: Check total order count

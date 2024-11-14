@@ -373,26 +373,35 @@ namespace MatchingEngine
             }
         }
 
+        void cancelOrder(const std::unordered_map<Order::IDType, ReferencesBlock>::iterator& orderByIDIter)
+        {
+            auto& [orderIter, iterPriceLvlOrder, priceLevelOrderList] = orderByIDIter->second;
+            const Order& order = **orderIter;
+            // const Common::OrderSide side = orderIter->get()->side;
+
+            priceLevelOrderList->erase(iterPriceLvlOrder);
+            orders.erase(orderIter);
+            orderByIDMap.erase(orderByIDIter);
+
+            // FIXME: Performance impact
+            if (priceLevelOrderList->empty())
+            {
+                if (Common::OrderSide::BUY == order.side) {
+                    bidPriceLevelMap.erase(order.price);
+                } else {
+                    askPriceLevelMap.erase(order.price);
+                }
+            }
+        }
+
         void handleOrderCancel(const Order& order)
         {
             if (const auto orderByIDIter = orderByIDMap.find(order.orderId);
                     orderByIDMap.end() != orderByIDIter)
             {
-                auto& [orderIter, iterPriceLvlOrder, priceLevelOrderList] = orderByIDIter->second;
-
-                priceLevelOrderList->erase(iterPriceLvlOrder);
-                orders.erase(orderIter);
-                orderByIDMap.erase(orderByIDIter);
-
-                // FIXME: Performance impact
-                // FIXME: BUG -- нужно использовать что-то другое а не PRICE входного Order-a
-                if (priceLevelOrderList->empty())
-                {
-                    if (Common::OrderSide::BUY == order.side) {
-                        bidPriceLevelMap.erase(order.price);
-                    } else {
-                        askPriceLevelMap.erase(order.price);
-                    }
+                // If Order SIDE is the same as it was before
+                if (order.side == orderByIDIter->second.orderIter->get()->side) {
+                    cancelOrder(orderByIDIter);
                 }
             }
         }
@@ -409,9 +418,8 @@ namespace MatchingEngine
                 }
                 else if (orderOriginal.price != order->price)
                 {
-                    // TODO: handleOrderCancel() --> need to create one functions to avoid second orderByIDMap.find(..)
-                    //       extract common part from "handleOrderCancel(const Order& order)"
-                    handleOrderCancel(*order);
+                    cancelOrder(orderByIDIter);
+                    // TODO: Refactor 'handleOrderNew' - doing HashTable look-up once again
                     handleOrderNew(std::move(order));
                 }
                 else if (orderOriginal.price == order->price)
@@ -424,6 +432,7 @@ namespace MatchingEngine
     };
 }
 
+/** ********************************************************************************** **/
 
 namespace MatchingEngine
 {
@@ -505,7 +514,6 @@ namespace MatchingEngine
         }
     };
 }
-
 
 namespace Testsing
 {
@@ -819,6 +827,85 @@ namespace Testsing::MatchingEngine_Utilities_Tests
         ASSERT_TRUE(engine.getSellPriceLevelsCount() == 0);
     }
 
+    /** ---------------------- AMEND ---------------------- **/
+
+    void Test_AMEND_BUY_Order_SamePrice_DiffQuantity()
+    {
+        OrderMatchingEngineTester engine;
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 3, 3, orderId));
+
+        std::optional<Order*> bidOrder = engine.getBestBuyOrder();
+        ASSERT_TRUE(bidOrder.has_value());
+        ASSERT_TRUE(bidOrder.value()->price == 3);
+        ASSERT_TRUE(bidOrder.value()->quantity == 3);
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::AMEND, 3, 6, orderId));
+
+        bidOrder = engine.getBestBuyOrder();
+        ASSERT_TRUE(bidOrder.has_value());
+        ASSERT_TRUE(bidOrder.value()->price == 3);
+        ASSERT_TRUE(bidOrder.value()->quantity == 6);
+    }
+
+    void Test_AMEND_SELL_Order_SamePrice_DiffQuantity()
+    {
+        OrderMatchingEngineTester engine;
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::NEW, 3, 3, orderId));
+
+        std::optional<Order*> askOrder = engine.getBestSellOrder();
+        ASSERT_TRUE(askOrder.has_value());
+        ASSERT_TRUE(askOrder.value()->price == 3);
+        ASSERT_TRUE(askOrder.value()->quantity == 3);
+
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::AMEND, 3, 6, orderId));
+
+        askOrder = engine.getBestSellOrder();
+        ASSERT_TRUE(askOrder.has_value());
+        ASSERT_TRUE(askOrder.value()->price == 3);
+        ASSERT_TRUE(askOrder.value()->quantity == 6);
+    }
+
+    void Test_AMEND_BUY_Order_SameQuantity_DiffPrice()
+    {
+        OrderMatchingEngineTester engine;
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 3, 3, orderId));
+
+        std::optional<Order*> bidOrder = engine.getBestBuyOrder();
+        ASSERT_TRUE(bidOrder.has_value());
+        ASSERT_TRUE(bidOrder.value()->price == 3);
+        ASSERT_TRUE(bidOrder.value()->quantity == 3);
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::AMEND, 4, 6, orderId));
+
+        bidOrder = engine.getBestBuyOrder();
+        ASSERT_TRUE(bidOrder.has_value());
+        ASSERT_TRUE(bidOrder.value()->price == 4);
+        ASSERT_TRUE(bidOrder.value()->quantity == 6);
+    }
+
+    void Test_AMEND_SELL_Order_SameQuantity_DiffPrice()
+    {
+        OrderMatchingEngineTester engine;
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::NEW, 3, 3, orderId));
+
+        std::optional<Order*> askOrder = engine.getBestSellOrder();
+        ASSERT_TRUE(askOrder.has_value());
+        ASSERT_TRUE(askOrder.value()->price == 3);
+        ASSERT_TRUE(askOrder.value()->quantity == 3);
+
+        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::AMEND, 4, 6, orderId));
+
+        askOrder = engine.getBestSellOrder();
+        ASSERT_TRUE(askOrder.has_value());
+        ASSERT_TRUE(askOrder.value()->price == 4);
+        ASSERT_TRUE(askOrder.value()->quantity == 6);
+    }
+
+
     void TestAll()
     {
         Test_getBestBuyOrder();
@@ -843,6 +930,11 @@ namespace Testsing::MatchingEngine_Utilities_Tests
         Test_CANCEL_Order_PriceLevels_Count_NotMatchingActions_1();
 
         Test_CANCEL_Order_PriceLevel_Deleted();
+
+        Test_AMEND_BUY_Order_SamePrice_DiffQuantity();
+        Test_AMEND_SELL_Order_SamePrice_DiffQuantity();
+        Test_AMEND_BUY_Order_SameQuantity_DiffPrice();
+        Test_AMEND_SELL_Order_SameQuantity_DiffPrice();
 
         std::cout << "All tests passed\n";
     }
@@ -883,6 +975,20 @@ namespace Testsing::MatchingEngine_Tests
 
         OrderPtr cancelOrder = createOrder(OrderSide::BUY, OrderActionType::CANCEL, 3, 3, orderId);
         engine.processOrder(std::move(cancelOrder));
+        engine.info();
+    }
+
+    void Test_AMEND_1()
+    {
+        OrderMatchingEngineTester engine;
+        const uint64_t orderId = getNextOrderID();
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 3, 3, orderId));
+
+        engine.info();
+
+        OrderPtr amendOrder = createOrder(OrderSide::BUY, OrderActionType::AMEND, 4, 4, orderId);
+        engine.processOrder(std::move(amendOrder));
+
         engine.info();
     }
 
@@ -1101,10 +1207,12 @@ namespace Testsing::MatchingEngine_Tests
 //  - Проверка Cancel: Check ASK's orders count ( BUY cancel order )
 //  - Проверка Cancel: Check price level deleted
 //  -
-//  + Проверка Amend:
-//  + Amend - Single BUY
-//  + Amend - Single SELL
-//  + Amend - Single SELL + BUY
+//  - Проверка Amend:
+//  + Amend - Single BUY - new Quantity, same Price
+//  + Amend - Single SELL - new Quantity, same Price
+//  + Amend - Single BUY - new Quantity, new Price
+//  + Amend - Single SELL - new Quantity, new Price
+//  - Amend - Single SELL + BUY
 
 
 
@@ -1114,12 +1222,15 @@ namespace Testsing::MatchingEngine_Tests
 //  - Проверка Trade: SELL {5,2},{5,2},{5,2},{6,2},{6,2},{6,2} | BUY {6,11} ---> BUY {6,1}
 
 
+// TODO: TestFramework
+//  - global MAP of test names
+//  - Print results on destruction
+
+
 void MatchingEngine::TestAll()
 {
     using namespace Testsing;
-
     MatchingEngine_Utilities_Tests::TestAll();
-
 
     // MatchingEngine_Tests::PostOrder_Single_BUY_and_Cancel();
     // MatchingEngine_Tests::PostOrder_Single_SELL_and_Cancel();
@@ -1129,6 +1240,8 @@ void MatchingEngine::TestAll()
     // MatchingEngine_Tests::Trade_SELL();
     // MatchingEngine_Tests::Trade_BUY();
     // MatchingEngine_Tests::Trade_BUY_vs_SELL_EqualNum();
+
+    // MatchingEngine_Tests::Test_AMEND_1();
 
     // MatchingEngine_Tests::Load_Test();
 }

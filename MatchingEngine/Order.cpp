@@ -23,7 +23,11 @@ namespace Common
 
     std::ostream& operator<<(std::ostream& stream, const Order& order)
     {
-        stream << "Order { id: " << order.orderId << ", price: " << order.price << ", quantity: " << order.quantity << '}';
+        stream << "Order { id: " << order.orderId
+               << ", side: " << (order.side == OrderSide::BUY ? "BUY" : "SELL")
+               << ", price: " << order.price
+               << ", quantity: "
+               << order.quantity << '}';
         return stream;
     }
 }

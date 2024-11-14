@@ -376,8 +376,7 @@ namespace MatchingEngine
         void cancelOrder(const std::unordered_map<Order::IDType, ReferencesBlock>::iterator& orderByIDIter)
         {
             auto& [orderIter, iterPriceLvlOrder, priceLevelOrderList] = orderByIDIter->second;
-            const Order& order = **orderIter;
-            // const Common::OrderSide side = orderIter->get()->side;
+            const Order& order { **orderIter };
 
             priceLevelOrderList->erase(iterPriceLvlOrder);
             orders.erase(orderIter);

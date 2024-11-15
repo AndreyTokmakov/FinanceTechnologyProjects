@@ -30,26 +30,22 @@ int main([[maybe_unused]] int argc,
     }
     */
 
-
-
     /*
-    MatchingEngine_Simple::LoadTest();
-    MatchingEngine_PriceLvLPtr::LoadTest();
-    MatchingEngine_OrderAsPtr::LoadTest();
-    MatchingEngine_OrderAsPtr_Alloc::LoadTest();
-    MatchingEngine::LoadTest();
-
-    std::cout << std::string(160, '-') << std::endl;
-
-    MatchingEngine_Simple::LoadTest();
-    MatchingEngine_PriceLvLPtr::LoadTest();
-    MatchingEngine_OrderAsPtr::LoadTest();
-    MatchingEngine_OrderAsPtr_Alloc::LoadTest();
-    MatchingEngine::LoadTest();
-
+    for (int i = 0; i < 20; ++i)
+    {
+        std::cout << std::string(160, '-') << '\n' << std::string(10, '\t')
+                  << i << '\n' << std::string(160, '-') << std::endl;
+        // MatchingEngine_Simple::LoadTest();
+        // MatchingEngine_PriceLvLPtr::LoadTest();
+        // MatchingEngine_OrderAsPtr::LoadTest();
+        // MatchingEngine_OrderAsPtr_Alloc::LoadTest(); // ~ 0.52
+        MatchingEngineEx::LoadTest(); // ~ 0.6
+        // MatchingEngine::LoadTest();   // ~ 0.8 - 1.8
+    }
     */
 
-    MatchingEngine::TestAll();
+    // MatchingEngine::TestAll();
+    MatchingEngineEx::TestAll();
 
     return EXIT_SUCCESS;
 }

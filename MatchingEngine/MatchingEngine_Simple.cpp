@@ -422,7 +422,7 @@ namespace MatchingEngine_Simple_Tests
         iDs.reserve(pricesCount * buyOrders * 10);
 
 
-        PerfUtilities::ScopedTimer timer { "MatchingEngine"};
+        PerfUtilities::ScopedTimer timer { "MatchingEngineSimple"};
         uint64_t count = 0;
         Order order;
 

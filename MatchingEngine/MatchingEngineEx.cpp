@@ -1,5 +1,5 @@
 /**============================================================================
-Name        : MatchingEngine.cpp
+Name        : MatchingEngineEx.cpp
 Created on  : 10.08.2024
 Author      : Andrei Tokmakov
 Version     : 1.0
@@ -36,7 +36,7 @@ namespace
     }
 }
 
-namespace MatchingEngine::Memory
+namespace MatchingEngineEx::Memory
 {
     template <typename Ty, typename Allocator = std::allocator<Ty>>
     class ObjectPool final
@@ -152,7 +152,7 @@ namespace MatchingEngine::Memory
     };
 }
 
-namespace MatchingEngine
+namespace MatchingEngineEx
 {
     using namespace Common;
 
@@ -221,19 +221,17 @@ namespace MatchingEngine
 
     struct OrderMatchingEngine
     {
-        // using OrderPtr = std::unique_ptr<Order>;
         using OrderPtr = std::unique_ptr<Order, Memory::ObjectPool<Order>::Deleter>;
 
-        using OrderIter = typename std::list<OrderPtr>::iterator;
-        using PriceOrderList = std::list<OrderIter>;
-        using PriceOrderListPtr = PriceOrderList*;
-        using PriceOrderListIter = typename PriceOrderList::iterator;
+        using PriceLevelList = std::list<OrderPtr>;
+        using PriceLevelListPtr = PriceLevelList*;
+        using PriceLevelOrderIter = PriceLevelList::iterator;
 
         struct ReferencesBlock
         {
-            OrderIter orderIter;
-            PriceOrderListIter priceOrderIter;
-            PriceOrderListPtr priceLevelOrderList;
+            Order* order;
+            PriceLevelOrderIter iterPriceLevelOrder;
+            PriceLevelListPtr priceLevelOrderList;
         };
 
         std::list<OrderPtr> orders {};
@@ -250,11 +248,14 @@ namespace MatchingEngine
         std::map<Order::Price, PriceOrderListPtr, std::less<>> sellOrders;
 #else
         /** BID's (BUY Orders) PriceLevels **/
-        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::greater<>> bidPriceLevelMap;
+        boost::container::flat_map<Order::Price, PriceLevelListPtr, std::greater<>> bidPriceLevelMap;
 
         /** ASK's (SELL Orders) PriceLevels **/
-        boost::container::flat_map<Order::Price, PriceOrderListPtr, std::less<>> askPriceLevelMap;
+        boost::container::flat_map<Order::Price, PriceLevelListPtr, std::less<>> askPriceLevelMap;
 #endif
+
+
+
 
         Trades trades;
 
@@ -274,7 +275,7 @@ namespace MatchingEngine
             }
         }
 
-        unsigned long long matchOrder(Order& order)
+        Common::Order::Quantity matchOrder(Order& order)
         {
             // TODO: Remove branching ???
             if (OrderSide::SELL == order.side) {
@@ -299,8 +300,7 @@ namespace MatchingEngine
                    order.quantity > 0 &&
                    comparator(itBestLevel->first, order.price))
             {
-                const bool levelEmpty = matchOrderList(order, itBestLevel->second);
-                if (levelEmpty) {
+                if (const bool levelEmpty = matchOrderList(order, itBestLevel->second); levelEmpty) {
                     oppositeSidePriceLvlMap.erase(itBestLevel);
                 } else {
                     ++itBestLevel;
@@ -308,12 +308,11 @@ namespace MatchingEngine
             }
         }
 
-        bool matchOrderList(Order& order,
-                            PriceOrderList* priceLvlOrdersList)
+        bool matchOrderList(Order& order, PriceLevelListPtr priceLvlOrdersList)
         {
             for (auto orderIter = priceLvlOrdersList->begin(); priceLvlOrdersList->end() != orderIter;)
             {
-                Order& matchedOrder = **(*orderIter);
+                Order& matchedOrder = *(*orderIter);
 
                 // FIXME : Required performance improvements: cause of ~35% CPU usage
 #if 1
@@ -345,12 +344,12 @@ namespace MatchingEngine
             return priceLvlOrdersList->empty();
         }
 
-        template<class Map>
-        PriceOrderListPtr getOrderPriceList(Map& map, const Order::Price& price)
+        template<class OrderSideMap>
+        PriceLevelListPtr getOrderPriceList(OrderSideMap& map, const Order::Price& price)
         {
             const auto [iter, inserted] = map.emplace(price, nullptr);
             if (inserted) {
-                iter->second = new PriceOrderList() ;
+                iter->second = new PriceLevelList() ;
             }
             return iter->second;
         };
@@ -364,22 +363,21 @@ namespace MatchingEngine
             const auto [iterOrderMap, inserted] = orderByIDMap.emplace(order->orderId, ReferencesBlock{});
             if (inserted)
             {
-                auto& [orderIter, priceOrderIter, priceLevelOrderList] = iterOrderMap->second;
-                orderIter = orders.insert(orders.end(), nullptr);
+                auto& [ptrOrder, priceOrderIter, priceLevelOrderList] = iterOrderMap->second;
+
+                ptrOrder = order.get();
                 priceLevelOrderList = (OrderSide::BUY == order->side) ? getOrderPriceList(bidPriceLevelMap, order->price) :
                                       getOrderPriceList(askPriceLevelMap, order->price);
-                priceOrderIter = priceLevelOrderList->insert(priceLevelOrderList->end(), orderIter);
-                *orderIter = std::move(order);
+                priceOrderIter = priceLevelOrderList->insert(priceLevelOrderList->end(), std::move(order));
             }
         }
 
         void cancelOrder(const std::unordered_map<Order::IDType, ReferencesBlock>::iterator& orderByIDIter)
         {
-            auto& [orderIter, iterPriceLvlOrder, priceLevelOrderList] = orderByIDIter->second;
-            const Order& order { **orderIter };
+            auto& [ptrOrder, iterPriceLvlOrder, priceLevelOrderList] = orderByIDIter->second;
+            const Order& order { *ptrOrder };
 
             priceLevelOrderList->erase(iterPriceLvlOrder);
-            orders.erase(orderIter);
             orderByIDMap.erase(orderByIDIter);
 
             // FIXME: Performance impact
@@ -395,11 +393,10 @@ namespace MatchingEngine
 
         void handleOrderCancel(const Order& order)
         {
-            if (const auto orderByIDIter = orderByIDMap.find(order.orderId);
-                    orderByIDMap.end() != orderByIDIter)
+            if (const auto orderByIDIter = orderByIDMap.find(order.orderId); orderByIDMap.end() != orderByIDIter)
             {
                 // If Order SIDE is the same as it was before
-                if (order.side == orderByIDIter->second.orderIter->get()->side) {
+                if (order.side == orderByIDIter->second.order->side) {
                     cancelOrder(orderByIDIter);
                 }
             }
@@ -411,7 +408,7 @@ namespace MatchingEngine
                     orderByIDMap.end() != orderByIDIter)
             {
                 // TODO: Remove branching ???
-                Order& orderOriginal = **(orderByIDIter->second.orderIter);
+                Order& orderOriginal = *(orderByIDIter->second.order);
                 if (orderOriginal.side != order->side){
                     return;
                 }
@@ -433,7 +430,7 @@ namespace MatchingEngine
 
 /** ********************************************************************************** **/
 
-namespace MatchingEngine
+namespace MatchingEngineEx
 {
     struct OrderMatchingEngineTester : OrderMatchingEngine
     {
@@ -444,7 +441,7 @@ namespace MatchingEngine
                 for (const auto& [price, ordersList]: orderMap) {
                     std::cout << "\tPrice Level : [" << price << "]" << std::endl;
                     for (const auto & orderIter: *ordersList) {
-                        Common::printOrder(**orderIter);
+                        Common::printOrder(*orderIter);
                     }
                 }
             };
@@ -469,14 +466,14 @@ namespace MatchingEngine
         {
             if (bidPriceLevelMap.empty())
                 return std::nullopt;
-            return (*bidPriceLevelMap.begin()->second->begin())->get();
+            return bidPriceLevelMap.begin()->second->begin()->get();
         }
 
         std::optional<Order*> getBestSellOrder() const noexcept
         {
             if (askPriceLevelMap.empty())
                 return std::nullopt;
-            return (*askPriceLevelMap.begin()->second->begin())->get();
+            return askPriceLevelMap.begin()->second->begin()->get();
         }
 
         size_t getOrdersCount() const noexcept
@@ -514,13 +511,14 @@ namespace MatchingEngine
     };
 }
 
-namespace Testsing
+
+namespace MatchingEngineEx::Testsing
 {
     using namespace MatchingEngine;
     using namespace Common;
-    using OrderPtr = MatchingEngine::OrderMatchingEngineTester::OrderPtr;
+    using OrderPtr = MatchingEngineEx::OrderMatchingEngineTester::OrderPtr;
 
-    Memory::ObjectPool<Order> ordersPool;
+    MatchingEngineEx::Memory::ObjectPool<Order> ordersPool;
 
     OrderPtr createOrder(const Common::OrderSide orderSide,
                          const Common::OrderActionType action = Common::OrderActionType::NEW,
@@ -555,8 +553,7 @@ namespace Testsing
     }
 }
 
-
-namespace Testsing::MatchingEngine_Utilities_Tests
+namespace MatchingEngineEx::Testsing::MatchingEngine_Utilities_Tests
 {
     /// * * * * * * TEST BIDS * * * * * * *
 
@@ -939,124 +936,21 @@ namespace Testsing::MatchingEngine_Utilities_Tests
     }
 }
 
-namespace Testsing::MatchingEngine_Tests
+namespace MatchingEngineEx::Testsing::MatchingEngine_Ex_Tests
 {
-    void PostOrder_Single_BUY()
+    void PostOrder_BUY()
     {
         OrderMatchingEngineTester engine;
-        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 123, 3));
-
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3));
         engine.info();
     }
 
-    void PostOrder_Multiple_BUY()
+    void Debug()
     {
         OrderMatchingEngineTester engine;
-
-        const std::array<Order::Price, 5> prices { 5, 6, 7, 8, 9 };
-        for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 5; ++n)
-        {
-            engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, prices[priceIdx++], 3));
-            if (priceIdx >= prices.size())
-                priceIdx = 0;
-        }
-
-        engine.info();
-    }
-
-
-    void PostOrder_Single_BUY_and_Cancel()
-    {
-        OrderMatchingEngineTester engine;
-
-        const uint64_t orderId = getNextOrderID();
-        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 3, 3, orderId));
-
-        OrderPtr cancelOrder = createOrder(OrderSide::BUY, OrderActionType::CANCEL, 3, 3, orderId);
-        engine.processOrder(std::move(cancelOrder));
-        engine.info();
-    }
-
-    void Test_AMEND_1()
-    {
-        OrderMatchingEngineTester engine;
-        const uint64_t orderId = getNextOrderID();
-        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 3, 3, orderId));
-
-        engine.info();
-
-        OrderPtr amendOrder = createOrder(OrderSide::BUY, OrderActionType::AMEND, 4, 4, orderId);
-        engine.processOrder(std::move(amendOrder));
-
-        engine.info();
-    }
-
-    void PostOrder_Single_SELL_and_Cancel()
-    {
-        OrderMatchingEngineTester engine;
-
-        const uint64_t orderId = getNextOrderID();
-        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::NEW, 3, 3, orderId));
-
-        std::cout << "ASK's Count: " << engine.getSellPriceLevelsCount()
-                  << ", BID's Count: " << engine.getBuyPriceLevelCount() << std::endl;
-
-        engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::CANCEL, 3, 3, orderId));
-
-        // engine.info();
-        std::cout << "ASK's Count: " << engine.getSellPriceLevelsCount()
-                  << ", BID's Count: " << engine.getBuyPriceLevelCount() << std::endl;
-    }
-
-    void Trade_SELL()
-    {
-        OrderMatchingEngineTester engine;
-
-        const std::vector<Order::Price> prices { 5, 6, 7 };
-        for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 1; ++n)
-        {
-            engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, prices[priceIdx++], 2));
-            if (priceIdx >= prices.size())
-                priceIdx = 0;
-        }
-        engine.info();
-
-        {
-            OrderPtr order = createOrder(OrderSide::SELL, OrderActionType::NEW, 7, 2);
-
-            printOrder(*order.get());
-            std::cout << std::string(160, '=') << std::endl;
-
-            engine.processOrder(std::move(order));
-        }
-
-        std::cout << std::string(160, '=') << std::endl;
-        engine.info();
-    }
-
-    void Trade_BUY()
-    {
-        OrderMatchingEngineTester engine;
-
-        const std::vector<Order::Price> prices { 5, 6 };
-        for (uint32_t n = 0, priceIdx = 0; n < prices.size() * 3; ++n)
-        {
-            engine.processOrder(createOrder(OrderSide::SELL, OrderActionType::NEW, prices[priceIdx++], 2));
-            if (priceIdx >= prices.size())
-                priceIdx = 0;
-        }
-        engine.info();
-
-        {
-            OrderPtr order = createOrder(OrderSide::BUY, OrderActionType::NEW, 6, 11);
-
-            printOrder(*order.get());
-            std::cout << std::string(160, '=') << std::endl;
-
-            engine.processOrder(std::move(order));
-        }
-
-        std::cout << std::string(160, '=') << std::endl;
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3));
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3));
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3));
         engine.info();
     }
 
@@ -1087,7 +981,7 @@ namespace Testsing::MatchingEngine_Tests
     void Load_Test()
     {
         constexpr uint32_t pricesCount { 50  }, initialPrice { 10 };
-        constexpr uint32_t buyOrders { 100 }, sellOrders { 100 };
+        constexpr uint32_t buyOrders { 200 }, sellOrders { buyOrders };
 
         OrderMatchingEngineTester engine;
 
@@ -1098,7 +992,7 @@ namespace Testsing::MatchingEngine_Tests
         iDs.reserve(pricesCount * buyOrders * 10);
 
 
-        PerfUtilities::ScopedTimer timer { "MatchingEngine"};
+        PerfUtilities::ScopedTimer timer { "MatchingEngineEx"};
         uint64_t count = 0;
 
         for (int i = 0; i < 400; ++i)
@@ -1163,91 +1057,26 @@ namespace Testsing::MatchingEngine_Tests
         }
         std::cout << count << std::endl;
     }
+
 }
 
 
 
-// TODO:
-//  - use std::source_location for UnitTests
-
-
-// TODO: Unit tests && Test Methods
-//  + Проверка BID
-//  + Проверка BID - пустой список BID
-//  + Проверка BID - пустой список BID | SELL's only
-//  + Проверка BID - после Cancel
-//  - Проверка BID - после Amend
-//  - Проверка BID - после добавления Order-ов с одной ценой
-//  - Проверка BID - после Trade
-//  -
-//  + Проверка ASK
-//  + Проверка ASK - пустой список ASK
-//  + Проверка ASK - пустой список ASK | BUY's only
-//  + Проверка ASK - после Cancel
-//  - Проверка ASK - после Amend
-//  - Проверка ASK - после добавления Order-ов с одной ценой
-//  - Проверка ASK - после Trade
-//  -
-//  - Проверка количества PriceLevels BID
-//  - Проверка количества PriceLevels ASK
-//  - Проверка количества Order-ов в PriceLevel - BID
-//  - Проверка количества Order-ов в PriceLevel - ASK
-//  - Проверка Qunantiry  PriceLevel - BID
-//  - Проверка Qunantiry  PriceLevel - ASK
-//  -
-//  + Проверка Cancel: Cancel 1 BUY
-//  + Проверка Cancel: Cancel 1 SELL
-//  + Проверка Cancel: Cancel 100 BUY
-//  + Проверка Cancel: Cancel 100 SELL
-//  + Проверка Cancel: Cancel Not-existing SELL
-//  + Проверка Cancel: Cancel Not-existing BUY
-//  - Проверка Cancel: Check total order count
-//  - Проверка Cancel: Check BID's orders count ( SELL cancel order )
-//  - Проверка Cancel: Check ASK's orders count ( BUY cancel order )
-//  - Проверка Cancel: Check price level deleted
-//  -
-//  - Проверка Amend:
-//  + Amend - Single BUY - new Quantity, same Price
-//  + Amend - Single SELL - new Quantity, same Price
-//  + Amend - Single BUY - new Quantity, new Price
-//  + Amend - Single SELL - new Quantity, new Price
-//  - Amend - Single SELL + BUY
-
-
-
-
-// TODO: Order Matching Rules ************** CREATE PARAMETRIZED_TESTS ****************
-//  - Проверка Trade: 1 BUY - 1 SELL
-//  - Проверка Trade: SELL {5,2},{5,2},{5,2},{6,2},{6,2},{6,2} | BUY {6,11} ---> BUY {6,1}
-
-
-// TODO: TestFramework
-//  - global MAP of test names
-//  - Print results on destruction
-
-
-void MatchingEngine::TestAll()
+void MatchingEngineEx::TestAll()
 {
-    using namespace Testsing;
-    MatchingEngine_Utilities_Tests::TestAll();
+    using namespace MatchingEngineEx::Testsing;
+    // MatchingEngine_Utilities_Tests::TestAll();
 
-    // MatchingEngine_Tests::PostOrder_Single_BUY_and_Cancel();
-    // MatchingEngine_Tests::PostOrder_Single_SELL_and_Cancel();
-    // MatchingEngine_Tests::PostOrder_Single_BUY();
-    // MatchingEngine_Tests::PostOrder_Multiple_BUY();
+    //MatchingEngine_Ex_Tests::Debug();
+    // MatchingEngine_Ex_Tests::PostOrder_BUY();
+    // MatchingEngine_Ex_Tests::Trade_BUY_vs_SELL_EqualNum();
 
-    // MatchingEngine_Tests::Trade_SELL();
-    // MatchingEngine_Tests::Trade_BUY();
-    // MatchingEngine_Tests::Trade_BUY_vs_SELL_EqualNum();
-
-    // MatchingEngine_Tests::Test_AMEND_1();
-
-    // MatchingEngine_Tests::Load_Test();
+    MatchingEngine_Ex_Tests::Load_Test();
 }
 
 
-void MatchingEngine::LoadTest()
+void MatchingEngineEx::LoadTest()
 {
-    using namespace Testsing;
-    MatchingEngine_Tests::Load_Test();
+    using namespace MatchingEngineEx::Testsing;
+    MatchingEngine_Ex_Tests::Load_Test();
 }

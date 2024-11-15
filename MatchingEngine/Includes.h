@@ -16,6 +16,12 @@ namespace MatchingEngine
     void LoadTest();
 }
 
+namespace MatchingEngineEx
+{
+    void TestAll();
+    void LoadTest();
+}
+
 namespace MatchingEngine_Simple
 {
     void TestAll();

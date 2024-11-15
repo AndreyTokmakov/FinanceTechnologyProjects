@@ -135,6 +135,9 @@ namespace Common
         Amount remainAmount { 0 };
 
         // unsigned char buffer[512] {};
+
+        // Order() { std::cout << "Order created\n"; }
+        // ~Order() { std::cout << "Order deleter\n"; }
     };
 
     struct OrderBuilder

@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}
         main.cpp
         Order.cpp
         MatchingEngine.cpp
+        MatchingEngineEx.cpp
         MatchingEngine_Simple.cpp
         MatchingEngine_PriceLvLPtr.cpp
         MatchingEngine_OrderAsPtr.cpp

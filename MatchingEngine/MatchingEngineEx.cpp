@@ -254,9 +254,6 @@ namespace MatchingEngineEx
         boost::container::flat_map<Order::Price, PriceLevelListPtr, std::less<>> askPriceLevelMap;
 #endif
 
-
-
-
         Trades trades;
 
         void processOrder(OrderPtr&& order)

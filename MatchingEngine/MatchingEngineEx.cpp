@@ -390,7 +390,9 @@ namespace MatchingEngineEx
 
         void handleOrderCancel(const Order& order)
         {
-            if (const auto orderByIDIter = orderByIDMap.find(order.orderId); orderByIDMap.end() != orderByIDIter)
+            [[likely]]
+            if (const auto orderByIDIter = orderByIDMap.find(order.orderId);
+                orderByIDMap.end() != orderByIDIter)
             {
                 // If Order SIDE is the same as it was before
                 if (order.side == orderByIDIter->second.order->side) {
@@ -978,7 +980,7 @@ namespace MatchingEngineEx::Testsing::MatchingEngine_Ex_Tests
     void Load_Test()
     {
         constexpr uint32_t pricesCount { 50  }, initialPrice { 10 };
-        constexpr uint32_t buyOrders { 200 }, sellOrders { buyOrders };
+        constexpr uint32_t buyOrders { 100 }, sellOrders { buyOrders };
 
         OrderMatchingEngineTester engine;
 

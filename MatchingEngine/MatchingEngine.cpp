@@ -1229,7 +1229,7 @@ namespace Testsing::MatchingEngine_Tests
 void MatchingEngine::TestAll()
 {
     using namespace Testsing;
-    MatchingEngine_Utilities_Tests::TestAll();
+    // MatchingEngine_Utilities_Tests::TestAll();
 
     // MatchingEngine_Tests::PostOrder_Single_BUY_and_Cancel();
     // MatchingEngine_Tests::PostOrder_Single_SELL_and_Cancel();
@@ -1242,7 +1242,7 @@ void MatchingEngine::TestAll()
 
     // MatchingEngine_Tests::Test_AMEND_1();
 
-    // MatchingEngine_Tests::Load_Test();
+    MatchingEngine_Tests::Load_Test();
 }
 
 

@@ -288,16 +288,16 @@ namespace MatchingEngineEx
                         OrderSideMap& oppositeSidePriceLvlMap)
         {
             constexpr Comparator comparator{};
-            auto itBestLevel = oppositeSidePriceLvlMap.begin();
+            auto bestLevelIter = oppositeSidePriceLvlMap.begin();
 
-            while (oppositeSidePriceLvlMap.end() != itBestLevel &&
+            while (oppositeSidePriceLvlMap.end() != bestLevelIter &&
                    order.quantity > 0 &&
-                   comparator(itBestLevel->first, order.price))
+                   comparator(bestLevelIter->first, order.price))
             {
-                if (const bool levelEmpty = matchOrderList(order, itBestLevel->second.get()); levelEmpty) {
-                    oppositeSidePriceLvlMap.erase(itBestLevel);
+                if (const bool levelEmpty = matchOrderList(order, bestLevelIter->second.get()); levelEmpty) {
+                    oppositeSidePriceLvlMap.erase(bestLevelIter);
                 } else {
-                    ++itBestLevel;
+                    ++bestLevelIter;
                 }
             }
         }

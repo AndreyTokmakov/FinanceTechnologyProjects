@@ -222,20 +222,17 @@ namespace MatchingEngineEx
     struct OrderMatchingEngine
     {
         using OrderPtr = std::unique_ptr<Order, Memory::ObjectPool<Order>::Deleter>;
-
-        using PriceLevelList = std::list<OrderPtr>;
-        using PriceLevelListPtr = PriceLevelList*;
-        using PriceLevelOrderIter = PriceLevelList::iterator;
+        using PriceLevel = std::list<OrderPtr>;
 
         struct ReferencesBlock
         {
             Order* order;
-            PriceLevelOrderIter iterPriceLevelOrder;
-            PriceLevelListPtr priceLevelOrderList;
+            PriceLevel::iterator iterPriceLevelOrder;
+            PriceLevel* priceLevelOrderList;
         };
 
-        std::list<OrderPtr> orders {};
-        std::unordered_map<Order::IDType, ReferencesBlock> orderByIDMap;
+        using OrderIdMap = std::unordered_map<Order::IDType, ReferencesBlock>;
+        OrderIdMap orderByIDMap;
 
         // TODO: Test replace std::map --> boost::flat_map [std::list --> shall be pointer?]
         //       Since look performance of this lookup is more critical one
@@ -248,10 +245,10 @@ namespace MatchingEngineEx
         std::map<Order::Price, PriceOrderListPtr, std::less<>> sellOrders;
 #else
         /** BID's (BUY Orders) PriceLevels **/
-        boost::container::flat_map<Order::Price, PriceLevelListPtr, std::greater<>> bidPriceLevelMap;
+        boost::container::flat_map<Order::Price, std::unique_ptr<PriceLevel>, std::greater<>> bidPriceLevelMap;
 
         /** ASK's (SELL Orders) PriceLevels **/
-        boost::container::flat_map<Order::Price, PriceLevelListPtr, std::less<>> askPriceLevelMap;
+        boost::container::flat_map<Order::Price, std::unique_ptr<PriceLevel>, std::less<>> askPriceLevelMap;
 #endif
 
         Trades trades;
@@ -297,7 +294,7 @@ namespace MatchingEngineEx
                    order.quantity > 0 &&
                    comparator(itBestLevel->first, order.price))
             {
-                if (const bool levelEmpty = matchOrderList(order, itBestLevel->second); levelEmpty) {
+                if (const bool levelEmpty = matchOrderList(order, itBestLevel->second.get()); levelEmpty) {
                     oppositeSidePriceLvlMap.erase(itBestLevel);
                 } else {
                     ++itBestLevel;
@@ -305,9 +302,9 @@ namespace MatchingEngineEx
             }
         }
 
-        bool matchOrderList(Order& order, PriceLevelListPtr priceLvlOrdersList)
+        bool matchOrderList(Order& order, PriceLevel* priceLevel)
         {
-            for (auto orderIter = priceLvlOrdersList->begin(); priceLvlOrdersList->end() != orderIter;)
+            for (auto orderIter = priceLevel->begin(); priceLevel->end() != orderIter;)
             {
                 Order& matchedOrder = *(*orderIter);
 
@@ -330,7 +327,7 @@ namespace MatchingEngineEx
 
                     /** Deleting order **/
                     orderByIDMap.erase(matchedOrder.orderId);
-                    priceLvlOrdersList->erase(orderIter++);
+                    priceLevel->erase(orderIter++);
                 } else {
                     matchedOrder.quantity -= order.quantity;
                     order.quantity = 0;
@@ -338,17 +335,17 @@ namespace MatchingEngineEx
                     break;
                 }
             }
-            return priceLvlOrdersList->empty();
+            return priceLevel->empty();
         }
 
         template<class OrderSideMap>
-        PriceLevelListPtr getOrderPriceList(OrderSideMap& map, const Order::Price& price)
+        PriceLevel* getOrderPriceList(OrderSideMap& map, const Order::Price& price)
         {
             const auto [iter, inserted] = map.emplace(price, nullptr);
             if (inserted) {
-                iter->second = new PriceLevelList() ;
+                iter->second = std::make_unique<PriceLevel>() ;
             }
-            return iter->second;
+            return iter->second.get();
         };
 
         void handleOrderNew(OrderPtr&& order)
@@ -360,25 +357,25 @@ namespace MatchingEngineEx
             const auto [iterOrderMap, inserted] = orderByIDMap.emplace(order->orderId, ReferencesBlock{});
             if (inserted)
             {
-                auto& [ptrOrder, priceOrderIter, priceLevelOrderList] = iterOrderMap->second;
+                auto& [ptrOrder, priceOrderIter, priceLevel] = iterOrderMap->second;
 
                 ptrOrder = order.get();
-                priceLevelOrderList = (OrderSide::BUY == order->side) ? getOrderPriceList(bidPriceLevelMap, order->price) :
+                priceLevel = (OrderSide::BUY == order->side) ? getOrderPriceList(bidPriceLevelMap, order->price) :
                                       getOrderPriceList(askPriceLevelMap, order->price);
-                priceOrderIter = priceLevelOrderList->insert(priceLevelOrderList->end(), std::move(order));
+                priceOrderIter = priceLevel->insert(priceLevel->end(), std::move(order));
             }
         }
 
-        void cancelOrder(const std::unordered_map<Order::IDType, ReferencesBlock>::iterator& orderByIDIter)
+        void cancelOrder(const OrderIdMap::iterator& orderByIDIter)
         {
-            auto& [ptrOrder, iterPriceLvlOrder, priceLevelOrderList] = orderByIDIter->second;
+            auto& [ptrOrder, iterPriceLvlOrder, priceLevel] = orderByIDIter->second;
             const Order& order { *ptrOrder };
 
-            priceLevelOrderList->erase(iterPriceLvlOrder);
+            priceLevel->erase(iterPriceLvlOrder);
             orderByIDMap.erase(orderByIDIter);
 
             // FIXME: Performance impact
-            if (priceLevelOrderList->empty())
+            if (priceLevel->empty())
             {
                 if (Common::OrderSide::BUY == order.side) {
                     bidPriceLevelMap.erase(order.price);

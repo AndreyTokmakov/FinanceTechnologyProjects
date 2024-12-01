@@ -222,12 +222,17 @@ namespace MatchingEngineEx
     struct OrderMatchingEngine
     {
         using OrderPtr = std::unique_ptr<Order, Memory::ObjectPool<Order>::Deleter>;
-        using PriceLevel = std::list<OrderPtr>;
+
+        struct PriceLevel
+        {
+            std::list<OrderPtr> orders;
+            uint32_t quantity { 0 };
+        };
 
         struct ReferencesBlock
         {
             Order* order;
-            PriceLevel::iterator iterPriceLevelOrder;
+            decltype(PriceLevel::orders)::iterator iterPriceLevelOrder;
             PriceLevel* priceLevelOrderList;
         };
 
@@ -304,7 +309,7 @@ namespace MatchingEngineEx
 
         bool matchOrderList(Order& order, PriceLevel* priceLevel)
         {
-            for (auto orderIter = priceLevel->begin(); priceLevel->end() != orderIter;)
+            for (auto orderIter = priceLevel->orders.begin(); priceLevel->orders.end() != orderIter;)
             {
                 Order& matchedOrder = *(*orderIter);
 
@@ -327,7 +332,7 @@ namespace MatchingEngineEx
 
                     /** Deleting order **/
                     orderByIDMap.erase(matchedOrder.orderId);
-                    priceLevel->erase(orderIter++);
+                    priceLevel->orders.erase(orderIter++);
                 } else {
                     matchedOrder.quantity -= order.quantity;
                     order.quantity = 0;
@@ -335,7 +340,7 @@ namespace MatchingEngineEx
                     break;
                 }
             }
-            return priceLevel->empty();
+            return priceLevel->orders.empty();
         }
 
         template<class OrderSideMap>
@@ -362,7 +367,8 @@ namespace MatchingEngineEx
                 ptrOrder = order.get();
                 priceLevel = (OrderSide::BUY == order->side) ? getOrderPriceList(bidPriceLevelMap, order->price) :
                                       getOrderPriceList(askPriceLevelMap, order->price);
-                priceOrderIter = priceLevel->insert(priceLevel->end(), std::move(order));
+                priceLevel->quantity += order->quantity;
+                priceOrderIter = priceLevel->orders.insert(priceLevel->orders.end(), std::move(order));
             }
         }
 
@@ -371,11 +377,12 @@ namespace MatchingEngineEx
             auto& [ptrOrder, iterPriceLvlOrder, priceLevel] = orderByIDIter->second;
             const Order& order { *ptrOrder };
 
-            priceLevel->erase(iterPriceLvlOrder);
+            priceLevel->orders.erase(iterPriceLvlOrder);
+            priceLevel->quantity -= order.quantity;
             orderByIDMap.erase(orderByIDIter);
 
             // FIXME: Performance impact
-            if (priceLevel->empty())
+            if (priceLevel->orders.empty())
             {
                 if (Common::OrderSide::BUY == order.side) {
                     bidPriceLevelMap.erase(order.price);
@@ -436,7 +443,7 @@ namespace MatchingEngineEx
             {
                 for (const auto& [price, ordersList]: orderMap) {
                     std::cout << "\tPrice Level : [" << price << "]" << std::endl;
-                    for (const auto & orderIter: *ordersList) {
+                    for (const auto & orderIter: ordersList->orders) {
                         Common::printOrder(*orderIter);
                     }
                 }
@@ -462,14 +469,14 @@ namespace MatchingEngineEx
         {
             if (bidPriceLevelMap.empty())
                 return std::nullopt;
-            return bidPriceLevelMap.begin()->second->begin()->get();
+            return bidPriceLevelMap.begin()->second->orders.begin()->get();
         }
 
         std::optional<Order*> getBestSellOrder() const noexcept
         {
             if (askPriceLevelMap.empty())
                 return std::nullopt;
-            return askPriceLevelMap.begin()->second->begin()->get();
+            return askPriceLevelMap.begin()->second->orders.begin()->get();
         }
 
         size_t getOrdersCount() const noexcept
@@ -482,7 +489,7 @@ namespace MatchingEngineEx
         {
             size_t count { 0 };
             for (const auto& [price, orderList]: bidPriceLevelMap)
-                count += orderList->size();
+                count += orderList->orders.size();
             return count;
         }
 
@@ -491,7 +498,7 @@ namespace MatchingEngineEx
         {
             size_t count { 0 };
             for (const auto& [price, orderList]: askPriceLevelMap)
-                count += orderList->size();
+                count += orderList->orders.size();
             return count;
         }
 
@@ -1066,13 +1073,13 @@ namespace MatchingEngineEx::Testsing::MatchingEngine_Ex_Tests
 void MatchingEngineEx::TestAll()
 {
     using namespace MatchingEngineEx::Testsing;
-    // MatchingEngine_Utilities_Tests::TestAll();
+    MatchingEngine_Utilities_Tests::TestAll();
 
     // MatchingEngine_Ex_Tests::Debug();
     // MatchingEngine_Ex_Tests::PostOrder_BUY();
     // MatchingEngine_Ex_Tests::Trade_BUY_vs_SELL_EqualNum();
 
-    // MatchingEngine_Ex_Tests::Load_Test();
+    MatchingEngine_Ex_Tests::Load_Test();
 }
 
 

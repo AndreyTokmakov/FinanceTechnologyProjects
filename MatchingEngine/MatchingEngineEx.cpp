@@ -1057,17 +1057,22 @@ namespace MatchingEngineEx::Testsing::MatchingEngine_Ex_Tests
 }
 
 
+// TODO:
+//  - агригировать параметры [Price, Quantity] в рамках одного PriceLevel-а
+//    в структуру данных и обновлять ее при обновлении Order-ов в рамках PriceLevel-а
+//    Для целей быстрого получения информации по Quantity и тд
+
 
 void MatchingEngineEx::TestAll()
 {
     using namespace MatchingEngineEx::Testsing;
     // MatchingEngine_Utilities_Tests::TestAll();
 
-    //MatchingEngine_Ex_Tests::Debug();
+    // MatchingEngine_Ex_Tests::Debug();
     // MatchingEngine_Ex_Tests::PostOrder_BUY();
     // MatchingEngine_Ex_Tests::Trade_BUY_vs_SELL_EqualNum();
 
-    MatchingEngine_Ex_Tests::Load_Test();
+    // MatchingEngine_Ex_Tests::Load_Test();
 }
 
 

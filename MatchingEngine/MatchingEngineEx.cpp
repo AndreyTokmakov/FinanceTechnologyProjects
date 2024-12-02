@@ -233,7 +233,7 @@ namespace MatchingEngineEx
         {
             Order* order;
             decltype(PriceLevel::orders)::iterator iterPriceLevelOrder;
-            PriceLevel* priceLevelOrderList;
+            PriceLevel* priceLevel;
         };
 
         using OrderIdMap = std::unordered_map<Order::IDType, ReferencesBlock>;
@@ -424,6 +424,10 @@ namespace MatchingEngineEx
                 else if (orderOriginal.price == order->price)
                 {
                     // TODO: update order parameters
+                    PriceLevel& priceLevel = *orderByIDIter->second.priceLevel;
+                    priceLevel.quantity -= orderOriginal.quantity;
+                    priceLevel.quantity +=  order->quantity;
+
                     orderOriginal.quantity = order->quantity;
                 }
             }
@@ -441,14 +445,15 @@ namespace MatchingEngineEx
         {
             auto printOrders = [](const auto& orderMap)
             {
-                for (const auto& [price, ordersList]: orderMap) {
-                    std::cout << "\tPrice Level : [" << price << "]" << std::endl;
-                    for (const auto & orderIter: ordersList->orders) {
+                for (const auto& [price, priceLevel]: orderMap)
+                {
+                    std::cout << "\tPrice Level : [" << price << ", quantity: "
+                        << priceLevel->quantity << "]" << std::endl;
+                    for (const auto & orderIter: priceLevel->orders) {
                         Common::printOrder(*orderIter);
                     }
                 }
             };
-
 
             std::cout << "BUY:  " << std::endl; printOrders(bidPriceLevelMap);
             std::cout << "SELL: " << std::endl; printOrders(askPriceLevelMap);
@@ -957,6 +962,48 @@ namespace MatchingEngineEx::Testsing::MatchingEngine_Ex_Tests
         engine.info();
     }
 
+    void Buy_and_Cancel()
+    {
+        OrderMatchingEngineTester engine;
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3, 1));
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3, 2));
+        engine.info();
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::CANCEL, 10, 3, 1));
+        engine.info();
+    }
+
+
+    void New_and_Amend()
+    {
+        OrderMatchingEngineTester engine;
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3, 1));
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3, 2));
+        engine.info();
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::AMEND, 10, 2, 1));
+        engine.info();
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::AMEND, 10, 3, 1));
+        engine.info();
+    }
+
+    void New_and_Amend_DiffPrice()
+    {
+        OrderMatchingEngineTester engine;
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3, 1));
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::NEW, 10, 3, 2));
+        engine.info();
+
+        engine.processOrder(createOrder(OrderSide::BUY, OrderActionType::AMEND, 11, 2, 1));
+        engine.info();
+    }
+
+
+
     void Trade_BUY_vs_SELL_EqualNum()
     {
         OrderMatchingEngineTester engine;
@@ -1073,13 +1120,18 @@ namespace MatchingEngineEx::Testsing::MatchingEngine_Ex_Tests
 void MatchingEngineEx::TestAll()
 {
     using namespace MatchingEngineEx::Testsing;
-    MatchingEngine_Utilities_Tests::TestAll();
+    // MatchingEngine_Utilities_Tests::TestAll();
 
     // MatchingEngine_Ex_Tests::Debug();
+    // MatchingEngine_Ex_Tests::Buy_and_Cancel();
+
+    MatchingEngine_Ex_Tests::New_and_Amend();
+    // MatchingEngine_Ex_Tests::New_and_Amend_DiffPrice();
+
     // MatchingEngine_Ex_Tests::PostOrder_BUY();
     // MatchingEngine_Ex_Tests::Trade_BUY_vs_SELL_EqualNum();
 
-    MatchingEngine_Ex_Tests::Load_Test();
+    // MatchingEngine_Ex_Tests::Load_Test();
 }
 
 

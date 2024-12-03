@@ -40,89 +40,89 @@ namespace Common
         return order;
     }
 
-    OrderBuilder& OrderBuilder::setOrderSide(OrderSide side) noexcept
+    OrderBuilder& OrderBuilder::setOrderSide(const OrderSide side) noexcept
     {
         order.side = side;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setOrderType(OrderType type) noexcept {
+    OrderBuilder& OrderBuilder::setOrderType(const OrderType type) noexcept {
         order.type = type;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setOrderActionType(OrderActionType actionType) noexcept {
+    OrderBuilder& OrderBuilder::setOrderActionType(const OrderActionType actionType) noexcept {
         order.action = actionType;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setOrderTimeCondition(OrderTimeCondition condition) noexcept {
+    OrderBuilder& OrderBuilder::setOrderTimeCondition(const OrderTimeCondition condition) noexcept {
         order.timeCondition = condition;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setTriggerType(TriggerType triggerType) noexcept {
+    OrderBuilder& OrderBuilder::setTriggerType(const TriggerType triggerType) noexcept {
         order.triggerType = triggerType;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setOrderStatusType(OrderStatusType statusType) noexcept {
+    OrderBuilder& OrderBuilder::setOrderStatusType(const OrderStatusType statusType) noexcept {
         order.status = statusType;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setOrderMatchedType(OrderMatchedType matchedType) noexcept {
+    OrderBuilder& OrderBuilder::setOrderMatchedType(const OrderMatchedType matchedType) noexcept {
         order.matchedType = matchedType;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setOrderId(Order::OrderID id) noexcept
+    OrderBuilder& OrderBuilder::setOrderId(const Order::OrderID id) noexcept
     {
         order.orderId = id;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setMarketId(Order::IDType marketId) noexcept {
+    OrderBuilder& OrderBuilder::setMarketId(const Order::IDType marketId) noexcept {
         order.marketId = marketId;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setAmount(unsigned long long amount) noexcept {
+    OrderBuilder& OrderBuilder::setAmount(const unsigned long long amount) noexcept {
         order.amount = amount;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setRemainAmount(unsigned long long remainAmount) noexcept {
+    OrderBuilder& OrderBuilder::setRemainAmount(const unsigned long long remainAmount) noexcept {
         order.remainAmount = remainAmount;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setQuantity(unsigned long long quantity) noexcept {
+    OrderBuilder& OrderBuilder::setQuantity(const unsigned long long quantity) noexcept {
         order.quantity = quantity;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setDisplayQuantity(unsigned long long displayQuantity) noexcept {
+    OrderBuilder& OrderBuilder::setDisplayQuantity(const unsigned long long displayQuantity) noexcept {
         order.displayQuantity = displayQuantity;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setRemainQuantity(unsigned long long remainQuantity) noexcept {
+    OrderBuilder& OrderBuilder::setRemainQuantity(const unsigned long long remainQuantity) noexcept {
         order.remainQuantity = remainQuantity;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setPrice(long long price) noexcept {
+    OrderBuilder& OrderBuilder::setPrice(const long long price) noexcept {
         order.price = price;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setAccountId(Order::IDType accountId) noexcept {
+    OrderBuilder& OrderBuilder::setAccountId(const Order::IDType accountId) noexcept {
         order.accountId = accountId;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setParentAccountId(Order::IDType parentAccountId) noexcept {
+    OrderBuilder& OrderBuilder::setParentAccountId(const Order::IDType parentAccountId) noexcept {
         order.parentAccountId = parentAccountId;
         return *this;
     }

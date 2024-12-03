@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}
         main.cpp
         Order.cpp
         MatchingEngine.cpp
+        Testing.cpp
 )
 
 message("CMAKE_SOURCE_DIR       : ${CMAKE_SOURCE_DIR}")

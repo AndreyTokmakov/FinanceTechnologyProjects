@@ -1125,13 +1125,13 @@ void MatchingEngineEx::TestAll()
     // MatchingEngine_Ex_Tests::Debug();
     // MatchingEngine_Ex_Tests::Buy_and_Cancel();
 
-    MatchingEngine_Ex_Tests::New_and_Amend();
+    // MatchingEngine_Ex_Tests::New_and_Amend();
     // MatchingEngine_Ex_Tests::New_and_Amend_DiffPrice();
 
     // MatchingEngine_Ex_Tests::PostOrder_BUY();
     // MatchingEngine_Ex_Tests::Trade_BUY_vs_SELL_EqualNum();
 
-    // MatchingEngine_Ex_Tests::Load_Test();
+    MatchingEngine_Ex_Tests::Load_Test();
 }
 
 

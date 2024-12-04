@@ -109,16 +109,24 @@ public:
 
 public:
 
+    [[maybe_unused]] [[nodiscard]]
     std::optional<Order*> getBestBuyOrder() const noexcept;
+
+    [[maybe_unused]] [[nodiscard]]
     std::optional<Order*> getBestSellOrder() const noexcept;
 
+    [[maybe_unused]] [[nodiscard]]
     size_t getOrdersCount() const noexcept;
 
+    [[maybe_unused]] [[nodiscard]]
     size_t getBuyPriceLevelCount() const noexcept;
+
+    [[maybe_unused]] [[nodiscard]]
     size_t getSellPriceLevelsCount() const noexcept;
 
 private:
 
+    [[nodiscard]]
     Common::Order::Quantity matchOrder(Order &order);
 
     template<typename OrderSideMap,
@@ -128,7 +136,7 @@ private:
 
     bool matchOrderList(Order &order, PriceLevel *priceLevel);
 
-    template<class OrderSideMap>
+    template<class OrderSideMap> [[nodiscard]]
     PriceLevel *getOrderPriceList(OrderSideMap &map, const Order::Price &price);
 
     void handleOrderNew(OrderPtr &&order);

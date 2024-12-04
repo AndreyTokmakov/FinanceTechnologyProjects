@@ -10,15 +10,19 @@ add_compile_options(-c -Wall -Wextra -O3 -std=c++2c)
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
-        Order.cpp
-        MatchingEngine.cpp
-        Testing.cpp
+        common/Order.cpp
+        engine/MatchingEngine.cpp
+        tests/Testing.cpp
 )
 
 message("CMAKE_SOURCE_DIR       : ${CMAKE_SOURCE_DIR}")
 message("PROJECT_SOURCE_DIR     : ${PROJECT_SOURCE_DIR}")
 message("CMAKE_BINARY_DIR       : ${CMAKE_BINARY_DIR}")
 message("CMAKE_CURRENT_LIST_DIR : ${CMAKE_CURRENT_LIST_DIR}")
+
+include_directories("${PROJECT_SOURCE_DIR}/common")
+include_directories("${PROJECT_SOURCE_DIR}/engine")
+include_directories("${PROJECT_SOURCE_DIR}/tests")
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")
 target_link_directories(${PROJECT_NAME} PUBLIC "${CMAKE_BINARY_DIR}/Utilities")

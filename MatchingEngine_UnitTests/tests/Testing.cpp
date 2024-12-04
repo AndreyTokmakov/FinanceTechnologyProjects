@@ -14,6 +14,53 @@ namespace Testing
 {
     Memory::ObjectPool<Common::Order> ordersPool;
 
+
+    void OrderMatchingEngineTester::info([[maybe_unused]] bool printTrades)
+    {
+        auto printOrders = [](const auto& orderMap)
+        {
+            for (const auto& [price, priceLevel]: orderMap)
+            {
+                std::cout << "\tPrice Level : [" << price << ", quantity: "
+                          << priceLevel->quantity << "]" << std::endl;
+                for (const auto & orderIter: priceLevel->orders) {
+                    Common::printOrder(*orderIter);
+                }
+            }
+        };
+
+        std::cout << "BUY:  " << std::endl; printOrders(bidPriceLevelMap);
+        std::cout << "SELL: " << std::endl; printOrders(askPriceLevelMap);
+        std::cout << std::string(160, '=') << std::endl;
+
+        /*
+        if (!printTrades)
+            return;
+        for (const auto& trade: trades.trades)
+        {
+            std::cout << "Trade(Buy: {id: " << trade.buyOrderInfo.id  << ", price: " << trade.buyOrderInfo.price << "}, "
+                      << "Sell: {id: " << trade.sellOrderInfo.id << ", price: " << trade.sellOrderInfo.price << "}, "
+                      << "quantity: " << trade.quantity << ")\n";
+        }*/
+    }
+
+    size_t OrderMatchingEngineTester::getBuyOrdersCount() const noexcept
+    {
+        size_t count { 0 };
+        for (const auto& [price, orderList]: bidPriceLevelMap)
+            count += orderList->orders.size();
+        return count;
+    }
+
+    size_t OrderMatchingEngineTester::getSellOrdersCount() const noexcept
+    {
+        size_t count { 0 };
+        for (const auto& [price, orderList]: askPriceLevelMap)
+            count += orderList->orders.size();
+        return count;
+    }
+
+
     uint64_t getNextOrderID()
     {
         static uint64_t id { 1'000 };

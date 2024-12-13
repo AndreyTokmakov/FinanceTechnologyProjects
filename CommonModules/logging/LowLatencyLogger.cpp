@@ -12,6 +12,9 @@ Description : LowLatencyLogger.cpp
 #include <iostream>
 #include <string_view>
 #include <chrono>
+#include <mutex>
+#include <thread>
+#include <future>
 
 namespace LowLatencyLogger
 {
@@ -82,6 +85,41 @@ namespace LowLatencyLogger
             buffer.resize(size);
         }
     };
+
+;
+    struct Logger
+    {
+        static inline std::mutex mutex;
+        static inline std::vector<std::vector<std::string>*> threadLogs;
+
+        static inline thread_local std::vector<std::string> logs = []
+        {
+            std::lock_guard<std::mutex> lock { mutex };
+            std::vector<std::string> logs(1024);
+            threadLogs.push_back(&logs);
+            return logs;
+        }();
+
+
+        void log(std::string&& info)
+        {
+            logs.push_back(std::move(info));
+        }
+    };
+
+    void testLogs()
+    {
+        Logger logger;
+
+        auto f1 = std::async([&] { logger.log("log_1"); });
+        auto f2 = std::async([&] { logger.log("log_2"); });
+
+
+        f1.wait();
+        f2.wait();
+
+        std::cout << LowLatencyLogger::Logger::threadLogs.size() << std::endl;
+    }
 }
 
 
@@ -105,10 +143,5 @@ void LowLatencyLogger::TestAll()
     // uint64_t size = std::numeric_limits<uint16_t>::max() * sizeof(LongEntry);
     // std::cout << size << std::endl;
 
-
-    uint16_t counter = std::numeric_limits<uint16_t>::max();
-
-    std::cout << counter << std::endl;
-    std::cout << ++counter << std::endl;
-
+    LowLatencyLogger::testLogs();
 }

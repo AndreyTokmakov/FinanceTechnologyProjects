@@ -11,7 +11,13 @@ Description : Common modules
 #include <iostream>
 #include <string_view>
 
-#include <atomic>
+#include "queues/LockFreeQueue.h"
+#include "logging/LowLatencyLogger.h"
+
+
+// TODO:
+//  -  Low Latency logger
+
 
 
 int main([[maybe_unused]] int argc,
@@ -19,12 +25,8 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    // std::atomic<int32_t> value = 10;
-    // int32_t result = value.fetch_add(1, std::memory_order_relaxed);
-    // std::cout << result << " -> " << value.load(std::memory_order_relaxed) << std::endl;
-
-    auto [a, _] = std::make_pair(1, 1);
-    auto [b, _] = std::make_pair(1, 1);
+    // LockFreeQueue::TestAll();
+    LowLatencyLogger::TestAll();
 
 
     return EXIT_SUCCESS;

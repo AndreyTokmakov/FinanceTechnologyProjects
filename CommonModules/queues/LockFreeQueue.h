@@ -17,6 +17,11 @@ Description : LockFreeQueue.h
 
 namespace LockFreeQueue
 {
+    void TestAll();
+}
+
+namespace LockFreeQueue
+{
     template<typename T>
     struct LFQueue final
     {

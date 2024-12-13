@@ -9,6 +9,7 @@ add_compile_options(-c -Wall -Wextra -O3 -std=c++2c)
 
 add_library(common_modules
     queues/LockFreeQueue.cpp
+    logging/LowLatencyLogger.cpp
 )
 
 # include all components

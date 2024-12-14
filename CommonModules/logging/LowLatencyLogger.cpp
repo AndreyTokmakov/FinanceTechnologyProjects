@@ -243,43 +243,43 @@ namespace LowLatencyLogger
 
 namespace Demo
 {
-    struct Str
+    struct String
     {
         std::string str;
 
-        Str()
+        String()
         {
             std::cout << __PRETTY_FUNCTION__ << std::endl;
         }
 
-        explicit Str(const char* s) : str {s}
+        explicit String(const char* s) : str {s}
         {
             std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
         }
 
-        ~Str()
+        ~String()
         {
             std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
         }
 
-        Str(const Str&)
+        String(const String&)
         {
             std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
         }
 
-        Str(Str&&) noexcept
+        String(String&&) noexcept
         {
             std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
         }
 
-        Str& operator=(const Str& rhs)
+        String& operator=(const String& rhs)
         {
             str = rhs.str;
             std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";;
             return *this;
         }
 
-        Str& operator=(Str&& rhs) noexcept
+        String& operator=(String&& rhs) noexcept
         {
             str = std::move(rhs.str);
             std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
@@ -289,8 +289,8 @@ namespace Demo
 
     struct Entry
     {
-        Str str1;
-        Str str2 {"Default"};
+        String str1;
+        String str2 {"Default"};
 
         explicit Entry(const char* s1): str1 { s1 }{}
         Entry(const char* s1, const char* s2): str1 { s1 }, str2 { s2 }{}

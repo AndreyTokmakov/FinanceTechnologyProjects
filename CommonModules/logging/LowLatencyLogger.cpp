@@ -133,14 +133,19 @@ namespace Common
 
 namespace LowLatencyLogger
 {
-
+    // TODO: Check for copies
+    //      - when using RingBuffer::put()
+    //      - when using RingBuffer::get()
     struct LongEntry
     {
-        // TODO: Sequence number
-        std::chrono::system_clock::time_point timestamp { std::chrono::system_clock::now() };
-        std::string text ;
+        // std::chrono::system_clock::time_point timestamp { std::chrono::system_clock::now() };
+        std::string text;
 
-        explicit LongEntry(std::string txt): text { std::move(txt) } {
+        LongEntry() = default;
+
+        explicit LongEntry(std::string txt):
+                // timestamp { std::chrono::system_clock::now() },
+                text { std::move(txt) } {
         }
     };
 
@@ -152,36 +157,14 @@ namespace LowLatencyLogger
     };
 
 
-    struct Logger
-    {
-        using LogBundle = std::vector<std::string>;
-
-        static inline std::mutex mutex;
-        static inline std::vector<std::vector<std::string>*> threadLogs;
-
-        static inline thread_local std::vector<std::string> logs = []
-        {
-            std::lock_guard<std::mutex> lock { mutex };
-            std::vector<std::string> logs(1024);
-            threadLogs.push_back(&logs);
-            return logs;
-        }();
-
-
-        void log(std::string&& info)
-        {
-            logs.push_back(std::move(info));
-        }
-    };
-
-
     // TODO: Use std::list<T> or std::deque<T>
     // TODO: ThreadLocalLogBundle --> RingBuffer[SIZE]
-    struct LoggerEx
+    struct Logger
     {
-        using LogBundle = Common::RingBuffer<std::string>;
+        using LogBundle = Common::RingBuffer<LongEntry>;
 
-        constexpr static inline size_t logBundleSize { 128 };
+        constexpr static inline int32_t logBundleSize { 128 };
+        constexpr static inline int32_t consumeBlockSize { 10 };
 
         mutable std::mutex mutex;
         std::list<LogBundle> threadLogs;
@@ -189,9 +172,9 @@ namespace LowLatencyLogger
         std::jthread logProcessor;
         std::stop_source stopSource;
 
-        LoggerEx()
+        Logger()
         {
-            logProcessor = std::jthread(&LoggerEx::processor, this, stopSource);
+            logProcessor = std::jthread(&Logger::processor, this, stopSource);
         }
 
         [[nodiscard]]
@@ -204,28 +187,26 @@ namespace LowLatencyLogger
         void log(std::string&& info)
         {
             static thread_local LogBundle& bundle = getThreadLocalLogs();
-            bundle.put(std::move(info));
+            bundle.put(LongEntry{std::move(info)});
         }
 
         // TODO: Rename
         void processor(const std::stop_source& source)
         {
-            constexpr int32_t maxRecords { 10 };
-
             // TODO
             //  1. Get N records from each LogBundle
             //  2. Store in the local collection
             //  3. Sort by Timestamp
 
-            LoggerEx::LogBundle::value_type logEntry;
+            Logger::LogBundle::value_type logEntry;
             while (!source.stop_requested())
             {
                 // TODO: Lock 'threadLogs'
                 std::this_thread::sleep_for(std::chrono::seconds (1U));
-                for (LoggerEx::LogBundle& logBundle : threadLogs)
+                for (Logger::LogBundle& logBundle : threadLogs)
                 {
-                    for (int32_t n = 0; n < maxRecords && logBundle.get(logEntry); ++n) {
-                        std::cout  << logEntry << std::endl;
+                    for (int32_t n = 0; n < consumeBlockSize && logBundle.get(logEntry); ++n) {
+                        std::cout  << logEntry.text << std::endl;
                     }
                 }
             }
@@ -234,34 +215,28 @@ namespace LowLatencyLogger
 
     void testLogs()
     {
-        // Logger logger;
-        LoggerEx logger;
+        Logger logger;
 
         auto f1 = std::async([&] {
-            for (int i = 0; i < 10; ++i) {
-                logger.log("log_1");
+            while (true) {
+                for (int i = 0; i < 10; ++i) {
+                    logger.log("log_1");
+                }
+                std::this_thread::sleep_for(std::chrono::seconds (2U));
             }
         });
         auto f2 = std::async([&] {
-            for (int i = 0; i < 10; ++i) {
-                logger.log("log_2");
+            while (true) {
+                for (int i = 0; i < 10; ++i) {
+                    logger.log("log_2");
+                }
+                std::this_thread::sleep_for(std::chrono::seconds (2U));
             }
         });
 
         f1.wait();
         f2.wait();
 
-        /*
-        LoggerEx::LogBundle::value_type value;
-        for (LoggerEx::LogBundle& logBundle : logger.threadLogs)
-        {
-            bool result { true };
-            while (result) {
-                result = logBundle.get(value);
-                std::cout << value << std::endl;
-            }
-            std::cout << Utils::getCurrentTime() << std::endl;
-        }*/
     }
 }
 

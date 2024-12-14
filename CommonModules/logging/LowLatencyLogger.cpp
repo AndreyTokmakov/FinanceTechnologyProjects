@@ -12,11 +12,14 @@ Description : LowLatencyLogger.cpp
 #include <iostream>
 #include <string_view>
 #include <chrono>
+#include <list>
+
 #include <mutex>
 #include <thread>
 #include <future>
 
-namespace LowLatencyLogger
+
+namespace
 {
     /** SILENT <-- FATAL <-- ERROR <-- WARNING <-- INFO <-- DEBUG <-- TRACE
      *
@@ -37,6 +40,7 @@ namespace LowLatencyLogger
         SILENT
     };
 
+    [[nodiscard]]
     std::string toString(const Level level)
     {
         switch (level) {
@@ -50,6 +54,106 @@ namespace LowLatencyLogger
             default: return std::string { "Unknown" };
         }
     }
+}
+
+namespace Utils
+{
+    using namespace std::chrono;
+    constexpr std::string_view FORMAT { "%d-%02d-%02d %02d:%02d:%02d.%06ld" };
+
+    [[nodiscard]]
+    std::string getCurrentTime(const time_point<system_clock>& timestamp = system_clock::now()) noexcept
+    {
+        const time_t time { std::chrono::system_clock::to_time_t(timestamp) };
+        std::tm tm {};
+        ::localtime_r(&time, &tm);
+
+        std::string buffer(64, '\0');
+        const int32_t size = std::sprintf(buffer.data(), FORMAT.data(),
+                                          tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec,
+                                          duration_cast<microseconds>(timestamp - time_point_cast<seconds>(timestamp)).count());
+        buffer.resize(size);
+        buffer.shrink_to_fit();
+        return buffer;
+    }
+}
+
+namespace Common
+{
+    template<typename T>
+    struct RingBuffer
+    {
+        using size_type = size_t;
+
+        template<typename Type>
+        using collection_type = std::vector<Type>;
+
+        size_type idxRead { 0 };
+        size_type idxWrite { 0 };
+        collection_type<T> buffer;
+        bool overflow { false };
+
+        explicit RingBuffer(size_t size) {
+            buffer.resize(size);
+        }
+
+        void put(T&& value)
+        {
+            if (idxWrite == buffer.size()) {
+                idxWrite = 0;
+                overflow = true;
+            }
+            buffer[idxWrite++] = std::move(value);
+        }
+
+        bool take(T& value)
+        {
+            if (!overflow && idxWrite == idxRead) {
+                return false;
+            } else {
+
+            }
+
+
+            if (idxRead == buffer.size()) {
+                idxRead = 0;
+                overflow = false;
+            }
+
+            return true;
+        }
+    };
+
+
+    template<typename T>
+    void print(const RingBuffer<T>& ringBuff)
+    {
+        std::cout << "idxRead: " << ringBuff.idxRead << ", idxWrite: " << ringBuff.idxWrite
+            << ", overflow: " << std::boolalpha << ringBuff.overflow << std::endl;
+        for (const T& entry: ringBuff.buffer)
+        {
+            std::cout << entry << std::endl;
+        }
+    }
+
+    void RingBufferTests()
+    {
+        RingBuffer<int> buffer(3);
+
+        buffer.put(1);
+        buffer.put(2);
+        buffer.put(3);
+        buffer.put(4);
+
+
+
+        print(buffer);
+
+    }
+}
+
+namespace LowLatencyLogger
+{
 
     struct LongEntry
     {
@@ -69,26 +173,10 @@ namespace LowLatencyLogger
     };
 
 
-    template<typename T>
-    struct RingBuffer
-    {
-        using size_type = size_t;
-
-        template<typename Type>
-        using collection_type = std::vector<Type>;
-
-        size_type idxRead { 0 };
-        size_type idxWrite { 0 };
-        collection_type<T> buffer;
-
-        explicit RingBuffer(size_t size) {
-            buffer.resize(size);
-        }
-    };
-
-;
     struct Logger
     {
+        using LogBundle = std::vector<std::string>;
+
         static inline std::mutex mutex;
         static inline std::vector<std::vector<std::string>*> threadLogs;
 
@@ -107,18 +195,80 @@ namespace LowLatencyLogger
         }
     };
 
+
+    // TODO: Use std::list<T> or std::deque<T>
+    // TODO: ThreadLocalLogBundle --> RingBuffer[SIZE]
+    struct LoggerEx
+    {
+        constexpr static inline size_t logBundleSize { 1024 };
+
+        struct LogBundle
+        {
+            std::vector<std::string> logs;
+
+        };
+
+        mutable std::mutex mutex;
+        std::list<LogBundle> threadLogs;
+
+        std::jthread logProcessor;
+        std::stop_source stopSource;
+
+        LoggerEx()
+        {
+            logProcessor = std::jthread(&LoggerEx::processor, this, stopSource);
+        }
+
+        [[nodiscard]]
+        LogBundle& getThreadLocalLogs()
+        {
+            std::lock_guard<std::mutex> lock { mutex };
+            return threadLogs.emplace_back();
+        }
+
+        void log(std::string&& info)
+        {
+            static thread_local LogBundle& bundle = getThreadLocalLogs();
+            bundle.logs.push_back(std::move(info));
+        }
+
+        // TODO: Rename
+        void processor(const std::stop_source& source)
+        {
+            while (!source.stop_requested())
+            {
+                std::this_thread::sleep_for(std::chrono::seconds (1U));
+                std::cout << Utils::getCurrentTime() << " Processing logs.... " << std::endl;
+            }
+        }
+    };
+
     void testLogs()
     {
-        Logger logger;
+        // Logger logger;
+        LoggerEx logger;
 
-        auto f1 = std::async([&] { logger.log("log_1"); });
-        auto f2 = std::async([&] { logger.log("log_2"); });
-
+        auto f1 = std::async([&] {
+            for (int i = 0; i < 10; ++i) {
+                logger.log("log_1");
+            }
+        });
+        auto f2 = std::async([&] {
+            for (int i = 0; i < 10; ++i) {
+                logger.log("log_2");
+            }
+        });
 
         f1.wait();
         f2.wait();
 
-        std::cout << LowLatencyLogger::Logger::threadLogs.size() << std::endl;
+        for (const LoggerEx::LogBundle& logBundle : logger.threadLogs)
+        {
+            // std::cout << logs.size() << "[" << std::addressof(logs) << "]" << std::endl;
+            for (const auto& entry: logBundle.logs) {
+                std::cout << entry << std::endl;
+            }
+        }
     }
 }
 
@@ -143,5 +293,7 @@ void LowLatencyLogger::TestAll()
     // uint64_t size = std::numeric_limits<uint16_t>::max() * sizeof(LongEntry);
     // std::cout << size << std::endl;
 
-    LowLatencyLogger::testLogs();
+    // LowLatencyLogger::testLogs();
+
+    Common::RingBufferTests();
 }

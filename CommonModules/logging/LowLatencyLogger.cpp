@@ -144,8 +144,8 @@ namespace LowLatencyLogger
         LongEntry() = default;
 
         explicit LongEntry(std::string txt):
-                // timestamp { std::chrono::system_clock::now() },
-                text { std::move(txt) } {
+            // timestamp { std::chrono::system_clock::now() },
+            text { std::move(txt) } {
         }
     };
 
@@ -241,6 +241,53 @@ namespace LowLatencyLogger
 }
 
 
+namespace Demo
+{
+    struct Str
+    {
+        std::string str;
+
+        Str() { std::cout << __PRETTY_FUNCTION__ << std::endl; }
+        explicit Str(const char* s) : str {s} { std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n"; }
+
+        ~Str() { std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n"; }
+
+        Str(const Str&) { std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n"; }
+        Str(Str&&) noexcept { std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n"; }
+
+        Str& operator=(const Str& rhs)
+        {
+            str = rhs.str;
+            std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";;
+            return *this;
+        }
+
+        Str& operator=(Str&& rhs) noexcept
+        {
+            str = std::move(rhs.str);
+            std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
+            return *this;
+        }
+    };
+
+    struct Entry
+    {
+        Str str1;
+        Str str2 {"Default"};
+
+        explicit Entry(const char* s1): str1 { s1 }{}
+        Entry(const char* s1, const char* s2): str1 { s1 }, str2 { s2 }{}
+    };
+
+    void demoTest()
+    {
+        // Entry entry1 = Entry { "111", "222"};
+        Entry entry1 = Entry { "111"};
+        Entry entry2 = std::move(entry1);
+    }
+}
+
+
 // TODO:
 //  1. need to have DEFINES to enable/disable Logging based of Logger level ???
 //  2. Each thread stores elements int THREAD LOCAL RING BUFFER
@@ -261,5 +308,7 @@ void LowLatencyLogger::TestAll()
     // uint64_t size = std::numeric_limits<uint16_t>::max() * sizeof(LongEntry);
     // std::cout << size << std::endl;
 
-    LowLatencyLogger::testLogs();
+    // LowLatencyLogger::testLogs();
+
+    Demo::demoTest();
 }

@@ -84,72 +84,51 @@ namespace Common
     struct RingBuffer
     {
         using size_type = size_t;
-
-        template<typename Type>
-        using collection_type = std::vector<Type>;
+        using value_type = T;
+        using collection_type = std::vector<value_type>;
 
         size_type idxRead { 0 };
         size_type idxWrite { 0 };
-        collection_type<T> buffer;
+        collection_type buffer {};
         bool overflow { false };
+        // TODO: add consumer lost counter ???
 
-        explicit RingBuffer(size_t size) {
+        explicit RingBuffer(size_t size): idxRead { 0 }, idxWrite { 0 }, overflow { false } {
             buffer.resize(size);
         }
 
-        void put(T&& value)
+        void put(value_type&& value)
         {
             if (idxWrite == buffer.size()) {
                 idxWrite = 0;
                 overflow = true;
             }
+            if (overflow && idxWrite == idxRead) {
+                ++idxRead;
+            }
             buffer[idxWrite++] = std::move(value);
         }
 
-        bool take(T& value)
+        bool get(value_type& value)
         {
             if (!overflow && idxWrite == idxRead) {
                 return false;
-            } else {
-
             }
-
 
             if (idxRead == buffer.size()) {
                 idxRead = 0;
                 overflow = false;
             }
 
+            value = std::move(buffer[idxRead++]);
             return true;
         }
+
+        /*
+        size_type size() const noexcept {
+            return idxWrite - idxRead;
+        }*/
     };
-
-
-    template<typename T>
-    void print(const RingBuffer<T>& ringBuff)
-    {
-        std::cout << "idxRead: " << ringBuff.idxRead << ", idxWrite: " << ringBuff.idxWrite
-            << ", overflow: " << std::boolalpha << ringBuff.overflow << std::endl;
-        for (const T& entry: ringBuff.buffer)
-        {
-            std::cout << entry << std::endl;
-        }
-    }
-
-    void RingBufferTests()
-    {
-        RingBuffer<int> buffer(3);
-
-        buffer.put(1);
-        buffer.put(2);
-        buffer.put(3);
-        buffer.put(4);
-
-
-
-        print(buffer);
-
-    }
 }
 
 namespace LowLatencyLogger
@@ -200,13 +179,9 @@ namespace LowLatencyLogger
     // TODO: ThreadLocalLogBundle --> RingBuffer[SIZE]
     struct LoggerEx
     {
-        constexpr static inline size_t logBundleSize { 1024 };
+        using LogBundle = Common::RingBuffer<std::string>;
 
-        struct LogBundle
-        {
-            std::vector<std::string> logs;
-
-        };
+        constexpr static inline size_t logBundleSize { 128 };
 
         mutable std::mutex mutex;
         std::list<LogBundle> threadLogs;
@@ -223,22 +198,36 @@ namespace LowLatencyLogger
         LogBundle& getThreadLocalLogs()
         {
             std::lock_guard<std::mutex> lock { mutex };
-            return threadLogs.emplace_back();
+            return threadLogs.emplace_back(logBundleSize);
         }
 
         void log(std::string&& info)
         {
             static thread_local LogBundle& bundle = getThreadLocalLogs();
-            bundle.logs.push_back(std::move(info));
+            bundle.put(std::move(info));
         }
 
         // TODO: Rename
         void processor(const std::stop_source& source)
         {
+            constexpr int32_t maxRecords { 10 };
+
+            // TODO
+            //  1. Get N records from each LogBundle
+            //  2. Store in the local collection
+            //  3. Sort by Timestamp
+
+            LoggerEx::LogBundle::value_type logEntry;
             while (!source.stop_requested())
             {
+                // TODO: Lock 'threadLogs'
                 std::this_thread::sleep_for(std::chrono::seconds (1U));
-                std::cout << Utils::getCurrentTime() << " Processing logs.... " << std::endl;
+                for (LoggerEx::LogBundle& logBundle : threadLogs)
+                {
+                    for (int32_t n = 0; n < maxRecords && logBundle.get(logEntry); ++n) {
+                        std::cout  << logEntry << std::endl;
+                    }
+                }
             }
         }
     };
@@ -262,13 +251,17 @@ namespace LowLatencyLogger
         f1.wait();
         f2.wait();
 
-        for (const LoggerEx::LogBundle& logBundle : logger.threadLogs)
+        /*
+        LoggerEx::LogBundle::value_type value;
+        for (LoggerEx::LogBundle& logBundle : logger.threadLogs)
         {
-            // std::cout << logs.size() << "[" << std::addressof(logs) << "]" << std::endl;
-            for (const auto& entry: logBundle.logs) {
-                std::cout << entry << std::endl;
+            bool result { true };
+            while (result) {
+                result = logBundle.get(value);
+                std::cout << value << std::endl;
             }
-        }
+            std::cout << Utils::getCurrentTime() << std::endl;
+        }*/
     }
 }
 
@@ -293,7 +286,5 @@ void LowLatencyLogger::TestAll()
     // uint64_t size = std::numeric_limits<uint16_t>::max() * sizeof(LongEntry);
     // std::cout << size << std::endl;
 
-    // LowLatencyLogger::testLogs();
-
-    Common::RingBufferTests();
+    LowLatencyLogger::testLogs();
 }

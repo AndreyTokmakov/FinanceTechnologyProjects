@@ -247,13 +247,30 @@ namespace Demo
     {
         std::string str;
 
-        Str() { std::cout << __PRETTY_FUNCTION__ << std::endl; }
-        explicit Str(const char* s) : str {s} { std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n"; }
+        Str()
+        {
+            std::cout << __PRETTY_FUNCTION__ << std::endl;
+        }
 
-        ~Str() { std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n"; }
+        explicit Str(const char* s) : str {s}
+        {
+            std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
+        }
 
-        Str(const Str&) { std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n"; }
-        Str(Str&&) noexcept { std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n"; }
+        ~Str()
+        {
+            std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
+        }
+
+        Str(const Str&)
+        {
+            std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
+        }
+
+        Str(Str&&) noexcept
+        {
+            std::cout << __PRETTY_FUNCTION__ << "(" << str << ")\n";
+        }
 
         Str& operator=(const Str& rhs)
         {

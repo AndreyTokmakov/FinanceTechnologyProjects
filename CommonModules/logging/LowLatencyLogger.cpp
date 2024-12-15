@@ -15,6 +15,7 @@ Description : LowLatencyLogger.cpp
 #include <list>
 
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
 #include <future>
 
@@ -174,8 +175,7 @@ namespace LowLatencyLogger
 
         using LogBundle = Common::RingBuffer<LongEntry>;
 
-        // TODO:  mutex --> std::shared_mutex
-        mutable std::mutex mutex;
+        mutable std::shared_mutex mutex;
         std::list<LogBundle> threadLogs;
 
         mutable std::mutex mtxLogs2Handle;
@@ -194,7 +194,7 @@ namespace LowLatencyLogger
         [[nodiscard]]
         LogBundle& getThreadLocalLogs()
         {
-            std::lock_guard<std::mutex> lock { mutex };
+            std::lock_guard<std::shared_mutex> lock { mutex };
             return threadLogs.emplace_back(logBundleSize);
         }
 
@@ -216,7 +216,7 @@ namespace LowLatencyLogger
                 {
                     /// Loop thought all Logger::LogBundle in the threadLogs (each Logger::LogBundle created per on thread)
                     /// and move all logs from each LogBundle into logsLocal collection
-                    std::lock_guard<std::mutex> lock { mutex };
+                    std::shared_lock<std::shared_mutex> lock { mutex };
                     for (Logger::LogBundle &logBundle: threadLogs)
                     {
                         for (int32_t n = 0; n < consumeBlockSize && logBundle.get(logEntry); ++n) {
@@ -231,6 +231,7 @@ namespace LowLatencyLogger
             }
         }
 
+        // FIXME: DEBUG - Remove
         uint64_t counter = 0;
 
         void handleLogs(const std::stop_source& source)
@@ -263,9 +264,10 @@ namespace LowLatencyLogger
                 {
                     // TODO: Use LogHandlers here
                     // std::cout << Utils::getCurrentTime(entry.timestamp) << " | " << entry.text << std::endl;
-                    ++counter;
 
-                    if (0 == counter % 1000)
+                    // FIXME: DEBUG - Remove
+                    ++counter;
+                    if (0 == counter % 10'000)
                         std::cout << counter << std::endl;
                 }
                 logsLocal.clear();
@@ -301,17 +303,20 @@ namespace LowLatencyLogger
                     std::chrono::duration<double> duration,
                     uint64_t logsToSend)
         {
-            for (uint64_t n = 0; n < logsToSend; ++n)
+            constexpr int32_t N = 20;
+            for (uint64_t n = 0; n < logsToSend / N; ++n)
             {
-                logger.log(std::string (text));
+                for (int i = 0; i < N; ++i) {
+                    logger.log(std::string (text));
+                }
                 std::this_thread::sleep_for(duration);
             }
         };
 
-        auto f1 = std::async(producer, "log_1", std::chrono::nanoseconds (1U), 250'000);
-        auto f2 = std::async(producer, "log_2", std::chrono::nanoseconds (1U), 250'000);
-        auto f3 = std::async(producer, "log_3", std::chrono::nanoseconds (1U), 250'000);
-        auto f4 = std::async(producer, "log_4", std::chrono::nanoseconds (1U), 250'000);
+        auto f1 = std::async(producer, "log_1", std::chrono::nanoseconds (1U), 10'000'000);
+        auto f2 = std::async(producer, "log_2", std::chrono::nanoseconds (1U), 10'000'000);
+        auto f3 = std::async(producer, "log_3", std::chrono::nanoseconds (1U), 10'000'000);
+        auto f4 = std::async(producer, "log_4", std::chrono::nanoseconds (1U), 10'000'000);
 
         f1.wait();
         f2.wait();
@@ -423,7 +428,7 @@ namespace Experiments
     void Logger_RingBuffer_PerfTest()
     {
         TestLogger logger;
-        PerfUtilities::ScopedTimer timer { "MatchingEngineEx"};
+        PerfUtilities::ScopedTimer timer { "Logger_RingBuffer_PerfTest"};
         for (uint64_t i = 0; i < 30'000'000; ++i)
         {
             logger.log("12323");
@@ -434,7 +439,7 @@ namespace Experiments
     void LoggerEx_RingBuffer_PerfTest()
     {
         TestLoggerEx logger;
-        PerfUtilities::ScopedTimer timer { "MatchingEngineEx"};
+        PerfUtilities::ScopedTimer timer { "LoggerEx_RingBuffer_PerfTest"};
         for (uint64_t i = 0; i < 30'000'000; ++i)
         {
             logger.log("12323");
@@ -464,10 +469,10 @@ void LowLatencyLogger::TestAll()
     // uint64_t size = std::numeric_limits<uint16_t>::max() * sizeof(LongEntry);
     // std::cout << size << std::endl;
 
-    // LowLatencyLogger::testLogs();
+    LowLatencyLogger::testLogs();
     // LowLatencyLogger::loadTest();
 
     // Experiments::demoTest();
-    Experiments::Logger_RingBuffer_PerfTest();
-    Experiments::LoggerEx_RingBuffer_PerfTest();
+    // Experiments::Logger_RingBuffer_PerfTest();
+    // Experiments::LoggerEx_RingBuffer_PerfTest();
 }

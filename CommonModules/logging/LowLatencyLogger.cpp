@@ -153,10 +153,10 @@ namespace LowLatencyLogger
     };
 
 
-    struct LogHandler
+    struct ILogHandler
     {
         virtual void handleEntry(const LongEntry&) const noexcept = 0;
-        virtual ~LogHandler() = default;
+        virtual ~ILogHandler() = default;
     };
 
 
@@ -167,10 +167,10 @@ namespace LowLatencyLogger
         constexpr static inline int32_t logBundleSize { 1024 };
         constexpr static inline int32_t consumeBlockSize { 1000 };
         constexpr static inline std::chrono::milliseconds logsConsumerTimeout {
-                std::chrono::milliseconds(1UL)
+            std::chrono::milliseconds(1UL)
         };
         constexpr static inline std::chrono::milliseconds logsHandleTimeout {
-                std::chrono::milliseconds(1UL)
+            std::chrono::milliseconds(1UL)
         };
 
         using LogBundle = Common::RingBuffer<LongEntry>;
@@ -185,10 +185,17 @@ namespace LowLatencyLogger
         std::jthread logHandler;
         std::stop_source stopSource;
 
+        std::vector<std::shared_ptr<ILogHandler>> handlers;
+
         Logger()
         {
             logProcessor = std::jthread(&Logger::consumeLogs, this, stopSource);
             logHandler = std::jthread(&Logger::handleLogs, this, stopSource);
+        }
+
+        bool addHandler(const std::shared_ptr<ILogHandler>& handler) {
+            handlers.push_back(handler);
+            return true;
         }
 
         [[nodiscard]]
@@ -231,9 +238,6 @@ namespace LowLatencyLogger
             }
         }
 
-        // FIXME: DEBUG - Remove
-        uint64_t counter = 0;
-
         void handleLogs(const std::stop_source& source)
         {
             // FIXME: --> to free function?
@@ -262,16 +266,24 @@ namespace LowLatencyLogger
                 /// Handle / Sink logs in the logs storage and Clean() it afterwards
                 for (const auto& entry: logsLocal)
                 {
-                    // TODO: Use LogHandlers here
-                    // std::cout << Utils::getCurrentTime(entry.timestamp) << " | " << entry.text << std::endl;
+                    std::cout << Utils::getCurrentTime(entry.timestamp) << " | " << entry.text << std::endl;
+                    //handler->handleEntry(entry);
+                }
 
-                    // FIXME: DEBUG - Remove
-                    ++counter;
-                    if (0 == counter % 10'000)
-                        std::cout << counter << std::endl;
+                for (const std::shared_ptr<ILogHandler>& handler: handlers)
+                {
+                    std::cout << "11111" << std::endl;
                 }
                 logsLocal.clear();
             }
+        }
+    };
+
+    struct CoutLogHandler: public ILogHandler
+    {
+        void handleEntry(const LongEntry& entry) const noexcept override
+        {
+            std::cout << Utils::getCurrentTime(entry.timestamp) << " | " << entry.text << std::endl;
         }
     };
 
@@ -293,6 +305,26 @@ namespace LowLatencyLogger
 
         f1.wait();
         f2.wait();
+    }
+
+    void testLogHandler()
+    {
+        Logger logger;
+        logger.addHandler(std::make_shared<CoutLogHandler>());
+
+        auto producer = [&logger](std::string text,
+                    const std::chrono::duration<double> duration,
+                    const uint64_t logsToSend)
+        {
+            for (uint64_t n = 0; n < logsToSend; ++n)
+            {
+                logger.log(std::string (text));
+                std::this_thread::sleep_for(duration);
+            }
+        };
+
+        auto f1 = std::async(producer, "log_1", std::chrono::milliseconds (100U), 10);
+        f1.wait();
     }
 
     void loadTest()
@@ -469,7 +501,8 @@ void LowLatencyLogger::TestAll()
     // uint64_t size = std::numeric_limits<uint16_t>::max() * sizeof(LongEntry);
     // std::cout << size << std::endl;
 
-    LowLatencyLogger::testLogs();
+    // LowLatencyLogger::testLogs();
+    LowLatencyLogger::testLogHandler();
     // LowLatencyLogger::loadTest();
 
     // Experiments::demoTest();

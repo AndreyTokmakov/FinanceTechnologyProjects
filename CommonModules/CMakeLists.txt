@@ -12,6 +12,9 @@ add_library(common_modules
     logging/LowLatencyLogger.cpp
 )
 
+target_include_directories(common_modules PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")
+target_link_directories(common_modules PUBLIC "${CMAKE_BINARY_DIR}/Utilities")
+
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
@@ -19,6 +22,7 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
         common_modules
+        utils
         pthread
         ${EXTRA_LIBS}
 )

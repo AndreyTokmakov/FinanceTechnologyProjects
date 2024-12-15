@@ -18,6 +18,7 @@ Description : LowLatencyLogger.cpp
 #include <thread>
 #include <future>
 
+#include "PerfUtilities.h"
 
 namespace
 {
@@ -140,6 +141,7 @@ namespace LowLatencyLogger
     {
         std::chrono::system_clock::time_point timestamp { std::chrono::system_clock::now() };
         std::string text;
+        // TODO: log level
 
         LongEntry() = default;
 
@@ -161,20 +163,32 @@ namespace LowLatencyLogger
     // TODO: ThreadLocalLogBundle --> RingBuffer[SIZE]
     struct Logger
     {
+        constexpr static inline int32_t logBundleSize { 1024 };
+        constexpr static inline int32_t consumeBlockSize { 1000 };
+        constexpr static inline std::chrono::milliseconds logsConsumerTimeout {
+                std::chrono::milliseconds(1UL)
+        };
+        constexpr static inline std::chrono::milliseconds logsHandleTimeout {
+                std::chrono::milliseconds(1UL)
+        };
+
         using LogBundle = Common::RingBuffer<LongEntry>;
 
-        constexpr static inline int32_t logBundleSize { 128 };
-        constexpr static inline int32_t consumeBlockSize { 10 };
-
+        // TODO:  mutex --> std::shared_mutex
         mutable std::mutex mutex;
         std::list<LogBundle> threadLogs;
 
+        mutable std::mutex mtxLogs2Handle;
+        std::list<std::vector<Logger::LogBundle::value_type>> logsToHandle;
+
         std::jthread logProcessor;
+        std::jthread logHandler;
         std::stop_source stopSource;
 
         Logger()
         {
-            logProcessor = std::jthread(&Logger::processor, this, stopSource);
+            logProcessor = std::jthread(&Logger::consumeLogs, this, stopSource);
+            logHandler = std::jthread(&Logger::handleLogs, this, stopSource);
         }
 
         [[nodiscard]]
@@ -191,36 +205,70 @@ namespace LowLatencyLogger
             bundle.put(LongEntry{std::move(info)});
         }
 
-        // TODO: Rename
-        void processor(const std::stop_source& source)
+        void consumeLogs(const std::stop_source& source)
         {
-            // TODO
-            //  1. Get N (consumeBlockSize) records from each LogBundle
-            //  2. Store in the local collection
-            //  3. Sort by Timestamp
-
             Logger::LogBundle::value_type logEntry;
-            std::vector<Logger::LogBundle::value_type> logs;
+            std::vector<Logger::LogBundle::value_type> logsLocal;
             while (!source.stop_requested())
             {
-                std::this_thread::sleep_for(std::chrono::seconds (1U));
+                std::this_thread::sleep_for(logsConsumerTimeout);
 
-                std::lock_guard<std::mutex> lock { mutex };
-                for (Logger::LogBundle& logBundle : threadLogs)
                 {
-                    for (int32_t n = 0; n < consumeBlockSize && logBundle.get(logEntry); ++n) {
-                        logs.push_back(std::move(logEntry));
+                    /// Loop thought all Logger::LogBundle in the threadLogs (each Logger::LogBundle created per on thread)
+                    /// and move all logs from each LogBundle into logsLocal collection
+                    std::lock_guard<std::mutex> lock { mutex };
+                    for (Logger::LogBundle &logBundle: threadLogs)
+                    {
+                        for (int32_t n = 0; n < consumeBlockSize && logBundle.get(logEntry); ++n) {
+                            logsLocal.push_back(std::move(logEntry));
+                        }
                     }
                 }
-                lock.~lock_guard();
+                {
+                    std::lock_guard<std::mutex> lock { mtxLogs2Handle };
+                    logsToHandle.emplace_back().swap(logsLocal);
+                }
+            }
+        }
 
-                // TODO: Sort logs bases on 'timestamp'
-                for (const auto& entry: logs) {
-                    std::cout << entry.text << std::endl;
+        uint64_t counter = 0;
+
+        void handleLogs(const std::stop_source& source)
+        {
+            // FIXME: --> to free function?
+            auto timestampCompare = [](const LongEntry& l1, const LongEntry& l2) {
+                return l1.timestamp < l2.timestamp;
+            };
+
+            std::vector<Logger::LogBundle::value_type> logsLocal;
+            while (!source.stop_requested())
+            {
+                std::this_thread::sleep_for(logsHandleTimeout);
+
+                {
+                    /// Trying to get first entry (std::vector or Logs) into the current thread
+                    /// Swap()-ing first entry from logsToHandle into the local logs storage
+                    std::lock_guard<std::mutex> lock { mtxLogs2Handle };
+                    if (logsToHandle.empty())
+                        continue;
+                    logsLocal.swap(logsToHandle.front());
+                    logsToHandle.pop_front();
                 }
 
-                logs.clear();
-                std::cout << Utils::getCurrentTime() << std::endl;
+                /// Sort logs based on the Timestamp
+                std::sort(logsLocal.begin(), logsLocal.end(), timestampCompare);
+
+                /// Handle / Sink logs in the logs storage and Clean() it afterwards
+                for (const auto& entry: logsLocal)
+                {
+                    // TODO: Use LogHandlers here
+                    // std::cout << Utils::getCurrentTime(entry.timestamp) << " | " << entry.text << std::endl;
+                    ++counter;
+
+                    if (0 == counter % 1000)
+                        std::cout << counter << std::endl;
+                }
+                logsLocal.clear();
             }
         }
     };
@@ -244,10 +292,39 @@ namespace LowLatencyLogger
         f1.wait();
         f2.wait();
     }
+
+    void loadTest()
+    {
+        Logger logger;
+
+        auto producer = [&logger](std::string text,
+                    std::chrono::duration<double> duration,
+                    uint64_t logsToSend)
+        {
+            for (uint64_t n = 0; n < logsToSend; ++n)
+            {
+                logger.log(std::string (text));
+                std::this_thread::sleep_for(duration);
+            }
+        };
+
+        auto f1 = std::async(producer, "log_1", std::chrono::nanoseconds (1U), 250'000);
+        auto f2 = std::async(producer, "log_2", std::chrono::nanoseconds (1U), 250'000);
+        auto f3 = std::async(producer, "log_3", std::chrono::nanoseconds (1U), 250'000);
+        auto f4 = std::async(producer, "log_4", std::chrono::nanoseconds (1U), 250'000);
+
+        f1.wait();
+        f2.wait();
+        f3.wait();
+        f4.wait();
+
+        std::cout << "Done\n";
+
+    }
 }
 
 
-namespace Demo
+namespace Experiments
 {
     struct String
     {
@@ -308,6 +385,62 @@ namespace Demo
         Entry entry1 = Entry { "111"};
         Entry entry2 = std::move(entry1);
     }
+
+    using namespace LowLatencyLogger;
+
+    struct TestLogger
+    {
+        Common::RingBuffer<LongEntry> buffer { 1024 };
+        void log(std::string&& info)
+        {
+            buffer.put(LongEntry {std::move(info)});
+        }
+    };
+
+    struct TestLoggerEx
+    {
+        constexpr static inline int32_t logBundleSize { 1024 };
+        using LogBundle = Common::RingBuffer<LongEntry>;
+
+        mutable std::mutex mutex;
+        std::list<LogBundle> threadLogs;
+
+        [[nodiscard]]
+        LogBundle& getThreadLocalLogs()
+        {
+            std::lock_guard<std::mutex> lock { mutex };
+            return threadLogs.emplace_back(logBundleSize);
+        }
+
+        void log(std::string&& info)
+        {
+            // TODO: Check if compiler adds a 'if static variable created' check in the Assembly code generated
+            static thread_local LogBundle& bundle = getThreadLocalLogs();
+            bundle.put(LongEntry{std::move(info)});
+        }
+    };
+
+    void Logger_RingBuffer_PerfTest()
+    {
+        TestLogger logger;
+        PerfUtilities::ScopedTimer timer { "MatchingEngineEx"};
+        for (uint64_t i = 0; i < 30'000'000; ++i)
+        {
+            logger.log("12323");
+            //std::this_thread::sleep_for(std::chrono::nanoseconds (1U));
+        }
+    }
+
+    void LoggerEx_RingBuffer_PerfTest()
+    {
+        TestLoggerEx logger;
+        PerfUtilities::ScopedTimer timer { "MatchingEngineEx"};
+        for (uint64_t i = 0; i < 30'000'000; ++i)
+        {
+            logger.log("12323");
+            //std::this_thread::sleep_for(std::chrono::nanoseconds (1U));
+        }
+    }
 }
 
 
@@ -331,7 +464,10 @@ void LowLatencyLogger::TestAll()
     // uint64_t size = std::numeric_limits<uint16_t>::max() * sizeof(LongEntry);
     // std::cout << size << std::endl;
 
-    LowLatencyLogger::testLogs();
+    // LowLatencyLogger::testLogs();
+    // LowLatencyLogger::loadTest();
 
-    // Demo::demoTest();
+    // Experiments::demoTest();
+    Experiments::Logger_RingBuffer_PerfTest();
+    Experiments::LoggerEx_RingBuffer_PerfTest();
 }

@@ -138,13 +138,13 @@ namespace LowLatencyLogger
     //      - when using RingBuffer::get()
     struct LongEntry
     {
-        // std::chrono::system_clock::time_point timestamp { std::chrono::system_clock::now() };
+        std::chrono::system_clock::time_point timestamp { std::chrono::system_clock::now() };
         std::string text;
 
         LongEntry() = default;
 
         explicit LongEntry(std::string txt):
-            // timestamp { std::chrono::system_clock::now() },
+            timestamp { std::chrono::system_clock::now() },
             text { std::move(txt) } {
         }
     };
@@ -186,6 +186,7 @@ namespace LowLatencyLogger
 
         void log(std::string&& info)
         {
+            // TODO: Check if compiler adds a 'if static variable created' check in the Assembly code generated
             static thread_local LogBundle& bundle = getThreadLocalLogs();
             bundle.put(LongEntry{std::move(info)});
         }
@@ -194,21 +195,31 @@ namespace LowLatencyLogger
         void processor(const std::stop_source& source)
         {
             // TODO
-            //  1. Get N records from each LogBundle
+            //  1. Get N (consumeBlockSize) records from each LogBundle
             //  2. Store in the local collection
             //  3. Sort by Timestamp
 
             Logger::LogBundle::value_type logEntry;
+            std::vector<Logger::LogBundle::value_type> logs;
             while (!source.stop_requested())
             {
-                // TODO: Lock 'threadLogs'
                 std::this_thread::sleep_for(std::chrono::seconds (1U));
+                std::lock_guard<std::mutex> lock { mutex };
                 for (Logger::LogBundle& logBundle : threadLogs)
                 {
                     for (int32_t n = 0; n < consumeBlockSize && logBundle.get(logEntry); ++n) {
-                        std::cout  << logEntry.text << std::endl;
+                        logs.push_back(std::move(logEntry));
                     }
                 }
+                lock.~lock_guard();
+
+                // TODO: Sort logs bases on 'timestamp'
+                for (const auto& entry: logs) {
+                    std::cout << entry.text << std::endl;
+                }
+
+                logs.clear();
+                std::cout << Utils::getCurrentTime() << std::endl;
             }
         }
     };
@@ -325,7 +336,7 @@ void LowLatencyLogger::TestAll()
     // uint64_t size = std::numeric_limits<uint16_t>::max() * sizeof(LongEntry);
     // std::cout << size << std::endl;
 
-    // LowLatencyLogger::testLogs();
+    LowLatencyLogger::testLogs();
 
-    Demo::demoTest();
+    // Demo::demoTest();
 }

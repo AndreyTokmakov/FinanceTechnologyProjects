@@ -204,6 +204,7 @@ namespace LowLatencyLogger
             while (!source.stop_requested())
             {
                 std::this_thread::sleep_for(std::chrono::seconds (1U));
+
                 std::lock_guard<std::mutex> lock { mutex };
                 for (Logger::LogBundle& logBundle : threadLogs)
                 {
@@ -228,26 +229,20 @@ namespace LowLatencyLogger
     {
         Logger logger;
 
-        auto f1 = std::async([&] {
+        auto producer = [&logger](std::string text, std::chrono::duration<double> duration) {
             while (true) {
                 for (int i = 0; i < 10; ++i) {
-                    logger.log("log_1");
+                    logger.log(std::string (text));
                 }
-                std::this_thread::sleep_for(std::chrono::seconds (2U));
+                std::this_thread::sleep_for(duration);
             }
-        });
-        auto f2 = std::async([&] {
-            while (true) {
-                for (int i = 0; i < 10; ++i) {
-                    logger.log("log_2");
-                }
-                std::this_thread::sleep_for(std::chrono::seconds (2U));
-            }
-        });
+        };
+
+        auto f1 = std::async(producer, "log_1", std::chrono::seconds (2U));
+        auto f2 = std::async(producer, "log_2", std::chrono::seconds (2U));
 
         f1.wait();
         f2.wait();
-
     }
 }
 

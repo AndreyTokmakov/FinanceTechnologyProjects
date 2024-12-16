@@ -142,7 +142,7 @@ namespace LowLatencyLogger
     {
         std::chrono::system_clock::time_point timestamp { std::chrono::system_clock::now() };
         std::string text;
-        // TODO: log level
+        Level level { Level::INFO };
 
         LongEntry() = default;
 
@@ -170,7 +170,7 @@ namespace LowLatencyLogger
             std::chrono::milliseconds(1UL)
         };
         constexpr static inline std::chrono::milliseconds logsHandleTimeout {
-            std::chrono::milliseconds(1UL)
+            std::chrono::milliseconds(100UL) // <---- 1UL ??
         };
 
         using LogBundle = Common::RingBuffer<LongEntry>;
@@ -181,11 +181,11 @@ namespace LowLatencyLogger
         mutable std::mutex mtxLogs2Handle;
         std::list<std::vector<Logger::LogBundle::value_type>> logsToHandle;
 
+        std::vector<std::shared_ptr<ILogHandler>> handlers;
+
         std::jthread logProcessor;
         std::jthread logHandler;
         std::stop_source stopSource;
-
-        std::vector<std::shared_ptr<ILogHandler>> handlers;
 
         Logger()
         {
@@ -193,7 +193,8 @@ namespace LowLatencyLogger
             logHandler = std::jthread(&Logger::handleLogs, this, stopSource);
         }
 
-        bool addHandler(const std::shared_ptr<ILogHandler>& handler) {
+        bool addHandler(const std::shared_ptr<ILogHandler>& handler)
+        {
             handlers.push_back(handler);
             return true;
         }
@@ -231,6 +232,7 @@ namespace LowLatencyLogger
                         }
                     }
                 }
+                if (!logsLocal.empty())
                 {
                     std::lock_guard<std::mutex> lock { mtxLogs2Handle };
                     logsToHandle.emplace_back().swap(logsLocal);
@@ -241,6 +243,7 @@ namespace LowLatencyLogger
         void handleLogs(const std::stop_source& source)
         {
             // FIXME: --> to free function?
+            //        --> reload operator<() for the LonEntry struct
             auto timestampCompare = [](const LongEntry& l1, const LongEntry& l2) {
                 return l1.timestamp < l2.timestamp;
             };
@@ -250,12 +253,12 @@ namespace LowLatencyLogger
             {
                 std::this_thread::sleep_for(logsHandleTimeout);
 
-                {
-                    /// Trying to get first entry (std::vector or Logs) into the current thread
+                {   /// Trying to get first entry (std::vector or Logs) into the current thread
                     /// Swap()-ing first entry from logsToHandle into the local logs storage
                     std::lock_guard<std::mutex> lock { mtxLogs2Handle };
-                    if (logsToHandle.empty())
+                    if (logsToHandle.empty()) {
                         continue;
+                    }
                     logsLocal.swap(logsToHandle.front());
                     logsToHandle.pop_front();
                 }
@@ -263,27 +266,30 @@ namespace LowLatencyLogger
                 /// Sort logs based on the Timestamp
                 std::sort(logsLocal.begin(), logsLocal.end(), timestampCompare);
 
-                /// Handle / Sink logs in the logs storage and Clean() it afterwards
                 for (const auto& entry: logsLocal)
                 {
-                    std::cout << Utils::getCurrentTime(entry.timestamp) << " | " << entry.text << std::endl;
-                    //handler->handleEntry(entry);
-                }
-
-                for (const std::shared_ptr<ILogHandler>& handler: handlers)
-                {
-                    std::cout << "11111" << std::endl;
+                    for (const std::shared_ptr<ILogHandler>& handler: handlers) {
+                        handler->handleEntry(entry);
+                    }
                 }
                 logsLocal.clear();
             }
         }
     };
 
-    struct CoutLogHandler: public ILogHandler
+    struct StdOutLogHandler: public ILogHandler
     {
         void handleEntry(const LongEntry& entry) const noexcept override
         {
             std::cout << Utils::getCurrentTime(entry.timestamp) << " | " << entry.text << std::endl;
+        }
+
+        StdOutLogHandler() {
+            std::cout << __PRETTY_FUNCTION__ << std::endl;
+        }
+
+        ~StdOutLogHandler() override {
+            std::cout << __PRETTY_FUNCTION__ << std::endl;
         }
     };
 
@@ -307,24 +313,27 @@ namespace LowLatencyLogger
         f2.wait();
     }
 
+
+
     void testLogHandler()
     {
         Logger logger;
-        logger.addHandler(std::make_shared<CoutLogHandler>());
+        std::shared_ptr<ILogHandler> printer { std::make_shared<StdOutLogHandler>() };
+        logger.addHandler(printer);
 
-        auto producer = [&logger](std::string text,
-                    const std::chrono::duration<double> duration,
+        auto producer = [&logger](const std::chrono::duration<double> duration,
                     const uint64_t logsToSend)
         {
             for (uint64_t n = 0; n < logsToSend; ++n)
             {
-                logger.log(std::string (text));
+                logger.log("Message_" + std::to_string (n));
                 std::this_thread::sleep_for(duration);
             }
         };
 
-        auto f1 = std::async(producer, "log_1", std::chrono::milliseconds (100U), 10);
+        auto f1 = std::async(producer, std::chrono::milliseconds (10U), 100);
         f1.wait();
+        std::cout << "Producer done!\n";
     }
 
     void loadTest()

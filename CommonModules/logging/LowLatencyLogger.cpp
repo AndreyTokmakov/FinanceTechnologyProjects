@@ -147,8 +147,11 @@ namespace LowLatencyLogger
         LongEntry() = default;
 
         explicit LongEntry(std::string txt):
-            timestamp { std::chrono::system_clock::now() },
             text { std::move(txt) } {
+        }
+
+        bool operator<(const LongEntry& rhs) const noexcept {
+            return timestamp < rhs.timestamp;
         }
     };
 
@@ -221,11 +224,10 @@ namespace LowLatencyLogger
             {
                 std::this_thread::sleep_for(logsConsumerTimeout);
 
-                {
-                    /// Loop thought all Logger::LogBundle in the threadLogs (each Logger::LogBundle created per on thread)
+                {   /// Loop thought all Logger::LogBundle in the threadLogs (each Logger::LogBundle created per on thread)
                     /// and move all logs from each LogBundle into logsLocal collection
                     std::shared_lock<std::shared_mutex> lock { mutex };
-                    for (Logger::LogBundle &logBundle: threadLogs)
+                    for (Logger::LogBundle & logBundle: threadLogs)
                     {
                         for (int32_t n = 0; n < consumeBlockSize && logBundle.get(logEntry); ++n) {
                             logsLocal.push_back(std::move(logEntry));
@@ -242,12 +244,6 @@ namespace LowLatencyLogger
 
         void handleLogs(const std::stop_source& source)
         {
-            // FIXME: --> to free function?
-            //        --> reload operator<() for the LonEntry struct
-            auto timestampCompare = [](const LongEntry& l1, const LongEntry& l2) {
-                return l1.timestamp < l2.timestamp;
-            };
-
             std::vector<Logger::LogBundle::value_type> logsLocal;
             while (!source.stop_requested())
             {
@@ -264,7 +260,7 @@ namespace LowLatencyLogger
                 }
 
                 /// Sort logs based on the Timestamp
-                std::sort(logsLocal.begin(), logsLocal.end(), timestampCompare);
+                std::sort(logsLocal.begin(), logsLocal.end());
 
                 for (const auto& entry: logsLocal)
                 {
@@ -339,6 +335,8 @@ namespace LowLatencyLogger
     void loadTest()
     {
         Logger logger;
+        std::shared_ptr<ILogHandler> printer { std::make_shared<StdOutLogHandler>() };
+        logger.addHandler(printer);
 
         auto producer = [&logger](std::string text,
                     std::chrono::duration<double> duration,
@@ -511,8 +509,8 @@ void LowLatencyLogger::TestAll()
     // std::cout << size << std::endl;
 
     // LowLatencyLogger::testLogs();
-    LowLatencyLogger::testLogHandler();
-    // LowLatencyLogger::loadTest();
+    // LowLatencyLogger::testLogHandler();
+    LowLatencyLogger::loadTest();
 
     // Experiments::demoTest();
     // Experiments::Logger_RingBuffer_PerfTest();

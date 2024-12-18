@@ -91,6 +91,7 @@ namespace Common
 
         size_type idxRead { 0 };
         size_type idxWrite { 0 };
+
         collection_type buffer {};
         bool overflow { false };
         // TODO: add consumer lost counter ???
@@ -125,11 +126,100 @@ namespace Common
             value = std::move(buffer[idxRead++]);
             return true;
         }
+    };
 
-        /*
-        size_type size() const noexcept {
-            return idxWrite - idxRead;
-        }*/
+    template<typename T>
+    struct RingBufferAtomic1
+    {
+        using size_type = size_t;
+        using value_type = T;
+        using collection_type = std::vector<value_type>;
+
+        std::atomic<size_type> idxRead { 0 };
+        std::atomic<size_type> idxWrite { 0 };
+        std::atomic<bool> overflow {false };
+        collection_type buffer {};
+
+        explicit RingBufferAtomic1(size_t size): idxRead { 0 }, idxWrite { 0 }, overflow { false } {
+            buffer.resize(size);
+        }
+
+        void put(value_type&& value)
+        {
+            if (idxWrite == buffer.size()) {
+                idxWrite = 0;
+                overflow = true;
+            }
+            if (overflow && idxWrite == idxRead) {
+                ++idxRead;
+            }
+            buffer[idxWrite++] = std::move(value);
+        }
+
+        bool get(value_type& value)
+        {
+            if (!overflow && idxWrite == idxRead) {
+                return false;
+            }
+
+            if (idxRead == buffer.size()) {
+                idxRead = 0;
+                overflow = false;
+            }
+
+            value = std::move(buffer[idxRead++]);
+            return true;
+        }
+    };
+
+
+    template<typename T>
+    struct RingBufferAtomic2
+    {
+        using size_type = size_t;
+        using value_type = T;
+        using collection_type = std::vector<value_type>;
+
+        std::atomic<size_type> idxRead { 0 };
+        std::atomic<size_type> idxWrite { 0 };
+
+        // TODO: test with boolean flag?
+        std::atomic<bool> overflow {false };
+
+        collection_type buffer {};
+
+        explicit RingBufferAtomic2(size_t size): idxRead { 0 }, idxWrite { 0 }, overflow { false } {
+            buffer.resize(size);
+        }
+
+        void put(value_type&& value)
+        {
+            if (idxWrite.load(std::memory_order::relaxed) == buffer.size()) {
+                idxWrite.store(0, std::memory_order::relaxed);
+                overflow.store(true, std::memory_order::relaxed);
+            }
+            if (overflow.load(std::memory_order::relaxed) &&
+                idxWrite.load(std::memory_order::relaxed) == idxRead.load(std::memory_order::relaxed)) {
+                idxRead.fetch_add(1, std::memory_order::relaxed);
+            }
+            buffer[idxWrite.fetch_add(1, std::memory_order::relaxed)] = std::move(value);
+        }
+
+        bool get(value_type& value)
+        {
+            if (!overflow.load(std::memory_order::relaxed) &&
+                idxWrite.load(std::memory_order::relaxed) == idxRead.load(std::memory_order::relaxed)) {
+                return false;
+            }
+
+            if (idxRead.load(std::memory_order::relaxed) == buffer.size()) {
+                idxRead.store(0, std::memory_order::relaxed);
+                overflow.store(false, std::memory_order::relaxed);
+            }
+
+            value = std::move(buffer[idxRead.fetch_add(1, std::memory_order::relaxed)]);
+            return true;
+        }
     };
 }
 
@@ -147,7 +237,7 @@ namespace LowLatencyLogger
         LongEntry() = default;
 
         explicit LongEntry(std::string txt):
-            text { std::move(txt) } {
+                text { std::move(txt) } {
         }
 
         bool operator<(const LongEntry& rhs) const noexcept {
@@ -158,7 +248,7 @@ namespace LowLatencyLogger
 
     struct ILogHandler
     {
-        virtual void handleEntry(const LongEntry&) const noexcept = 0;
+        virtual void handleEntry(const LongEntry&) noexcept = 0;
         virtual ~ILogHandler() = default;
     };
 
@@ -170,13 +260,15 @@ namespace LowLatencyLogger
         constexpr static inline int32_t logBundleSize { 1024 };
         constexpr static inline int32_t consumeBlockSize { 1000 };
         constexpr static inline std::chrono::milliseconds logsConsumerTimeout {
-            std::chrono::milliseconds(1UL)
+                std::chrono::milliseconds(1UL)
         };
         constexpr static inline std::chrono::milliseconds logsHandleTimeout {
-            std::chrono::milliseconds(100UL) // <---- 1UL ??
+                std::chrono::milliseconds(1UL)
         };
 
-        using LogBundle = Common::RingBuffer<LongEntry>;
+        // using LogBundle = Common::RingBuffer<LongEntry>;
+        // using LogBundle = Common::RingBufferAtomic1<LongEntry>;
+        using LogBundle = Common::RingBufferAtomic2<LongEntry>;
 
         mutable std::shared_mutex mutex;
         std::list<LogBundle> threadLogs;
@@ -273,19 +365,29 @@ namespace LowLatencyLogger
         }
     };
 
-    struct StdOutLogHandler: public ILogHandler
+    struct StdOutLogHandler final : public ILogHandler
     {
-        void handleEntry(const LongEntry& entry) const noexcept override
+        void handleEntry(const LongEntry& entry) noexcept override
         {
             std::cout << Utils::getCurrentTime(entry.timestamp) << " | " << entry.text << std::endl;
         }
+    };
 
-        StdOutLogHandler() {
-            std::cout << __PRETTY_FUNCTION__ << std::endl;
+    struct LogHandlerCounter final : public ILogHandler
+    {
+        uint64_t logsProcessed { 0 };
+
+        void handleEntry(const LongEntry& entry) noexcept override
+        {
+            ++logsProcessed;
+            if (0 == logsProcessed % 1'000'000)
+                std::cout << logsProcessed << std::endl;
         }
+    };
 
-        ~StdOutLogHandler() override {
-            std::cout << __PRETTY_FUNCTION__ << std::endl;
+    struct LogHandlerSink final : public ILogHandler
+    {
+        void handleEntry(const LongEntry& entry) noexcept override {
         }
     };
 
@@ -318,7 +420,7 @@ namespace LowLatencyLogger
         logger.addHandler(printer);
 
         auto producer = [&logger](const std::chrono::duration<double> duration,
-                    const uint64_t logsToSend)
+                                  const uint64_t logsToSend)
         {
             for (uint64_t n = 0; n < logsToSend; ++n)
             {
@@ -335,14 +437,14 @@ namespace LowLatencyLogger
     void loadTest()
     {
         Logger logger;
-        std::shared_ptr<ILogHandler> printer { std::make_shared<StdOutLogHandler>() };
-        logger.addHandler(printer);
+        std::shared_ptr<ILogHandler> logCounter { std::make_shared<LogHandlerCounter>() };
+        logger.addHandler(logCounter);
 
         auto producer = [&logger](std::string text,
-                    std::chrono::duration<double> duration,
-                    uint64_t logsToSend)
+                                  std::chrono::duration<double> duration,
+                                  uint64_t logsToSend)
         {
-            constexpr int32_t N = 20;
+            constexpr int32_t N = 25;
             for (uint64_t n = 0; n < logsToSend / N; ++n)
             {
                 for (int i = 0; i < N; ++i) {
@@ -352,18 +454,49 @@ namespace LowLatencyLogger
             }
         };
 
-        auto f1 = std::async(producer, "log_1", std::chrono::nanoseconds (1U), 10'000'000);
-        auto f2 = std::async(producer, "log_2", std::chrono::nanoseconds (1U), 10'000'000);
-        auto f3 = std::async(producer, "log_3", std::chrono::nanoseconds (1U), 10'000'000);
-        auto f4 = std::async(producer, "log_4", std::chrono::nanoseconds (1U), 10'000'000);
-
-        f1.wait();
-        f2.wait();
-        f3.wait();
-        f4.wait();
+        std::vector<std::future<void>> producers;
+        for (int i = 0; i < 8; ++i) {
+            producers.emplace_back(std::async(producer, "log_" + std::to_string(i), std::chrono::nanoseconds (1U), 10'000'000));
+        }
+        for (const auto& F: producers) {
+            F.wait();
+        }
 
         std::cout << "Done\n";
+    }
 
+    void loadTest_Sink()
+    {
+        Logger logger;
+        std::shared_ptr<ILogHandler> logCounter { std::make_shared<LogHandlerSink>() };
+        logger.addHandler(logCounter);
+
+        auto producer = [&logger](std::string text,
+                                  std::chrono::duration<double> duration,
+                                  uint64_t logsToSend)
+        {
+            constexpr int32_t N = 25;
+            for (uint64_t n = 0; n < logsToSend / N; ++n)
+            {
+                for (int i = 0; i < N; ++i) {
+                    logger.log(std::string (text));
+                }
+                std::this_thread::sleep_for(duration);
+            }
+        };
+
+        PerfUtilities::ScopedTimer timer { "loadTest_Sink"};
+        std::vector<std::future<void>> producers;
+        for (int i = 0; i < 8; ++i) {
+            producers.emplace_back(std::async(producer, "log_" + std::to_string(i),
+                                              std::chrono::nanoseconds (1U), 1'000'000));
+        }
+        for (const auto& F: producers) {
+            F.wait();
+        }
+
+        std::cout << "Done\n";
+        timer.~ScopedTimer();
     }
 }
 
@@ -510,7 +643,8 @@ void LowLatencyLogger::TestAll()
 
     // LowLatencyLogger::testLogs();
     // LowLatencyLogger::testLogHandler();
-    LowLatencyLogger::loadTest();
+    // LowLatencyLogger::loadTest();
+    LowLatencyLogger::loadTest_Sink();
 
     // Experiments::demoTest();
     // Experiments::Logger_RingBuffer_PerfTest();

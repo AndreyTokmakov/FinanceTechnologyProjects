@@ -240,6 +240,10 @@ namespace LowLatencyLogger
                 text { std::move(txt) } {
         }
 
+        LongEntry(const Level lvl, std::string txt):
+            text { std::move(txt) }, level { lvl } {
+        }
+
         bool operator<(const LongEntry& rhs) const noexcept {
             return timestamp < rhs.timestamp;
         }
@@ -308,6 +312,13 @@ namespace LowLatencyLogger
             bundle.put(LongEntry{std::move(info)});
         }
 
+        void log(const Level level, std::string&& info)
+        {
+            // TODO: Check if compiler adds a 'if static variable created' check in the Assembly code generated
+            static thread_local LogBundle& bundle = getThreadLocalLogs();
+            bundle.put(LongEntry{level, std::move(info)});
+        }
+
         void consumeLogs(const std::stop_source& source)
         {
             Logger::LogBundle::value_type logEntry;
@@ -369,7 +380,9 @@ namespace LowLatencyLogger
     {
         void handleEntry(const LongEntry& entry) noexcept override
         {
-            std::cout << Utils::getCurrentTime(entry.timestamp) << " | " << entry.text << std::endl;
+            // TODO: std::format
+            std::cout << Utils::getCurrentTime(entry.timestamp) << " [" << std::left <<
+                std::setw(6) << toString(entry.level) << "] " << entry.text << std::endl;
         }
     };
 
@@ -424,7 +437,12 @@ namespace LowLatencyLogger
         {
             for (uint64_t n = 0; n < logsToSend; ++n)
             {
-                logger.log("Message_" + std::to_string (n));
+                logger.log(Level::INFO, "Message_" + std::to_string (n));
+                logger.log(Level::DEBUG, "Message_" + std::to_string (n));
+                logger.log(Level::WARN, "Message_" + std::to_string (n));
+                logger.log(Level::SILENT, "Message_" + std::to_string (n));
+
+
                 std::this_thread::sleep_for(duration);
             }
         };
@@ -642,9 +660,9 @@ void LowLatencyLogger::TestAll()
     // std::cout << size << std::endl;
 
     // LowLatencyLogger::testLogs();
-    // LowLatencyLogger::testLogHandler();
+    LowLatencyLogger::testLogHandler();
     // LowLatencyLogger::loadTest();
-    LowLatencyLogger::loadTest_Sink();
+    // LowLatencyLogger::loadTest_Sink();
 
     // Experiments::demoTest();
     // Experiments::Logger_RingBuffer_PerfTest();

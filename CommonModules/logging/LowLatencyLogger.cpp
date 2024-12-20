@@ -639,11 +639,9 @@ namespace Experiments
 
 
 // TODO:
-//  1. need to have DEFINES to enable/disable Logging based of Logger level ???
-//  2. Each thread stores elements int THREAD LOCAL RING BUFFER
-
-// TODO:
-//  1. RingBuffer ?
+//  - need to have DEFINES to enable/disable Logging based of Logger level ???
+//  + Each thread stores elements int THREAD LOCAL RING BUFFER
+//  + RingBuffer
 
 // TODO:
 //  1. Что с точки зрения производительности эффективнее

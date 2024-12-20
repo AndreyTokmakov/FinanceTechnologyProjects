@@ -258,7 +258,6 @@ namespace LowLatencyLogger
 
 
     // TODO: Use std::list<T> or std::deque<T>
-    // TODO: ThreadLocalLogBundle --> RingBuffer[SIZE]
     struct Logger
     {
         constexpr static inline int32_t logBundleSize { 1024 };

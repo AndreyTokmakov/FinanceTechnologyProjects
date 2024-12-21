@@ -10,6 +10,7 @@ add_compile_options(-c -Wall -Wextra -O3 -std=c++2c)
 add_library(common_modules
     queues/LockFreeQueue.cpp
     logging/LowLatencyLogger.cpp
+    logging/LowLatencyLoggerDebug.cpp
 )
 
 target_include_directories(common_modules PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

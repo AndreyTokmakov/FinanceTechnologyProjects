@@ -315,7 +315,7 @@ namespace Tests
     void test()
     {
         Logger logger;
-        std::shared_ptr<ILogHandler> printer { std::make_shared<Handlers::StdOutLogHandler>() };
+        const std::shared_ptr<ILogHandler> printer { std::make_shared<Handlers::StdOutLogHandler>() };
         logger.addHandler(printer);
 
         auto producer = [&logger](const std::chrono::duration<double> duration,

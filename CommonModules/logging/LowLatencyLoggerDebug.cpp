@@ -658,12 +658,11 @@ namespace LowLatencyLoggerDebug::HandlersTests
 
         // TODO: Move Level --> HandlerBase
         Level level { Level::INFO };
-
         std::filesystem::path filePath {};
         std::string buffer;
         // std::ofstream file {};
 
-        explicit FileLogHandler(std::filesystem::path logFilePath, Level level = Level::INFO) :
+        explicit FileLogHandler(std::filesystem::path logFilePath, const Level level = Level::INFO) :
                 level { level }, filePath { std::move( logFilePath) }
         {
             //file.open(filePath.c_str(), std::ios_base::app);
@@ -699,7 +698,7 @@ namespace LowLatencyLoggerDebug::HandlersTests
     void writeLogs()
     {
         Logger logger;
-        std::shared_ptr<ILogHandler> printer {
+        const std::shared_ptr<ILogHandler> printer {
             std::make_shared<FileLogHandler>(R"(/tmp/trace.log)", Level::ERROR) };
         logger.addHandler(printer);
 

@@ -236,7 +236,7 @@ namespace LowLatencyLoggerDebug
     {
         std::chrono::system_clock::time_point timestamp{std::chrono::system_clock::now()};
         std::string text;
-        Level level{Level::INFO};
+        Level level { Level::INFO };
 
         LongEntry() = default;
 
@@ -388,7 +388,7 @@ namespace LowLatencyLoggerDebug::Handlers
     {
         uint64_t logsProcessed { 0 };
 
-        void handleEntry(const LongEntry& entry) noexcept override
+        void handleEntry(const LongEntry&) noexcept override
         {
             ++logsProcessed;
             if (0 == logsProcessed % 1'000'000)
@@ -398,7 +398,7 @@ namespace LowLatencyLoggerDebug::Handlers
 
     struct LogHandlerSink final : public ILogHandler
     {
-        void handleEntry(const LongEntry& entry) noexcept override {
+        void handleEntry(const LongEntry&) noexcept override {
         }
     };
 }
@@ -650,35 +650,47 @@ namespace LowLatencyLoggerDebug::HandlersTests
     //  - Write in bundles
     //  - Formatter
     //  - LogLevel - to write
+    //  - FileName format
     struct FileLogHandler final : public ILogHandler
     {
         static inline constexpr size_t bundleSizeMax { 1024 };
+        static inline constexpr std::string_view format { "{:} [{:6s}] {:}\n" };
+
+        // TODO: Move Level --> HandlerBase
+        Level level { Level::INFO };
 
         std::filesystem::path filePath {};
-        std::ofstream file {};
         std::string buffer;
+        // std::ofstream file {};
 
-        explicit FileLogHandler(std::filesystem::path logFilePath) :
-            filePath { std::move( logFilePath) }
+        explicit FileLogHandler(std::filesystem::path logFilePath, Level level = Level::INFO) :
+                level { level }, filePath { std::move( logFilePath) }
         {
-            file.open(filePath.c_str(), std::ios_base::app);
+            //file.open(filePath.c_str(), std::ios_base::app);
             buffer.reserve(1024);
         }
 
         ~FileLogHandler() override
         {
-            file.close();
+            //file.close();
         }
 
         void handleEntry(const LongEntry& entry) noexcept override
         {
-            std::format_to(std::back_inserter(buffer), "{:} [{:6s}] {:}\n",
-                        Utils::getCurrentTime(entry.timestamp), toString(entry.level), entry.text);
+            if (level > entry.level) {
+                return;
+            }
+
+            std::format_to(std::back_inserter(buffer), format,
+                           Utils::getCurrentTime(entry.timestamp),
+                           toString(entry.level),
+                           entry.text);
             if (buffer.size() > bundleSizeMax)
             {
-                // std::cout << buffer << std::endl;
-                file.write(buffer.data(), std::ssize(buffer));
-
+                if (std::ofstream file(filePath,  std::ios_base::app); file.is_open() && file.good())
+                {
+                    file.write(buffer.data(), std::ssize(buffer));
+                }
                 buffer.clear();
             }
         }
@@ -687,7 +699,8 @@ namespace LowLatencyLoggerDebug::HandlersTests
     void writeLogs()
     {
         Logger logger;
-        std::shared_ptr<ILogHandler> printer { std::make_shared<FileLogHandler>(R"(/tmp/trace.log)") };
+        std::shared_ptr<ILogHandler> printer {
+            std::make_shared<FileLogHandler>(R"(/tmp/trace.log)", Level::ERROR) };
         logger.addHandler(printer);
 
         auto producer = [&logger](const std::chrono::duration<double> duration,
@@ -698,7 +711,8 @@ namespace LowLatencyLoggerDebug::HandlersTests
                 logger.log(Level::INFO, "Message_" + std::to_string (n));
                 logger.log(Level::DEBUG, "Message_" + std::to_string (n));
                 logger.log(Level::WARN, "Message_" + std::to_string (n));
-                logger.log(Level::SILENT, "Message_" + std::to_string (n));
+                logger.log(Level::ERROR, "Message_" + std::to_string (n));
+                // logger.log(Level::SILENT, "Message_" + std::to_string (n));
 
 
                 std::this_thread::sleep_for(duration);

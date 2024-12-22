@@ -159,7 +159,7 @@ namespace LowLatencyLogger
         virtual ~ILogHandler() = default;
     };
 
-    struct Logger
+    class Logger
     {
         constexpr static inline int32_t logBundleSize { 1024 };
         constexpr static inline int32_t consumeBlockSize { 1000 };
@@ -184,38 +184,59 @@ namespace LowLatencyLogger
         std::jthread logHandler;
         std::stop_source stopSource;
 
+        [[nodiscard]]
+        LogBundle &getThreadLocalLogs()
+        {
+            std::lock_guard<std::shared_mutex> lock{mutex};
+            return threadLogs.emplace_back(logBundleSize);
+        }
+
+        template<class Str>
+        void log(const Level level, Str&& info)
+        {
+            static thread_local LogBundle &bundle = getThreadLocalLogs();
+            bundle.put(LongEntry{level, std::forward<Str>(info)});
+        }
+
+    public:
+
         Logger()
         {
             logProcessor = std::jthread(&Logger::consumeLogs, this, stopSource);
             logHandler = std::jthread(&Logger::handleLogs, this, stopSource);
         }
 
-        bool addHandler(const std::shared_ptr<ILogHandler>& handler)
+        bool addHandler(const std::shared_ptr<ILogHandler> &handler)
         {
             handlers.push_back(handler);
             return true;
         }
 
-        [[nodiscard]]
-        LogBundle& getThreadLocalLogs()
-        {
-            std::lock_guard<std::shared_mutex> lock { mutex };
-            return threadLogs.emplace_back(logBundleSize);
+        void trace(std::string&& text) {
+            log(Level::TRACE, std::move(text));
         }
 
-        void log(std::string&& info)
-        {
-            // TODO: Check if compiler adds a 'if static variable created' check in the Assembly code generated
-            static thread_local LogBundle& bundle = getThreadLocalLogs();
-            bundle.put(LongEntry{std::move(info)});
+        void debug(std::string&& text) {
+            log(Level::DEBUG, std::move(text));
         }
 
-        void log(const Level level, std::string&& info)
-        {
-            // TODO: Check if compiler adds a 'if static variable created' check in the Assembly code generated
-            static thread_local LogBundle& bundle = getThreadLocalLogs();
-            bundle.put(LongEntry{level, std::move(info)});
+        void info(std::string&& text) {
+            log(Level::INFO, std::move(text));
         }
+
+        void warning(std::string&& text) {
+            log(Level::WARN, std::move(text));
+        }
+
+        void error(std::string&& text) {
+            log(Level::ERROR, std::move(text));
+        }
+
+        void fatal(std::string&& text) {
+            log(Level::FATAL, std::move(text));
+        }
+
+    private:
 
         void consumeLogs(const std::stop_source& source)
         {
@@ -282,7 +303,7 @@ namespace Handlers
 
     struct ConsoleLogHandler final : public ILogHandler
     {
-        static inline constexpr std::string_view format{"{:} [{:6s}] {:}\n"};
+        static inline constexpr std::string_view format {"{:} [{:6s}] {:}\n" };
 
         // TODO: Move Level --> HandlerBase
         Level level { Level::INFO };
@@ -296,7 +317,7 @@ namespace Handlers
                 return;
             }
             std::cout << std::format(format,
-                                     Utils::getCurrentTime(entry.timestamp), toString(entry.level), entry.text);
+                          Utils::getCurrentTime(entry.timestamp), toString(entry.level), entry.text);
         }
     };
 
@@ -354,11 +375,10 @@ namespace Tests
         {
             for (uint64_t n = 0; n < logsToSend; ++n)
             {
-                logger.log(Level::INFO, "Message_" + std::to_string (n));
-                logger.log(Level::DEBUG, "Message_" + std::to_string (n));
-                logger.log(Level::WARN, "Message_" + std::to_string (n));
-                logger.log(Level::SILENT, "Message_" + std::to_string (n));
-
+                logger.info("Message_" + std::to_string (n));
+                logger.debug("Message_" + std::to_string (n));
+                logger.warning("Message_" + std::to_string (n));
+                logger.error("Message_" + std::to_string (n));
 
                 std::this_thread::sleep_for(duration);
             }

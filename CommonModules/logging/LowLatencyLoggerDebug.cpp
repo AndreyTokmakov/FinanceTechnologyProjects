@@ -262,14 +262,14 @@ namespace LowLatencyLoggerDebug
 
 
     // TODO: Use std::list<T> or std::deque<T>
-    struct Logger
+    class Logger
     {
-        constexpr static inline int32_t logBundleSize{1024};
-        constexpr static inline int32_t consumeBlockSize{1000};
-        constexpr static inline std::chrono::milliseconds logsConsumerTimeout{
+        constexpr static inline int32_t logBundleSize { 1024 };
+        constexpr static inline int32_t consumeBlockSize { 1000 };
+        constexpr static inline std::chrono::milliseconds logsConsumerTimeout {
                 std::chrono::milliseconds(1UL)
         };
-        constexpr static inline std::chrono::milliseconds logsHandleTimeout{
+        constexpr static inline std::chrono::milliseconds logsHandleTimeout {
                 std::chrono::milliseconds(1UL)
         };
 
@@ -289,33 +289,59 @@ namespace LowLatencyLoggerDebug
         std::jthread logHandler;
         std::stop_source stopSource;
 
-        Logger() {
-            logProcessor = std::jthread(&Logger::consumeLogs, this, stopSource);
-            logHandler = std::jthread(&Logger::handleLogs, this, stopSource);
-        }
-
-        bool addHandler(const std::shared_ptr<ILogHandler> &handler) {
-            handlers.push_back(handler);
-            return true;
-        }
-
         [[nodiscard]]
-        LogBundle &getThreadLocalLogs() {
+        LogBundle &getThreadLocalLogs()
+        {
             std::lock_guard<std::shared_mutex> lock{mutex};
             return threadLogs.emplace_back(logBundleSize);
         }
 
-        void log(std::string &&info) {
-            // TODO: Check if compiler adds a 'if static variable created' check in the Assembly code generated
+        template<class Str>
+        void log(const Level level, Str&& info)
+        {
             static thread_local LogBundle &bundle = getThreadLocalLogs();
-            bundle.put(LongEntry{std::move(info)});
+            bundle.put(LongEntry{level, std::forward<Str>(info)});
         }
 
-        void log(const Level level, std::string &&info) {
-            // TODO: Check if compiler adds a 'if static variable created' check in the Assembly code generated
-            static thread_local LogBundle &bundle = getThreadLocalLogs();
-            bundle.put(LongEntry{level, std::move(info)});
+    public:
+
+        Logger()
+        {
+            logProcessor = std::jthread(&Logger::consumeLogs, this, stopSource);
+            logHandler = std::jthread(&Logger::handleLogs, this, stopSource);
         }
+
+        bool addHandler(const std::shared_ptr<ILogHandler> &handler)
+        {
+            handlers.push_back(handler);
+            return true;
+        }
+
+        void trace(std::string&& text) {
+            log(Level::TRACE, std::move(text));
+        }
+
+        void debug(std::string&& text) {
+            log(Level::DEBUG, std::move(text));
+        }
+
+        void info(std::string&& text) {
+            log(Level::INFO, std::move(text));
+        }
+
+        void warning(std::string&& text) {
+            log(Level::WARN, std::move(text));
+        }
+
+        void error(std::string&& text) {
+            log(Level::ERROR, std::move(text));
+        }
+
+        void fatal(std::string&& text) {
+            log(Level::FATAL, std::move(text));
+        }
+
+    private:
 
         void consumeLogs(const std::stop_source &source)
         {
@@ -417,7 +443,7 @@ namespace Tests
         auto producer = [&logger](std::string text, std::chrono::duration<double> duration) {
             while (true) {
                 for (int i = 0; i < 10; ++i) {
-                    logger.log(std::string (text));
+                    logger.info(std::string (text));
                 }
                 std::this_thread::sleep_for(duration);
             }
@@ -443,11 +469,9 @@ namespace Tests
         {
             for (uint64_t n = 0; n < logsToSend; ++n)
             {
-                logger.log(Level::INFO, "Message_" + std::to_string (n));
-                logger.log(Level::DEBUG, "Message_" + std::to_string (n));
-                logger.log(Level::WARN, "Message_" + std::to_string (n));
-                logger.log(Level::SILENT, "Message_" + std::to_string (n));
-
+                logger.info("Message_" + std::to_string (n));
+                logger.debug( "Message_" + std::to_string (n));
+                logger.warning( "Message_" + std::to_string (n));
 
                 std::this_thread::sleep_for(duration);
             }
@@ -472,7 +496,7 @@ namespace Tests
             for (uint64_t n = 0; n < logsToSend / N; ++n)
             {
                 for (int i = 0; i < N; ++i) {
-                    logger.log(std::string (text));
+                    logger.info(std::string (text));
                 }
                 std::this_thread::sleep_for(duration);
             }
@@ -503,7 +527,7 @@ namespace Tests
             for (uint64_t n = 0; n < logsToSend / N; ++n)
             {
                 for (int i = 0; i < N; ++i) {
-                    logger.log(std::string (text));
+                    logger.info(std::string (text));
                 }
                 std::this_thread::sleep_for(duration);
             }
@@ -586,6 +610,70 @@ namespace LowLatencyLoggerDebug::Experiments
         Entry entry2 = std::move(entry1);
     }
 
+    void func3(String&& str)
+    {
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+        {
+            String s = std::move(str);
+        }
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+    }
+
+    void func2(String&& str)
+    {
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+        func3(std::move(str));
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+    }
+
+    void func1(String&& str)
+    {
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+        func2(std::move(str));
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+    }
+
+    void Move_String_Test()
+    {
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+        func1(String {"TEST"});
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+    }
+
+    template<typename Str>
+    void func3_fwd(int type,Str&& str)
+    {
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+        {
+            String s = std::forward<Str>(str);
+        }
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+    }
+
+    template<typename Str>
+    void func2_fwd(int type,Str&& str)
+    {
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+        func3_fwd(type, std::forward<Str>(str));
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+    }
+
+    template<typename Str>
+    void func1_fwd(int type, Str&& str)
+    {
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+        func2_fwd(type, std::forward<Str>(str));
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+    }
+
+    void Forward_String_Test()
+    {
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+        func1_fwd(1 , String {"TEST"});
+        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+    }
+
+
     struct TestLogger
     {
         Common::RingBuffer<LongEntry> buffer { 1024 };
@@ -645,13 +733,67 @@ namespace LowLatencyLoggerDebug::HandlersTests
 {
     using namespace LowLatencyLoggerDebug;
 
+    struct ConsoleLogHandler final : public ILogHandler
+    {
+        static inline constexpr std::string_view format{"{:} [{:6s}] {:}\n"};
+
+        // TODO: Move Level --> HandlerBase
+        Level level { Level::INFO };
+
+        explicit ConsoleLogHandler(const Level level = Level::INFO) : level { level } {
+        }
+
+        void handleEntry(const LongEntry &entry) noexcept override
+        {
+            if (level > entry.level) {
+                return;
+            }
+            std::cout << std::format(format,
+                Utils::getCurrentTime(entry.timestamp), toString(entry.level), entry.text);
+        }
+    };
+
+    struct FileLogHandler final : public ILogHandler
+    {
+        static inline constexpr size_t bundleSizeMax { 1024 };
+        static inline constexpr std::string_view format { "{:} [{:6s}] {:}\n" };
+
+        // TODO: Move Level --> HandlerBase
+        Level level { Level::INFO };
+        std::filesystem::path filePath {};
+        std::string buffer;
+
+        explicit FileLogHandler(std::filesystem::path logFilePath, const Level level = Level::INFO) :
+                level { level }, filePath { std::move( logFilePath) }
+        {
+            buffer.reserve(1024);
+        }
+
+        void handleEntry(const LongEntry& entry) noexcept override
+        {
+            if (level > entry.level) {
+                return;
+            }
+
+            std::format_to(std::back_inserter(buffer), format,
+                           Utils::getCurrentTime(entry.timestamp),
+                           toString(entry.level),
+                           entry.text);
+            if (buffer.size() > bundleSizeMax)
+            {
+                if (std::ofstream file(filePath,  std::ios_base::app); file.is_open() && file.good())
+                {
+                    file.write(buffer.data(), std::ssize(buffer));
+                }
+                buffer.clear();
+            }
+        }
+    };
+
     // TODO:
     //  - Rotate log
-    //  - Write in bundles
-    //  - Formatter
-    //  - LogLevel - to write
     //  - FileName format
-    struct FileLogHandler final : public ILogHandler
+    struct FileRotatedLogHandler final : public ILogHandler
     {
         static inline constexpr size_t bundleSizeMax { 1024 };
         static inline constexpr std::string_view format { "{:} [{:6s}] {:}\n" };
@@ -662,14 +804,14 @@ namespace LowLatencyLoggerDebug::HandlersTests
         std::string buffer;
         // std::ofstream file {};
 
-        explicit FileLogHandler(std::filesystem::path logFilePath, const Level level = Level::INFO) :
+        explicit FileRotatedLogHandler(std::filesystem::path logFilePath, const Level level = Level::INFO) :
                 level { level }, filePath { std::move( logFilePath) }
         {
             //file.open(filePath.c_str(), std::ios_base::app);
             buffer.reserve(1024);
         }
 
-        ~FileLogHandler() override
+        ~FileRotatedLogHandler() override
         {
             //file.close();
         }
@@ -697,22 +839,24 @@ namespace LowLatencyLoggerDebug::HandlersTests
 
     void writeLogs()
     {
+        const std::shared_ptr<ILogHandler> fileHandler {
+                std::make_shared<FileLogHandler>(R"(/tmp/trace.log)", Level::INFO) };
+        const std::shared_ptr<ILogHandler> consoleHandler {
+                std::make_shared<ConsoleLogHandler>(Level::INFO) };
+
         Logger logger;
-        const std::shared_ptr<ILogHandler> printer {
-            std::make_shared<FileLogHandler>(R"(/tmp/trace.log)", Level::ERROR) };
-        logger.addHandler(printer);
+        logger.addHandler(fileHandler);
+        logger.addHandler(consoleHandler);
 
         auto producer = [&logger](const std::chrono::duration<double> duration,
                                   const uint64_t logsToSend)
         {
             for (uint64_t n = 0; n < logsToSend; ++n)
             {
-                logger.log(Level::INFO, "Message_" + std::to_string (n));
-                logger.log(Level::DEBUG, "Message_" + std::to_string (n));
-                logger.log(Level::WARN, "Message_" + std::to_string (n));
-                logger.log(Level::ERROR, "Message_" + std::to_string (n));
-                // logger.log(Level::SILENT, "Message_" + std::to_string (n));
-
+                logger.info("Message_" + std::to_string (n));
+                logger.debug("Message_" + std::to_string (n));
+                logger.warning("Message_" + std::to_string (n));
+                logger.error("Message_" + std::to_string (n));
 
                 std::this_thread::sleep_for(duration);
             }
@@ -745,6 +889,9 @@ void LowLatencyLoggerDebug::TestAll()
     // Tests::loadTest_Sink();
 
     // Experiments::demoTest();
+    // Experiments::Move_String_Test();
+    // Experiments::Forward_String_Test();
+
     // Experiments::Logger_RingBuffer_PerfTest();
     // Experiments::LoggerEx_RingBuffer_PerfTest();
 

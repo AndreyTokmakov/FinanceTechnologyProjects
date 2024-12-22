@@ -13,6 +13,8 @@ Description : LowLatencyLogger.cpp
 #include <string_view>
 #include <chrono>
 #include <list>
+#include <fstream>
+#include <filesystem>
 
 #include <mutex>
 #include <shared_mutex>
@@ -278,31 +280,60 @@ namespace Handlers
 {
     using namespace LowLatencyLogger;
 
-    struct StdOutLogHandler final : public ILogHandler
+    struct ConsoleLogHandler final : public ILogHandler
     {
-        void handleEntry(const LongEntry& entry) noexcept override
+        static inline constexpr std::string_view format{"{:} [{:6s}] {:}\n"};
+
+        // TODO: Move Level --> HandlerBase
+        Level level { Level::INFO };
+
+        explicit ConsoleLogHandler(const Level level = Level::INFO) : level { level } {
+        }
+
+        void handleEntry(const LongEntry &entry) noexcept override
         {
-            // TODO: std::format
-            std::cout << Utils::getCurrentTime(entry.timestamp) << " [" << std::left <<
-                      std::setw(6) << toString(entry.level) << "] " << entry.text << std::endl;
+            if (level > entry.level) {
+                return;
+            }
+            std::cout << std::format(format,
+                                     Utils::getCurrentTime(entry.timestamp), toString(entry.level), entry.text);
         }
     };
 
-    struct LogHandlerCounter final : public ILogHandler
+    struct FileLogHandler final : public ILogHandler
     {
-        uint64_t logsProcessed { 0 };
+        static inline constexpr size_t bundleSizeMax { 1024 };
+        static inline constexpr std::string_view format { "{:} [{:6s}] {:}\n" };
+
+        // TODO: Move Level --> HandlerBase
+        Level level { Level::INFO };
+        std::filesystem::path filePath {};
+        std::string buffer;
+
+        explicit FileLogHandler(std::filesystem::path logFilePath, const Level level = Level::INFO) :
+                level { level }, filePath { std::move( logFilePath) }
+        {
+            buffer.reserve(1024);
+        }
 
         void handleEntry(const LongEntry& entry) noexcept override
         {
-            ++logsProcessed;
-            if (0 == logsProcessed % 1'000'000)
-                std::cout << logsProcessed << std::endl;
-        }
-    };
+            if (level > entry.level) {
+                return;
+            }
 
-    struct LogHandlerSink final : public ILogHandler
-    {
-        void handleEntry(const LongEntry& entry) noexcept override {
+            std::format_to(std::back_inserter(buffer), format,
+                           Utils::getCurrentTime(entry.timestamp),
+                           toString(entry.level),
+                           entry.text);
+            if (buffer.size() > bundleSizeMax)
+            {
+                if (std::ofstream file(filePath,  std::ios_base::app); file.is_open() && file.good())
+                {
+                    file.write(buffer.data(), std::ssize(buffer));
+                }
+                buffer.clear();
+            }
         }
     };
 }
@@ -315,7 +346,7 @@ namespace Tests
     void test()
     {
         Logger logger;
-        const std::shared_ptr<ILogHandler> printer { std::make_shared<Handlers::StdOutLogHandler>() };
+        const std::shared_ptr<ILogHandler> printer { std::make_shared<Handlers::ConsoleLogHandler>() };
         logger.addHandler(printer);
 
         auto producer = [&logger](const std::chrono::duration<double> duration,

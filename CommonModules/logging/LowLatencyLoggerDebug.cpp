@@ -868,6 +868,174 @@ namespace LowLatencyLoggerDebug::HandlersTests
 }
 
 
+namespace CollectionExperiments
+{
+    struct TestLongEntry
+    {
+        std::chrono::system_clock::time_point timestamp { std::chrono::system_clock::now() };
+        std::string text;
+        Level level { Level::INFO };
+
+        TestLongEntry() = default;
+
+        explicit TestLongEntry(std::string txt) :
+                text{std::move(txt)} {
+        }
+
+        TestLongEntry(const Level lvl, std::string txt) :
+                text { std::move(txt) }, level { lvl } {
+        }
+
+        bool operator<(const TestLongEntry &rhs) const noexcept {
+            return timestamp < rhs.timestamp;
+        }
+    };
+
+
+
+    void List_Concurrent_Modification()
+    {
+        using Bundle = std::vector<TestLongEntry>;
+        std::list<Bundle> logsToHandle;
+        std::mutex mtx;
+
+        auto produce = [&logsToHandle, &mtx](const uint64_t iterCount)
+        {
+            Bundle logsLocal;
+            for (uint64_t n = 0; n < iterCount; ++n)
+            {
+                for (int i = 0; i < 128; ++i)
+                    logsLocal.emplace_back( "2222222222222222222222222222222222222222222222222");
+
+                std::lock_guard<std::mutex> lock { mtx };
+                logsToHandle.emplace_back().swap(logsLocal);
+            }
+        };
+
+        auto consume = [&logsToHandle, &mtx](const uint64_t iterCount)
+        {
+            Bundle logsLocal;
+            for (uint64_t n = 0; n < iterCount; ++n)
+            {
+                std::lock_guard<std::mutex> lock { mtx };
+                if (logsToHandle.empty()) {
+                    continue;
+                }
+
+                logsLocal.swap(logsToHandle.front());
+                logsToHandle.pop_front();
+            }
+        };
+
+        auto producer = std::async(produce, 1'000'000);
+        auto consumer = std::async(consume, 1'000'000);
+
+        producer.wait();
+        consumer.wait();
+
+        std::cout << "Done\n";
+    }
+}
+
+namespace SimplifiedLogger
+{
+    struct Logger
+    {
+        constexpr static inline int32_t logBundleSize { 1024 };
+        constexpr static inline int32_t consumeBlockSize { 1024 };
+        constexpr static inline std::chrono::milliseconds logsConsumerTimeout { std::chrono::milliseconds(1UL) };
+        constexpr static inline std::chrono::milliseconds logsHandleTimeout { std::chrono::milliseconds(1UL)};
+
+        using LogBundle = LowLatencyLoggerDebug::Common::RingBufferAtomic1<std::string>;
+
+        mutable std::shared_mutex mutex;
+        std::list<LogBundle> threadLogs;
+
+        mutable std::mutex mtxLogs2Handle;
+        std::list<std::vector<Logger::LogBundle::value_type>> logsToHandle;
+
+        std::jthread logProcessor;
+        std::jthread logHandler;
+        std::stop_source stopSource;
+
+        [[nodiscard]]
+        LogBundle &getThreadLocalLogs()
+        {
+            std::lock_guard<std::shared_mutex> lock { mutex };
+            return threadLogs.emplace_back(logBundleSize);
+        }
+
+        Logger()
+        {
+            logProcessor = std::jthread(&Logger::consumeLogs, this, stopSource);
+            logHandler = std::jthread(&Logger::handleLogs, this, stopSource);
+        }
+
+        template<class Str>
+        void log(Str&& info, const Level level = Level::INFO)
+        {
+            static thread_local LogBundle &bundle = getThreadLocalLogs();
+            bundle.put(std::forward<Str>(info));
+        }
+
+        void consumeLogs(const std::stop_source &source)
+        {
+            Logger::LogBundle::value_type logEntry;
+            std::vector<Logger::LogBundle::value_type> logsLocal;
+            while (!source.stop_requested())
+            {
+                {
+                    std::shared_lock<std::shared_mutex> lock {mutex };
+                    for (Logger::LogBundle &logBundle: threadLogs) {
+                        for (int32_t n = 0; n < consumeBlockSize && logBundle.get(logEntry); ++n) {
+                            logsLocal.push_back(std::move(logEntry));
+                        }
+                    }
+                }
+                if (!logsLocal.empty())
+                {
+                    std::lock_guard<std::mutex> lock { mtxLogs2Handle };
+                    // logsToHandle.emplace_back().swap(logsLocal);
+                    logsToHandle.push_back(std::move(logsLocal));
+                    logsLocal.clear();
+                }
+                std::this_thread::sleep_for(logsConsumerTimeout);
+            }
+        }
+
+        void handleLogs(const std::stop_source &source)
+        {
+            while (!source.stop_requested())
+            {
+                {
+                    std::lock_guard<std::mutex> lock {mtxLogs2Handle };
+                    if (logsToHandle.empty()) {
+                        continue;
+                    }
+                    std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+
+                    std::vector<Logger::LogBundle::value_type> logsLocal = std::move(logsToHandle.front());
+                    std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+
+                    logsToHandle.pop_front();
+                    std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
+                }
+                std::this_thread::sleep_for(logsHandleTimeout);
+            }
+        }
+    };
+
+    void benchmark()
+    {
+        Logger logger;
+        for (uint64_t i = 0; i < 1'000'000; ++i) {
+            logger.log(std::string(128, '2'));
+        }
+        std::cout << "Done\n";
+    }
+}
+
+
 // TODO:
 //  - need to have DEFINES to enable/disable Logging based of Logger level ???
 //  + Each thread stores elements int THREAD LOCAL RING BUFFER
@@ -895,5 +1063,9 @@ void LowLatencyLoggerDebug::TestAll()
     // Experiments::Logger_RingBuffer_PerfTest();
     // Experiments::LoggerEx_RingBuffer_PerfTest();
 
-    HandlersTests::writeLogs();
+    // HandlersTests::writeLogs();
+
+    // CollectionExperiments::List_Concurrent_Modification();
+
+    SimplifiedLogger::benchmark();
 }

@@ -171,6 +171,7 @@ namespace LowLatencyLoggerDebug::Common
                 overflow = false;
             }
 
+            // FIXME
             value = std::move(buffer[idxRead++]);
             return true;
         }
@@ -980,24 +981,22 @@ namespace SimplifiedLogger
 
         void consumeLogs(const std::stop_source &source)
         {
-            Logger::LogBundle::value_type logEntry;
             std::vector<Logger::LogBundle::value_type> logsLocal;
             while (!source.stop_requested())
             {
+                Logger::LogBundle::value_type logEntry;
                 {
                     std::shared_lock<std::shared_mutex> lock {mutex };
                     for (Logger::LogBundle &logBundle: threadLogs) {
                         for (int32_t n = 0; n < consumeBlockSize && logBundle.get(logEntry); ++n) {
-                            logsLocal.push_back(std::move(logEntry));
+                            logsLocal.emplace_back("sssssssssssssssssssssssssssssssssssssssssssssssssss");
                         }
                     }
                 }
                 if (!logsLocal.empty())
                 {
                     std::lock_guard<std::mutex> lock { mtxLogs2Handle };
-                    // logsToHandle.emplace_back().swap(logsLocal);
-                    logsToHandle.push_back(std::move(logsLocal));
-                    logsLocal.clear();
+                    logsToHandle.emplace_back().swap(logsLocal);
                 }
                 std::this_thread::sleep_for(logsConsumerTimeout);
             }
@@ -1005,6 +1004,7 @@ namespace SimplifiedLogger
 
         void handleLogs(const std::stop_source &source)
         {
+            std::vector<Logger::LogBundle::value_type> logsLocal;
             while (!source.stop_requested())
             {
                 {
@@ -1013,10 +1013,7 @@ namespace SimplifiedLogger
                         continue;
                     }
                     std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
-
-                    std::vector<Logger::LogBundle::value_type> logsLocal = std::move(logsToHandle.front());
-                    std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
-
+                    logsToHandle.front().swap(logsLocal);
                     logsToHandle.pop_front();
                     std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl;
                 }

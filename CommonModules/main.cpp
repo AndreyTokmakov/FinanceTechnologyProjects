@@ -14,6 +14,7 @@ Description : Common modules
 #include "queues/LockFreeQueue.h"
 #include "logging/LowLatencyLogger.h"
 #include "logging/LowLatencyLoggerDebug.h"
+#include "ring_buffer/RingBuffer_SPSC.h"
 
 
 // TODO:
@@ -28,7 +29,8 @@ int main([[maybe_unused]] int argc,
 
     // LockFreeQueue::TestAll();
     // LowLatencyLogger::TestAll();
-    LowLatencyLoggerDebug::TestAll();
+    // LowLatencyLoggerDebug::TestAll();
+    RingBuffer_SPSC::TestAll();
 
 
     return EXIT_SUCCESS;

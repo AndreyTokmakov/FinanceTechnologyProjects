@@ -41,20 +41,22 @@ namespace RingBuffer_SPSC
         {
             size_type writeIdx = idxWrite.load(std::memory_order::relaxed);
             if (writeIdx == buffer.size()) {
-                idxWrite = 0;
                 writeIdx = 0;
                 overflow = true;
             }
 
-            const size_type readIdx = idxRead.load(std::memory_order::relaxed);
-            if (overflow && writeIdx == readIdx) {
-                if (1 + readIdx >= buffer.size()) {
-                    idxRead.store(0, std::memory_order::release);
+            size_type readIdx = idxRead.load(std::memory_order::relaxed);
+            if (overflow && writeIdx == readIdx)
+            {
+                if (++readIdx >= buffer.size()) {
+                    readIdx = 0;
                     overflow = false;
                 }
+                idxRead.store(readIdx, std::memory_order::release);
             }
+
             buffer[writeIdx++] = std::move(value);
-            idxWrite.fetch_add(1, std::memory_order::release);
+            idxWrite.store(writeIdx, std::memory_order::release);
         }
 
         bool get(value_type& value)
@@ -66,12 +68,11 @@ namespace RingBuffer_SPSC
 
             if (readIdx >= buffer.size()) {
                 readIdx = 0;
-                idxRead.store(0, std::memory_order::release);
                 overflow = false;
             }
 
             value = std::move(buffer[readIdx++]);
-            idxRead.fetch_add(1, std::memory_order::release);
+            idxRead.store(readIdx, std::memory_order::release);
             return true;
         }
     };
@@ -110,7 +111,7 @@ namespace RingBuffer_SPSC::Tests
             }
         };
 
-        auto producer = std::async(produce, "log_1");
+        auto producer = std::async(produce, "lodddddddddddddddddddddddddddddddddddddddg_1");
         auto consumer = std::async(consume);
 
         producer.wait();
@@ -122,7 +123,4 @@ void RingBuffer_SPSC::TestAll()
 {
     Tests::Test();
 
-
-    // std::cout << static_cast<int32_t>(std::numeric_limits<uint8_t>::max())<< std::endl;
-    // std::cout << std::numeric_limits<uint16_t>::max() * 32 << std::endl;
 }

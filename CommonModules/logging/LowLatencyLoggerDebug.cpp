@@ -150,29 +150,40 @@ namespace LowLatencyLoggerDebug::Common
 
         void put(value_type&& value)
         {
-            if (idxWrite == buffer.size()) {
-                idxWrite = 0;
+            size_type writeIdx = idxWrite.load(std::memory_order::relaxed);
+            if (writeIdx == buffer.size()) {
+                writeIdx = 0;
                 overflow = true;
             }
-            if (overflow && idxWrite == idxRead) {
-                ++idxRead;
+
+            size_type readIdx = idxRead.load(std::memory_order::relaxed);
+            if (overflow && writeIdx == readIdx)
+            {
+                if (++readIdx >= buffer.size()) {
+                    readIdx = 0;
+                    overflow = false;
+                }
+                idxRead.store(readIdx, std::memory_order::release);
             }
-            buffer[idxWrite++] = std::move(value);
+
+            buffer[writeIdx++] = std::move(value);
+            idxWrite.store(writeIdx, std::memory_order::release);
         }
 
         bool get(value_type& value)
         {
-            if (!overflow && idxWrite == idxRead) {
+            size_type readIdx = idxRead.load(std::memory_order::relaxed);
+            if (!overflow && idxWrite == readIdx) {
                 return false;
             }
 
-            if (idxRead == buffer.size()) {
-                idxRead = 0;
+            if (readIdx >= buffer.size()) {
+                readIdx = 0;
                 overflow = false;
             }
 
-            // FIXME
-            value = std::move(buffer[idxRead++]);
+            value = std::move(buffer[readIdx++]);
+            idxRead.store(readIdx, std::memory_order::release);
             return true;
         }
     };
@@ -940,6 +951,63 @@ namespace CollectionExperiments
 
 namespace SimplifiedLogger
 {
+
+    template<typename T>
+    struct RingBuffer
+    {
+        using size_type = size_t;
+        using value_type = T;
+        using collection_type = std::vector<value_type>;
+
+        std::atomic<size_type> idxRead { 0 };
+        std::atomic<size_type> idxWrite { 0 };
+        std::atomic<bool> overflow {false };
+        collection_type buffer {};
+
+        explicit RingBuffer(size_t size): idxRead { 0 }, idxWrite { 0 }, overflow { false } {
+            buffer.resize(size);
+        }
+
+        void put(value_type&& value)
+        {
+            size_type writeIdx = idxWrite.load(std::memory_order::relaxed);
+            if (writeIdx == buffer.size()) {
+                writeIdx = 0;
+                overflow = true;
+            }
+
+            size_type readIdx = idxRead.load(std::memory_order::relaxed);
+            if (overflow && writeIdx == readIdx)
+            {
+                if (++readIdx >= buffer.size()) {
+                    readIdx = 0;
+                    overflow = false;
+                }
+                idxRead.store(readIdx, std::memory_order::release);
+            }
+
+            buffer[writeIdx++] = std::move(value);
+            idxWrite.store(writeIdx, std::memory_order::release);
+        }
+
+        bool get(value_type& value)
+        {
+            size_type readIdx = idxRead.load(std::memory_order::relaxed);
+            if (!overflow && idxWrite == readIdx) {
+                return false;
+            }
+
+            if (readIdx >= buffer.size()) {
+                readIdx = 0;
+                overflow = false;
+            }
+
+            value = std::move(buffer[readIdx++]);
+            idxRead.store(readIdx, std::memory_order::release);
+            return true;
+        }
+    };
+
     struct Logger
     {
         constexpr static inline int32_t logBundleSize { 1024 };
@@ -947,20 +1015,21 @@ namespace SimplifiedLogger
         constexpr static inline std::chrono::milliseconds logsConsumerTimeout { std::chrono::milliseconds(1UL) };
         constexpr static inline std::chrono::milliseconds logsHandleTimeout { std::chrono::milliseconds(1UL)};
 
-        using LogBundle = LowLatencyLoggerDebug::Common::RingBufferAtomic1<std::string>;
+        using Type = std::string;
+        using LogBundle = RingBuffer<Type>;
 
         mutable std::shared_mutex mutex;
         std::list<LogBundle> threadLogs;
 
         mutable std::mutex mtxLogs2Handle;
-        std::list<std::vector<Logger::LogBundle::value_type>> logsToHandle;
+        std::list<std::vector<Type>> logsToHandle;
 
         std::jthread logProcessor;
         std::jthread logHandler;
         std::stop_source stopSource;
 
         [[nodiscard]]
-        LogBundle &getThreadLocalLogs()
+        LogBundle& getThreadLocalLogs()
         {
             std::lock_guard<std::shared_mutex> lock { mutex };
             return threadLogs.emplace_back(logBundleSize);
@@ -981,15 +1050,15 @@ namespace SimplifiedLogger
 
         void consumeLogs(const std::stop_source &source)
         {
-            std::vector<Logger::LogBundle::value_type> logsLocal;
+            std::vector<Type> logsLocal;
+            Type logEntry;
             while (!source.stop_requested())
             {
-                Logger::LogBundle::value_type logEntry;
                 {
                     std::shared_lock<std::shared_mutex> lock {mutex };
                     for (Logger::LogBundle &logBundle: threadLogs) {
                         for (int32_t n = 0; n < consumeBlockSize && logBundle.get(logEntry); ++n) {
-                            logsLocal.emplace_back("sssssssssssssssssssssssssssssssssssssssssssssssssss");
+                            logsLocal.push_back(std::move(logEntry));
                         }
                     }
                 }

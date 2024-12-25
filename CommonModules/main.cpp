@@ -28,10 +28,11 @@ int main([[maybe_unused]] int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
     // LockFreeQueue::TestAll();
-    // LowLatencyLogger::TestAll();
-    // LowLatencyLoggerDebug::TestAll();
-    RingBuffer_SPSC::TestAll();
 
+    // LowLatencyLogger::TestAll();
+    LowLatencyLoggerDebug::TestAll();
+
+    // RingBuffer_SPSC::TestAll();
 
     return EXIT_SUCCESS;
 }

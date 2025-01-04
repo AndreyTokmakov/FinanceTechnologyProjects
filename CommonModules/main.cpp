@@ -15,6 +15,7 @@ Description : Common modules
 #include "logging/LowLatencyLogger.h"
 #include "logging/LowLatencyLoggerDebug.h"
 #include "ring_buffer/RingBuffer_SPSC.h"
+#include "locking/SpinLock.h"
 
 
 // TODO:
@@ -30,9 +31,11 @@ int main([[maybe_unused]] int argc,
     // LockFreeQueue::TestAll();
 
     // LowLatencyLogger::TestAll();
-    LowLatencyLoggerDebug::TestAll();
+    // LowLatencyLoggerDebug::TestAll();
 
     // RingBuffer_SPSC::TestAll();
+
+    SpinLock::TestAll();
 
     return EXIT_SUCCESS;
 }

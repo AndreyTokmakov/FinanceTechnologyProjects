@@ -13,6 +13,7 @@ endif()
 
 add_subdirectory(CommonModules)
 add_subdirectory(DaVinchiTest)
+add_subdirectory(ExchangeConnectors)
 add_subdirectory(MatchingEngine)
 add_subdirectory(MatchingEngine_Pulsar)
 add_subdirectory(MatchingEngine_UnitTests)

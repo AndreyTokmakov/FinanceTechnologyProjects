@@ -45,6 +45,8 @@ Description : Binance.cpp
 #include <boost/asio/ssl.hpp>
 #include "boost/url/scheme.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace
 {
     namespace asio = boost::asio;
@@ -94,14 +96,18 @@ namespace BinanceConnector
         constexpr std::string_view subscription { R"({"method": "SUBSCRIBE","params": ["btcusdt@ticker"], "id": 1})" };
 
         const size_t bytesSend = wsStream.write(net::buffer(subscription));
-        std::cout << "Bytes send: " << bytesSend << std::endl;
+        // std::cout << "Bytes send: " << bytesSend << std::endl;
 
         beast::flat_buffer buffer;
         while (true)
         {
             size_t bytesRead = wsStream.read(buffer);
-            std::cout << "Bytes read: " << bytesRead << std::endl;
-            std::cout << beast::make_printable(buffer.data()) << std::endl;
+            // std::cout << "Bytes read: " << bytesRead << std::endl;
+            // std::cout << beast::make_printable(buffer.data()) << std::endl;
+
+            nlohmann::json data = nlohmann::json::parse(beast::buffers_to_string(buffer.data()));
+            std::cout << data << std::endl;
+
             buffer.clear();
         }
 

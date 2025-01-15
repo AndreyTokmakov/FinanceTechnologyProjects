@@ -28,6 +28,9 @@ FetchContent_MakeAvailable(boost)
 link_directories(${THIRD_PARTY_DIR}/openssl)
 include_directories(${THIRD_PARTY_DIR}/openssl/include)
 
+# Nlohmann JSON
+include_directories(${THIRD_PARTY_DIR}/json/include)
+
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp

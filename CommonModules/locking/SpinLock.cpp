@@ -17,21 +17,48 @@ Description : SpinLock.cpp
 #include "stdio.h"
 #include "stdlib.h"
 
+
+namespace SpinLockMtx
+{
+    struct SlowSpinLock
+    {
+        std::mutex mtx;
+
+        void lock()
+        {
+            mtx.lock();
+        }
+
+        void unlock()
+        {
+            mtx.unlock();
+        }
+
+        ~SlowSpinLock()
+        {
+            mtx.unlock();
+        }
+    };
+
+}
+
+
 namespace SpinLock
 {
     struct FastSpinLock
     {
-        alignas(std::hardware_destructive_interference_size) std::atomic<int32_t> isLocked { 0 };
+        using intType = int_fast32_t;
+        alignas(std::hardware_destructive_interference_size) std::atomic<intType> isLocked { 0 };
 
         void lock()
         {
             static constexpr timespec ns {0, 1};
-            int32_t expected = 0;
-            for (int i = 0; !isLocked.compare_exchange_weak(expected, 1, std::memory_order_acquire); ++i) {
+            intType expected = 0;
+            for (intType n = 0; !isLocked.compare_exchange_weak(expected, 1, std::memory_order_acquire); ++n) {
                 expected = 0;
-                if (8 == i) /// to tune thread scheduler
+                if (8 == n) /// to tune thread scheduler
                 {
-                    i = 0;
+                    n = 0;
                     nanosleep(&ns, nullptr);
                 }
             }
@@ -50,19 +77,21 @@ namespace SpinLock
 
     struct FastSpinLock2
     {
-        alignas(std::hardware_destructive_interference_size) std::atomic<int32_t> isLocked { 0 };
+        using intType = int_fast32_t;
+        alignas(std::hardware_destructive_interference_size) std::atomic<intType> isLocked { 0 };
 
         void lock()
         {
             static constexpr timespec ns {0, 1};
-            int32_t expected = 0;
-            for (int i = 0; !isLocked.compare_exchange_weak(expected, 1, std::memory_order_acquire); ++i) {
+            intType expected = 0;
+            for (intType n = 0; !isLocked.compare_exchange_weak(expected, 1,
+                                                                std::memory_order_relaxed,
+                                                                std::memory_order_release); ++n) {
                 expected = 0;
-                if (8 == i) /// to tune thread scheduler
+                if (8 == n) /// to tune thread scheduler
                 {
-                    i = 0;
+                    n = 0;
                     nanosleep(&ns, nullptr);
-                    __builtin_ia32_pause();
                 }
             }
         }
@@ -77,15 +106,77 @@ namespace SpinLock
             isLocked.store(false, std::memory_order_release);
         }
     };
+
+    struct FastSpinLockChrono
+    {
+        alignas(std::hardware_destructive_interference_size) std::atomic<int32_t> isLocked { 0 };
+
+        void lock()
+        {
+            int32_t expected = 0;
+            for (int i = 0; !isLocked.compare_exchange_weak(expected, 1, std::memory_order_acquire); ++i) {
+                expected = 0;
+                if (8 == i) /// to tune thread scheduler
+                {
+                    i = 0;
+                    std::this_thread::sleep_for(std::chrono::nanoseconds (1U));
+                }
+            }
+        }
+
+        void unlock()
+        {
+            isLocked.store(0, std::memory_order_release);
+        }
+
+        ~FastSpinLockChrono()
+        {
+            isLocked.store(false, std::memory_order_release);
+        }
+    };
 };
 
+namespace Experimental
+{
+    struct SpinLock
+    {
+        std::atomic_flag flag = ATOMIC_FLAG_INIT;
+        int_fast32_t retries { 0 };
+
+        void lock()
+        {
+            retries = 0;
+            while (flag.test_and_set(std::memory_order_acquire)) {
+                backoff();
+                retries++;
+            }
+        }
+
+        void unlock() {
+            flag.clear(std::memory_order_release);
+        }
+
+        void backoff()
+        {
+            const int max_retries = 8;
+            if (retries < max_retries) {
+                std::this_thread::yield();
+            } else {
+                auto delay = std::chrono::microseconds(1 << (retries - max_retries));
+                std::this_thread::sleep_for(delay);
+            }
+        }
+
+
+    };
+}
 
 namespace Tests
 {
     constexpr int threadsMax { 16 };
-    constexpr size_t iterCount { 1'000'000 };
+    constexpr size_t iterCount { 10'000'000 };
 
-    template<typename SpinLockType>
+    template<typename SpinLockType, bool warmUp = false>
     void test(const std::string_view testName)
     {
         SpinLockType spinLock;
@@ -99,16 +190,33 @@ namespace Tests
             }
         };
 
-        PerfUtilities::ScopedTimer timer { testName };
-        std::vector<std::jthread> jobs;
-        for (int t = 0; t < threadsMax; ++t)
-            jobs.emplace_back(task);
+        auto job = [&] {
+            std::vector<std::jthread> jobs;
+            for (int t = 0; t < threadsMax; ++t)
+                jobs.emplace_back(task);
+        };
+
+        if constexpr (!warmUp)
+        {
+            PerfUtilities::ScopedTimer timer { testName };
+            job();
+        }
+        else
+        {
+            job();
+        }
     }
 
     void benchmark()
     {
+        // test<SpinLock::FastSpinLock, true>("FastSpinLock");
+        // test<SpinLock::FastSpinLockChrono, true>("FastSpinLockChrono");
+
         test<SpinLock::FastSpinLock>("FastSpinLock");
         test<SpinLock::FastSpinLock2>("FastSpinLock2");
+        test<SpinLock::FastSpinLockChrono>("FastSpinLockChrono");
+        // test<Experimental::SpinLock>("Experimental::SpinLock");
+        // test<SpinLockMtx::SlowSpinLock>("SlowSpinLock");
     }
 }
 

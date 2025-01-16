@@ -100,7 +100,7 @@ namespace Demo
                 return fail(ec, "resolve");
 
             // Set a timeout on the operation
-            beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30));
+            beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30u));
 
             // Make the connection on the IP address we get from a lookup
             beast::get_lowest_layer(ws_).async_connect(results,
@@ -114,7 +114,7 @@ namespace Demo
                 return fail(ec, "connect");
 
             // Set a timeout on the operation
-            beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30));
+            beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30u));
 
             // Set SNI Hostname (many hosts need this to handshake successfully)
             if(! SSL_set_tlsext_host_name(ws_.next_layer().native_handle(), host.c_str()))
@@ -206,7 +206,7 @@ namespace Demo
         net::io_context ioCtx;
         ssl::context sslCtx { ssl::context::tlsv13_client };
 
-        std::make_shared<session>(ioCtx, sslCtx)->run(host, port, text);
+        // std::make_shared<session>(ioCtx, sslCtx)->run(host, port, text);
     }
 }
 

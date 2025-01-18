@@ -41,7 +41,7 @@ Description : ApiClient.cpp
 namespace
 {
     constexpr std::string_view apiKey { "9FmOZl0CCPVkzipOv0kXMx0gaL1BSeCuUhzG0CKilr0yjS6mxf037UvqM2nhAuXf" };
-    constexpr std::string_view privateKeyPath { R"(/home/andtokm/Documents/Binance/ssh_Key/ed25519.pem)" };
+    constexpr std::string_view privateKeyPath { R"(/home/andtokm/Temp/Certs/cacert.pem)" };
 }
 
 namespace
@@ -51,6 +51,8 @@ namespace
     using ptrBIO = std::unique_ptr<BIO, decltype(&::BIO_free)>;
     using ptrPKEY = std::unique_ptr<EVP_PKEY, decltype(&::EVP_PKEY_free)>;
     using ptrAsnInteger = std::unique_ptr<ASN1_INTEGER, decltype(&::ASN1_INTEGER_free)>;
+    using X509_ptr = std::unique_ptr<X509, decltype(&X509_free)>;
+    using ASN1_TIME_ptr = std::unique_ptr<ASN1_TIME, decltype(&ASN1_STRING_free)>;
 
     struct CertificateDeleter
     {
@@ -65,6 +67,7 @@ namespace
         }
     };
 
+    using BIO_ptr = std::unique_ptr<BIO, decltype(&BIO_free)>;
     using ptrCert509 = std::unique_ptr<X509, CertificateDeleter>;
     using ptrCert509Ex = std::unique_ptr<X509, decltype(&::X509_free)>;
     auto x509Deleter = [] (X509* ptr) {
@@ -75,9 +78,18 @@ namespace
 
 namespace
 {
+    [[nodiscard]]
+    std::string bio_to_string(const BIO_ptr& bio,
+                              const int max_len)
+    {
+        std::string buffer(max_len, '\0');
+        BIO_read(bio.get(), buffer.data(), max_len);
+        return buffer;
+    }
+
 
     [[nodiscard]]
-    std::vector<char8_t> readCertificate(std::string_view path) noexcept
+    std::vector<char8_t> readCertificate(const std::string_view path) noexcept
     {
         std::vector<char8_t> data {};
         if (std::fstream file(path.data(), std::ios::in | std::ios::binary); file.is_open() && file.good())
@@ -93,7 +105,7 @@ namespace
     }
 
     [[nodiscard]]
-    ptrCert509 loadCertificate(std::string_view path) noexcept
+    ptrCert509 loadCertificate(const std::string_view path) noexcept
     {
         const std::vector<char8_t> content = readCertificate(path);
         const unsigned char* data = reinterpret_cast<const unsigned char*>(content.data());
@@ -102,43 +114,41 @@ namespace
     }
 }
 
+// https://gist.github.com/cseelye/adcd900768ff61f697e603fd41c67625
 void ApiClient::TestAll()
 {
-
-    /*
-    std::string privateKey = FileUtilities::ReadFile(privateKeyPath);
-    const unsigned char* data = reinterpret_cast<const unsigned char*>(privateKey.data());
-    std::cout << privateKey << std::endl;
-
-    SSL_load_error_strings();
-    SSL_library_init();
-    OpenSSL_add_all_algorithms();
-
-    X509 *cert = d2i_X509(nullptr, &(data), privateKey.length());
-    if (!cert) {
-        fprintf(stderr, "unable to parse certificate in memory\n");
+    BIO_ptr input(BIO_new(BIO_s_file()), BIO_free);
+    if (BIO_read_filename(input.get(), privateKeyPath.data()) <= 0) {
+        std::cout << "Error reading file" << std::endl;
     }
 
-    X509_free(cert);
-    */
+    X509_ptr cert(PEM_read_bio_X509_AUX(input.get(), nullptr, nullptr, nullptr), X509_free);
 
+    // Create a BIO to hold info from the cert
+    BIO_ptr output_bio(BIO_new(BIO_s_mem()), BIO_free);
 
-    FILE *fp = fopen(privateKeyPath.data(), "r");
-    if (!fp) {
-        fprintf(stderr, "unable to open: %s\n", privateKeyPath);
-    }
+    X509_NAME *subject = X509_get_subject_name(cert.get());
 
-    std::cout << 1 << std::endl;
+    X509_NAME_print_ex(output_bio.get(), subject, 0, 0);
+    std::string cert_subject = bio_to_string(output_bio, 4096);
 
-    X509 *cert = PEM_read_X509(fp, nullptr, nullptr, nullptr);
-    if (!cert) {
-        fprintf(stderr, "unable to parse certificate in: %s\n", privateKeyPath);
-        fclose(fp);
-    }
+    std::cout << "Subject:" << std::endl;
+    std::cout << cert_subject << std::endl;
+    std::cout << std::endl;
 
+    ASN1_TIME *expires = X509_get_notAfter(cert.get());
 
-    std::cout << 1 << std::endl;
+    // Construct another ASN1_TIME for the unix epoch, get the difference
+    // between them and use that to calculate a unix timestamp representing
+    // when the cert expires
+    ASN1_TIME_ptr epoch(ASN1_TIME_new(), ASN1_STRING_free);
+    ASN1_TIME_set_string(epoch.get(), "700101000000");
+    int days, seconds;
+    ASN1_TIME_diff(&days, &seconds, epoch.get(), expires);
+    time_t expire_timestamp = (days * 24 * 60 * 60) + seconds;
 
-    X509_free(cert);
-    fclose(fp);
+    std::cout << "Expiration timestamp:" << std::endl;
+    std::cout << expire_timestamp << std::endl;
+    std::cout << std::endl;
+
 }

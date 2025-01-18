@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : Binance.cpp
 ============================================================================**/
 
-#include "Binance.h"
+#include "BinanceWssStream.h"
 
 #include <iostream>
 #include <string_view>
@@ -211,7 +211,7 @@ namespace Demo
 }
 
 
-namespace BinanceConnector
+namespace BinanceWssStream
 {
     const std::string host { "testnet.binance.vision" };
     constexpr uint16_t port { 443 };
@@ -266,7 +266,7 @@ namespace BinanceConnector
     }
 }
 
-void Binance::TestAll()
+void BinanceWssStream::TestAll()
 {
-    BinanceConnector::test();
+    BinanceWssStream::test();
 }

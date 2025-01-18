@@ -11,7 +11,8 @@ Description : Tests C++ project
 #include <iostream>
 #include <string_view>
 
-#include "Binance.h"
+#include "BinanceWssStream.h"
+#include "ApiClient.h"
 
 
 int main([[maybe_unused]] int argc,
@@ -19,7 +20,8 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    Binance::TestAll();
+    // BinanceWssStream::TestAll();
+    ApiClient::TestAll();
 
     return EXIT_SUCCESS;
 }

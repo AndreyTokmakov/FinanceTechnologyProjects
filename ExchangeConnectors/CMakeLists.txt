@@ -31,13 +31,20 @@ include_directories(${THIRD_PARTY_DIR}/openssl/include)
 # Nlohmann JSON
 include_directories(${THIRD_PARTY_DIR}/json/include)
 
+include_directories("Binance")
+
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
-        Binance.cpp
+        Binance/BinanceWssStream.cpp
+        Binance/ApiClient.cpp
 )
 
+target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")
+target_link_directories(${PROJECT_NAME} PUBLIC "${CMAKE_BINARY_DIR}/Utilities")
+
 TARGET_LINK_LIBRARIES(${PROJECT_NAME}
+        utils
         pthread
         Boost::json
         Boost::any

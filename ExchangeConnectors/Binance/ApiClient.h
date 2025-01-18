@@ -1,20 +1,18 @@
 /**============================================================================
-Name        : Binance.h
-Created on  : 15.01.2025
+Name        : ApiClient.h
+Created on  : 18.01.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : Binance.h
+Description : ApiClient.h
 ============================================================================**/
 
-#ifndef FINANCETECHNOLOGYPROJECTS_BINANCE_H
-#define FINANCETECHNOLOGYPROJECTS_BINANCE_H
+#ifndef FINANCETECHNOLOGYPROJECTS_APICLIENT_H
+#define FINANCETECHNOLOGYPROJECTS_APICLIENT_H
 
-
-
-namespace Binance
+namespace ApiClient
 {
     void TestAll();
 };
 
-#endif //FINANCETECHNOLOGYPROJECTS_BINANCE_H
+#endif //FINANCETECHNOLOGYPROJECTS_APICLIENT_H

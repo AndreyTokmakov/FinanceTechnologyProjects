@@ -311,8 +311,8 @@ namespace ApiClient
 
         ~StreamGuard()
         {
-            beast::error_code errorCode;
             try {
+                beast::error_code errorCode;
                 stream.shutdown(errorCode);
                 if (errorCode == asio::error::eof) {
                     errorCode = {};
@@ -332,24 +332,26 @@ namespace ApiClient
     {
         static constexpr int32_t version { 11 };
         static constexpr std::chrono::duration connectionTimeout { std::chrono::seconds(5u) };
+        static constexpr std::string_view API_KEY_HEADER { "X-MBX-APIKEY" };
+
+        std::string hostname;
 
         asio::io_context ioCtx;
         tcp::resolver resolver;
         ssl::context sslContext;
         tcp::resolver::results_type endpoint;
 
-        explicit APIClient(std::string_view host):
+        explicit APIClient(const std::string_view host):
                 resolver { ioCtx }, sslContext { ssl::context::tlsv13_client }
         {
             endpoint = resolver.resolve(host.data(), "https");
+            sslContext.set_default_verify_paths();
         }
 
-        std::expected<std::string, std::string> getRequest(std::string_view path)
+        std::expected<std::string, std::string> getRequest(const std::string_view path)
         {
             try
             {
-                sslContext.set_default_verify_paths();
-
                 beast::ssl_stream<beast::tcp_stream> sslStream { ioCtx, sslContext };
                 sslStream.set_verify_mode(ssl::verify_none);
                 sslStream.set_verify_callback([](bool, ssl::verify_context &) {
@@ -363,23 +365,23 @@ namespace ApiClient
                 }
 
                 get_lowest_layer(sslStream).connect(endpoint);
-                get_lowest_layer(sslStream).expires_after(std::chrono::seconds(30u));
+                get_lowest_layer(sslStream).expires_after(connectionTimeout);
+                sslStream.handshake(ssl::stream_base::client);
 
-                http::request<http::empty_body> request {http::verb::get, path, 11 };
+                http::request<http::empty_body> request {http::verb::get, path, version };
                 request.set(http::field::host, endpoint->host_name());
                 request.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-                request.set("X-MBX-APIKEY", apiKey.data());
+                request.set(API_KEY_HEADER, apiKey.data());
 
                 // Send the request
-                sslStream.handshake(ssl::stream_base::client);
                 http::write(sslStream, request);
 
                 // Receive the response
                 beast::flat_buffer buffer;
-                http::response<http::dynamic_body> res;
-                http::read(sslStream, buffer, res);
+                http::response<http::dynamic_body> response;
+                http::read(sslStream, buffer, response);
 
-                return buffers_to_string(res.body().data());
+                return buffers_to_string(response.body().data());
             }
             catch (const std::exception& exc) {
                 return std::unexpected { exc.what() };
@@ -390,15 +392,19 @@ namespace ApiClient
     void apiTests()
     {
         APIClient client { testnetApiUrl };
-        for (int i = 0; i < 5; ++i)
+        auto callEndpoint = [&client](const std::string_view path)
         {
-            const std::expected<std::string, std::string> response = client.getRequest("/api/v3/exchangeInfo"sv);
+            const std::expected<std::string, std::string> response = client.getRequest(path);
             if (response) {
-                std::cout << response.value().size() << std::endl;
+                std::cout << response.value() << std::endl;
             } else {
                 std::cout << response.error() << std::endl;
             }
-        }
+        };
+
+        // callEndpoint("/api/v3/exchangeInfo"sv);
+        callEndpoint("/api/v3/ping"sv);
+        callEndpoint("/api/v3/time"sv);
     }
 }
 

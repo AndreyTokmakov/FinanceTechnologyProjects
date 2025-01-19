@@ -13,6 +13,7 @@ add_library(common_modules
     logging/LowLatencyLoggerDebug.cpp
     ring_buffer/RingBuffer_SPSC.cpp
     locking/SpinLock.cpp
+    cryptography/Certificates.cpp
 )
 
 target_include_directories(common_modules PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")
@@ -27,5 +28,7 @@ target_link_libraries(${PROJECT_NAME}
         common_modules
         utils
         pthread
+        crypto
+        ssl
         ${EXTRA_LIBS}
 )

@@ -16,6 +16,7 @@ Description : Common modules
 #include "logging/LowLatencyLoggerDebug.h"
 #include "ring_buffer/RingBuffer_SPSC.h"
 #include "locking/SpinLock.h"
+#include "cryptography/Certificates.h"
 
 
 // TODO:
@@ -35,7 +36,9 @@ int main([[maybe_unused]] int argc,
 
     // RingBuffer_SPSC::TestAll();
 
-    SpinLock::TestAll();
+    // SpinLock::TestAll();
+
+    Certificates::TestAll();
 
     return EXIT_SUCCESS;
 }

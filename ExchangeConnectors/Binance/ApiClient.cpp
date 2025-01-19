@@ -14,141 +14,398 @@ Description : ApiClient.cpp
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <expected>
+
+#include <boost/asio.hpp>
+#include <boost/thread.hpp>
+#include <boost/algorithm/hex.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/ssl.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/connect.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/spawn.hpp>
+#include <boost/json.hpp>
+
 
 #include "FileUtilities.h"
 
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/crypto.h>
-#include <openssl/ssl.h>
-
-#include <openssl/sha.h>
-#include <openssl/rsa.h>
-#include <openssl/rand.h>
-#include <openssl/engine.h>
-#include <openssl/hmac.h>
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/pem.h>
-#include <openssl/buffer.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/crypto.h>
-#include <openssl/opensslv.h>
-
 namespace
 {
-    constexpr std::string_view apiKey { "9FmOZl0CCPVkzipOv0kXMx0gaL1BSeCuUhzG0CKilr0yjS6mxf037UvqM2nhAuXf" };
-    constexpr std::string_view privateKeyPath { R"(/home/andtokm/Temp/Certs/cacert.pem)" };
+    using namespace std::string_view_literals;
+
+    constexpr std::string_view testnetApiUrl { R"(testnet.binance.vision)"sv };
+    constexpr std::string_view apiKey { "9FmOZl0CCPVkzipOv0kXMx0gaL1BSeCuUhzG0CKilr0yjS6mxf037UvqM2nhAuXf"sv };
+
+    namespace beast = boost::beast;
+    namespace http = beast::http;
+    namespace asio = boost::asio;
+    namespace ssl = boost::asio::ssl;
+    namespace json = boost::json;
+    namespace ip = boost::asio::ip;
+    using tcp = asio::ip::tcp;
 }
 
-namespace
-{
-    using ptrBigNumber = std::unique_ptr<BIGNUM, decltype(&::BN_free)>;
-    using ptrRSA = std::unique_ptr<RSA, decltype(&::RSA_free)>;
-    using ptrBIO = std::unique_ptr<BIO, decltype(&::BIO_free)>;
-    using ptrPKEY = std::unique_ptr<EVP_PKEY, decltype(&::EVP_PKEY_free)>;
-    using ptrAsnInteger = std::unique_ptr<ASN1_INTEGER, decltype(&::ASN1_INTEGER_free)>;
-    using X509_ptr = std::unique_ptr<X509, decltype(&X509_free)>;
-    using ASN1_TIME_ptr = std::unique_ptr<ASN1_TIME, decltype(&ASN1_STRING_free)>;
+#define DEBUG_LINE  std::cout << __PRETTY_FUNCTION__ << '.' << __LINE__ << std::endl;
 
-    struct CertificateDeleter
+#if 0
+namespace ApiClientOld
+{
+    template<typename Callback, class ObjectType>
+    struct FinalAction
     {
-        void operator()(BIO* bio) const {
-            if (bio)
-                ::BIO_free(bio);
+        FinalAction(ObjectType* ptrObj, Callback callbackMethod) :
+                objectPtr { ptrObj }, callback { callbackMethod }{
         }
 
-        void operator()(X509* x509) const {
-            if (x509)
-                ::X509_free(x509);
-        }
-    };
-
-    using BIO_ptr = std::unique_ptr<BIO, decltype(&BIO_free)>;
-    using ptrCert509 = std::unique_ptr<X509, CertificateDeleter>;
-    using ptrCert509Ex = std::unique_ptr<X509, decltype(&::X509_free)>;
-    auto x509Deleter = [] (X509* ptr) {
-        if (ptr)
-            X509_free(ptr);
-    };
-}
-
-namespace
-{
-    [[nodiscard]]
-    std::string bio_to_string(const BIO_ptr& bio,
-                              const int max_len)
-    {
-        std::string buffer(max_len, '\0');
-        BIO_read(bio.get(), buffer.data(), max_len);
-        return buffer;
-    }
-
-
-    [[nodiscard]]
-    std::vector<char8_t> readCertificate(const std::string_view path) noexcept
-    {
-        std::vector<char8_t> data {};
-        if (std::fstream file(path.data(), std::ios::in | std::ios::binary); file.is_open() && file.good())
+        ~FinalAction()
         {
-            file.seekg(0, std::ios_base::end);
-            const auto bytesLength{file.tellg()};
-            file.seekg(0, std::ios_base::beg);
-
-            data.resize(bytesLength);
-            file.read(reinterpret_cast<char *>(data.data()), bytesLength);
+            std::invoke(callback, objectPtr);
         }
-        return data;
+
+    private:
+        ObjectType* objectPtr { nullptr };
+        Callback callback {};
+    };
+
+    struct ApiClientOld
+    {
+        static constexpr int32_t version { 11 };
+        static constexpr std::chrono::duration connectionTimeout { std::chrono::seconds(5u) };
+
+        tcp::resolver resolver;
+        ssl::stream<beast::tcp_stream> sslStream;
+        tcp::resolver::results_type apiEndpoint;
+        beast::flat_buffer buffer;
+
+        explicit ApiClientOld(const asio::any_io_executor& executor,
+                           ssl::context& sslContext,
+                           std::string_view host):
+                resolver { executor }, sslStream { executor, sslContext }
+        {
+            apiEndpoint = resolver.resolve(host.data(), "https");
+
+            sslContext.set_default_verify_paths();
+            sslStream.set_verify_mode(ssl::verify_none);
+            sslStream.set_verify_callback([](bool, ssl::verify_context&) {
+                return true; /** Accept any certificate **/
+            });
+
+            if (!SSL_set_tlsext_host_name(sslStream.native_handle(), testnetApiUrl.data())) {
+                beast::error_code ec {static_cast<int>(::ERR_get_error()), asio::error::get_ssl_category() };
+                throw beast::system_error{ec};
+            }
+        }
+
+        ~APIClient()
+        {
+            shutdown();
+        }
+
+        void shutdown()
+        {
+            DEBUG_LINE
+            if (!sslStream.lowest_layer().is_open())
+                return;
+            beast::error_code errorCode;
+            const boost_swap_impl::error_code result = sslStream.shutdown(errorCode);
+            if (errorCode == asio::error::eof) {
+                errorCode = {};
+            }
+            if (errorCode) {
+                std::cerr << beast::system_error{errorCode}.what() << std::endl;
+            }
+            DEBUG_LINE
+        }
+
+        [[nodiscard]]
+        bool connect()
+        {
+            DEBUG_LINE
+            try {
+                DEBUG_LINE
+                get_lowest_layer(sslStream).connect(apiEndpoint);
+                get_lowest_layer(sslStream).expires_after(connectionTimeout);
+                sslStream.handshake(ssl::stream_base::client);
+                DEBUG_LINE
+                return true;
+            }
+            catch (const std::exception& exc) {
+                DEBUG_LINE
+                std::cerr << exc.what() << std::endl;
+                return false;
+            }
+        }
+
+        void closeConnection()
+        {
+            DEBUG_LINE
+            sslStream.lowest_layer().close();
+            //sslStream.shutdown();
+            DEBUG_LINE
+        }
+
+        std::expected<std::string, std::string> sendRequest()
+        {
+            try
+            {
+                if (!connect())
+                    return std::unexpected("Failed to connect");
+
+                FinalAction closeConnection {this, &APIClient::closeConnection };
+
+                DEBUG_LINE
+                http::request<http::empty_body> request{http::verb::get, "/api/v3/exchangeInfo", version};
+                request.set(http::field::host, testnetApiUrl.data());
+                request.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+                request.set("X-MBX-APIKEY", apiKey.data());
+
+                DEBUG_LINE
+                http::write(sslStream, request);
+
+                http::response<http::dynamic_body> response;
+                buffer.clear();
+
+                DEBUG_LINE
+                http::read(sslStream, buffer, response);
+
+                DEBUG_LINE
+
+                return buffers_to_string(response.body().data());
+            }
+            catch (const std::exception& exc)
+            {
+                DEBUG_LINE
+                std::cerr << exc.what() << std::endl;
+                return std::unexpected(exc.what());
+            }
+        }
+    };
+
+    void test()
+    {
+        asio::io_context ioCtx;
+        ssl::context sslContext { ssl::context::tlsv13_client };
+
+        APIClient client (asio::make_strand(ioCtx), sslContext, testnetApiUrl);
+
+        for (int i = 0; i < 2; ++i)
+        {
+            const std::expected<std::string, std::string > response = client.sendRequest();
+            if (response) {
+                std::cout << response.value().size() << std::endl;
+            } else {
+                std::cout << response.error() << std::endl;
+            }
+        }
+    }
+}
+#endif
+
+namespace tests
+{
+    struct StreamGuard
+    {
+        beast::ssl_stream<beast::tcp_stream>& stream;
+
+        explicit StreamGuard(beast::ssl_stream<beast::tcp_stream>& sslStream): stream { sslStream } {
+        }
+
+        ~StreamGuard()
+        {
+            beast::error_code errorCode;
+            try
+            {
+                stream.shutdown(errorCode);
+                if (errorCode == asio::error::eof) {
+                    errorCode = {};
+                }
+                if (errorCode) {
+                    std::cerr << errorCode.what() << std::endl;
+                }
+            }
+            catch (const std::exception& exc) {
+                std::cerr << exc.what() << std::endl;
+            }
+        }
+    };
+
+    std::expected<std::string, std::string>
+    exec_get_request(asio::io_context& executor,
+                     const tcp::resolver::results_type& endpoint,
+                     std::string_view path)
+    {
+        try
+        {
+            ssl::context sslContext { ssl::context::tlsv13_client };
+            sslContext.set_default_verify_paths();
+
+            beast::ssl_stream<beast::tcp_stream> sslStream {executor, sslContext };
+            sslStream.set_verify_mode(ssl::verify_none);
+            sslStream.set_verify_callback([](bool, ssl::verify_context &) {
+                return true; /** Accept any certificate **/
+            });
+
+            const StreamGuard guard { sslStream };
+            if (!SSL_set_tlsext_host_name(sslStream.native_handle(), endpoint->host_name().data())) {
+                beast::error_code ec{static_cast<int>(::ERR_get_error()), asio::error::get_ssl_category()};
+                throw beast::system_error{ec};
+            }
+
+            get_lowest_layer(sslStream).connect(endpoint);
+            get_lowest_layer(sslStream).expires_after(std::chrono::seconds(30u));
+
+            http::request<http::empty_body> request {http::verb::get, path, 11 };
+            request.set(http::field::host, endpoint->host_name());
+            request.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+            request.set("X-MBX-APIKEY", apiKey.data());
+
+            // Send the request
+            sslStream.handshake(ssl::stream_base::client);
+            http::write(sslStream, request);
+
+            // Receive the response
+            beast::flat_buffer buffer;
+            http::response<http::dynamic_body> res;
+            http::read(sslStream, buffer, res);
+
+            return buffers_to_string(res.body().data());
+        }
+        catch (const std::exception& exc) {
+            return std::unexpected { exc.what() };
+        }
     }
 
-    [[nodiscard]]
-    ptrCert509 loadCertificate(const std::string_view path) noexcept
+    void exchangeInfo()
     {
-        const std::vector<char8_t> content = readCertificate(path);
-        const unsigned char* data = reinterpret_cast<const unsigned char*>(content.data());
-        std::cout << '[' << data << ']' << std::endl;
-        return {d2i_X509(nullptr, &data, std::ssize(content)), CertificateDeleter{}};
+        asio::io_context ioCtx;
+        tcp::resolver resolver { ioCtx };
+        const tcp::resolver::results_type apiEndpoint = resolver.resolve(testnetApiUrl.data(), "https");
+
+        for (int i = 0; i < 5; ++i)
+        {
+            const std::expected<std::string, std::string> response = exec_get_request(
+                    ioCtx, apiEndpoint, "/api/v3/exchangeInfo"sv);
+            if (response) {
+                std::cout << response.value().size() << std::endl;
+            } else {
+                std::cout << response.error() << std::endl;
+            }
+        }
     }
 }
 
-// https://gist.github.com/cseelye/adcd900768ff61f697e603fd41c67625
+namespace ApiClient
+{
+    struct StreamGuard
+    {
+        beast::ssl_stream<beast::tcp_stream>& stream;
+
+        explicit StreamGuard(beast::ssl_stream<beast::tcp_stream>& sslStream): stream { sslStream } {
+        }
+
+        ~StreamGuard()
+        {
+            beast::error_code errorCode;
+            try {
+                stream.shutdown(errorCode);
+                if (errorCode == asio::error::eof) {
+                    errorCode = {};
+                }
+                if (errorCode) {
+                    std::cerr << errorCode.what() << std::endl;
+                }
+            }
+            catch (const std::exception& exc) {
+                std::cerr << exc.what() << std::endl;
+            }
+        }
+    };
+
+
+    struct APIClient
+    {
+        static constexpr int32_t version { 11 };
+        static constexpr std::chrono::duration connectionTimeout { std::chrono::seconds(5u) };
+
+        asio::io_context ioCtx;
+        tcp::resolver resolver;
+        ssl::context sslContext;
+        tcp::resolver::results_type endpoint;
+
+        explicit APIClient(std::string_view host):
+                resolver { ioCtx }, sslContext { ssl::context::tlsv13_client }
+        {
+            endpoint = resolver.resolve(host.data(), "https");
+        }
+
+        std::expected<std::string, std::string> getRequest(std::string_view path)
+        {
+            try
+            {
+                sslContext.set_default_verify_paths();
+
+                beast::ssl_stream<beast::tcp_stream> sslStream { ioCtx, sslContext };
+                sslStream.set_verify_mode(ssl::verify_none);
+                sslStream.set_verify_callback([](bool, ssl::verify_context &) {
+                    return true; /** Accept any certificate **/
+                });
+
+                const StreamGuard guard { sslStream };
+                if (!SSL_set_tlsext_host_name(sslStream.native_handle(), endpoint->host_name().data())) {
+                    beast::error_code ec{static_cast<int>(::ERR_get_error()), asio::error::get_ssl_category()};
+                    throw beast::system_error{ec};
+                }
+
+                get_lowest_layer(sslStream).connect(endpoint);
+                get_lowest_layer(sslStream).expires_after(std::chrono::seconds(30u));
+
+                http::request<http::empty_body> request {http::verb::get, path, 11 };
+                request.set(http::field::host, endpoint->host_name());
+                request.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+                request.set("X-MBX-APIKEY", apiKey.data());
+
+                // Send the request
+                sslStream.handshake(ssl::stream_base::client);
+                http::write(sslStream, request);
+
+                // Receive the response
+                beast::flat_buffer buffer;
+                http::response<http::dynamic_body> res;
+                http::read(sslStream, buffer, res);
+
+                return buffers_to_string(res.body().data());
+            }
+            catch (const std::exception& exc) {
+                return std::unexpected { exc.what() };
+            }
+        }
+    };
+
+    void apiTests()
+    {
+        APIClient client { testnetApiUrl };
+        for (int i = 0; i < 5; ++i)
+        {
+            const std::expected<std::string, std::string> response = client.getRequest("/api/v3/exchangeInfo"sv);
+            if (response) {
+                std::cout << response.value().size() << std::endl;
+            } else {
+                std::cout << response.error() << std::endl;
+            }
+        }
+    }
+}
+
 void ApiClient::TestAll()
 {
-    BIO_ptr input(BIO_new(BIO_s_file()), BIO_free);
-    if (BIO_read_filename(input.get(), privateKeyPath.data()) <= 0) {
-        std::cout << "Error reading file" << std::endl;
-    }
+    // tests::exchangeInfo();
 
-    X509_ptr cert(PEM_read_bio_X509_AUX(input.get(), nullptr, nullptr, nullptr), X509_free);
-
-    // Create a BIO to hold info from the cert
-    BIO_ptr output_bio(BIO_new(BIO_s_mem()), BIO_free);
-
-    X509_NAME *subject = X509_get_subject_name(cert.get());
-
-    X509_NAME_print_ex(output_bio.get(), subject, 0, 0);
-    std::string cert_subject = bio_to_string(output_bio, 4096);
-
-    std::cout << "Subject:" << std::endl;
-    std::cout << cert_subject << std::endl;
-    std::cout << std::endl;
-
-    ASN1_TIME *expires = X509_get_notAfter(cert.get());
-
-    // Construct another ASN1_TIME for the unix epoch, get the difference
-    // between them and use that to calculate a unix timestamp representing
-    // when the cert expires
-    ASN1_TIME_ptr epoch(ASN1_TIME_new(), ASN1_STRING_free);
-    ASN1_TIME_set_string(epoch.get(), "700101000000");
-    int days, seconds;
-    ASN1_TIME_diff(&days, &seconds, epoch.get(), expires);
-    time_t expire_timestamp = (days * 24 * 60 * 60) + seconds;
-
-    std::cout << "Expiration timestamp:" << std::endl;
-    std::cout << expire_timestamp << std::endl;
-    std::cout << std::endl;
-
+    // ApiClient::test();
+    ApiClient::apiTests();
 }

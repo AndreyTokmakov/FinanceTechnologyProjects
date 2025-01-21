@@ -37,23 +37,8 @@ namespace Common
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setOrderActionType(OrderActionType actionType) noexcept {
-        order.action = actionType;
-        return *this;
-    }
-
     OrderBuilder& OrderBuilder::setOrderTimeCondition(OrderTimeCondition condition) noexcept {
         order.timeCondition = condition;
-        return *this;
-    }
-
-    OrderBuilder& OrderBuilder::setTriggerType(TriggerType triggerType) noexcept {
-        order.triggerType = triggerType;
-        return *this;
-    }
-
-    OrderBuilder& OrderBuilder::setOrderStatusType(OrderStatusType statusType) noexcept {
-        order.status = statusType;
         return *this;
     }
 
@@ -68,48 +53,13 @@ namespace Common
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setMarketId(Order::IDType marketId) noexcept {
-        order.marketId = marketId;
-        return *this;
-    }
-
-    OrderBuilder& OrderBuilder::setAmount(unsigned long long amount) noexcept {
-        order.amount = amount;
-        return *this;
-    }
-
-    OrderBuilder& OrderBuilder::setRemainAmount(unsigned long long remainAmount) noexcept {
-        order.remainAmount = remainAmount;
-        return *this;
-    }
-
     OrderBuilder& OrderBuilder::setQuantity(unsigned long long quantity) noexcept {
         order.quantity = quantity;
         return *this;
     }
 
-    OrderBuilder& OrderBuilder::setDisplayQuantity(unsigned long long displayQuantity) noexcept {
-        order.displayQuantity = displayQuantity;
-        return *this;
-    }
-
-    OrderBuilder& OrderBuilder::setRemainQuantity(unsigned long long remainQuantity) noexcept {
-        order.remainQuantity = remainQuantity;
-        return *this;
-    }
-
     OrderBuilder& OrderBuilder::setPrice(long long price) noexcept {
         order.price = price;
-        return *this;
-    }
-
-    OrderBuilder& OrderBuilder::setAccountId(Order::IDType accountId) noexcept {
-        order.accountId = accountId;
-        return *this;
-    }
-
-    OrderBuilder& OrderBuilder::setParentAccountId(Order::IDType parentAccountId) noexcept {
-        order.parentAccountId = parentAccountId;
         return *this;
     }
 }

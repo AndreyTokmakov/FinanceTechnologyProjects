@@ -13,6 +13,7 @@ add_executable(${PROJECT_NAME}
         Order.cpp
         OrderBook.cpp
         EventConsumer.cpp
+        Event.h
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

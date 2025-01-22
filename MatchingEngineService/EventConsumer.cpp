@@ -8,10 +8,12 @@ Description : EventConsumer.cpp
 ============================================================================**/
 
 #include "EventConsumer.h"
+#include "Event.h"
 
 #include <string_view>
 #include <array>
 #include <iostream>
+#include <charconv>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -89,11 +91,50 @@ struct Server
         }
     }
 
+    void addPriceLevel(const nlohmann::json& lvl,
+                       std::vector<Common::PriceLevel>& prices)
+    {
+        std::setprecision(9);
+        const std::string& price = lvl[0].get<std::string>();
+        const std::string& quantity = lvl[1].get<std::string>();
+
+        Common::PriceLevel level = prices.emplace_back();
+        std::from_chars(price.data(), price.data() + price.size(), level.price);
+        std::from_chars(quantity.data(), quantity.data() + quantity.size(), level.quantity);
+
+        std::cout << "\t[" << price << ", " << quantity << "] ";
+        std::cout << "\t[" << level.price << ", " << level.quantity << "]\n";
+    }
+
     void processMessage(const std::string& message,
                         const uint32_t type )
     {
-        std::cout << "type = " << type << std::endl;
-        std::cout << message << std::endl;
+        using namespace Common;
+
+        DepthEvent event;
+        event.type = type == 1 ? EventType::DepthSnapshot : EventType::DepthUpdate;
+
+        nlohmann::json asks, bids;
+        const nlohmann::json data = nlohmann::json::parse(message);
+        if (EventType::DepthSnapshot == event.type) {
+            asks = data["asks"];
+            bids = data["bids"];
+
+        } else if (EventType::DepthUpdate == event.type){
+            asks = data["data"]["a"];
+            bids = data["data"]["b"];
+        }
+
+        std::cout << std::string(80, '-') << (EventType::DepthSnapshot == event.type ?
+            "DepthSnapshot" : "DepthUpdate") <<  std::string(80, '-')  << std::endl;
+        std::cout << "ASKS:" << std::endl;
+        for (const auto& lvl: asks) {
+            addPriceLevel(lvl, event.akss);
+        }
+        std::cout << "BIDS:" << std::endl;
+        for (const auto& lvl: bids) {
+            addPriceLevel(lvl, event.bids);
+        }
     }
 };
 

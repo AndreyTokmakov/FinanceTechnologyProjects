@@ -8,6 +8,7 @@ Description : OrderBook.cpp
 ============================================================================**/
 
 #include "OrderBook.h"
+#include "Event.h"
 #include <boost/container/flat_map.hpp>
 
 #include <iostream>
@@ -16,8 +17,7 @@ Description : OrderBook.cpp
 
 namespace MatchingEngine
 {
-    using Price = int64_t;
-    using Quantity = int64_t;
+    using namespace Common;
 
     enum class Side : uint8_t
     {

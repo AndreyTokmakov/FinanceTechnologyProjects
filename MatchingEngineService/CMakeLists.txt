@@ -13,6 +13,7 @@ add_executable(${PROJECT_NAME}
         Order.cpp
         OrderBook.cpp
         EventConsumer.cpp
+        Utils.cpp
         Event.h
 )
 

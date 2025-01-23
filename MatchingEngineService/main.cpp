@@ -14,6 +14,20 @@ Description : Tests C++ project
 #include "Order.h"
 #include "OrderBook.h"
 #include "EventConsumer.h"
+#include "Utils.h"
+
+namespace PriceCast
+{
+    using namespace Utils;
+
+    void DoubleToLong()
+    {
+        const std::string strPrice("771043005.010010123");
+        const int64_t price = priceToLong(strPrice);
+
+        std::cout << strPrice << " ==> " << price << std::endl;
+    }
+}
 
 
 int main([[maybe_unused]] const int argc,
@@ -24,23 +38,7 @@ int main([[maybe_unused]] const int argc,
     // EventConsumer::TestAll();
     // MatchingEngine::TestAll();
 
-    std::string strPrice("104300.010");
-    std::string quantity("0.00250001");
-
-    {
-        double value{0.0};
-        std::from_chars(strPrice.data(), strPrice.data() + strPrice.size(), value);
-        std::cout << value << std::endl;
-        double d = stod( strPrice) ;
-        std::cout << d << std::endl;
-    }
-
-    {
-        double value{0.0};
-        std::from_chars(quantity.data(), quantity.data() + quantity.size(), value);
-        std::cout << value << std::endl;
-        std::cout << atof( quantity.data()) << std::endl;
-    }
+    PriceCast::DoubleToLong();
 
     return EXIT_SUCCESS;
 }

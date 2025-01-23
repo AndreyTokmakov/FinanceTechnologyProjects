@@ -16,13 +16,16 @@ Description : Tests C++ project
 #include "EventConsumer.h"
 #include "Utils.h"
 
+#include <nlohmann/json.hpp>
+
 namespace PriceCast
 {
     using namespace Utils;
 
     void DoubleToLong()
     {
-        const std::string strPrice("771043005.010010123");
+        // const std::string strPrice("771043005.010010123");
+        const std::string strPrice("0.82148000");
         const int64_t price = priceToLong(strPrice);
 
         std::cout << strPrice << " ==> " << price << std::endl;
@@ -37,8 +40,18 @@ int main([[maybe_unused]] const int argc,
 
     // EventConsumer::TestAll();
     // MatchingEngine::TestAll();
+    // PriceCast::DoubleToLong();
 
-    PriceCast::DoubleToLong();
+    std::vector<std::vector<int>> vVector;
+    vVector.emplace_back(std::vector<int>{1,2,3,4,5});
+
+    std::cout << vVector.back().size() << std::endl;
+
+    std::vector<int> moved = std::move(vVector.back());
+
+    std::cout << vVector.back().size() << std::endl;
+
+
 
     return EXIT_SUCCESS;
 }

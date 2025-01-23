@@ -9,6 +9,7 @@ Description : EventConsumer.cpp
 
 #include "EventConsumer.h"
 #include "Event.h"
+#include "Utils.h"
 
 #include <string_view>
 #include <array>
@@ -94,15 +95,15 @@ struct Server
     void addPriceLevel(const nlohmann::json& lvl,
                        std::vector<Common::PriceLevel>& prices)
     {
-        std::setprecision(9);
-        const std::string& price = lvl[0].get<std::string>();
-        const std::string& quantity = lvl[1].get<std::string>();
-
+        static std::string buffer;
         Common::PriceLevel level = prices.emplace_back();
-        std::from_chars(price.data(), price.data() + price.size(), level.price);
-        std::from_chars(quantity.data(), quantity.data() + quantity.size(), level.quantity);
 
-        std::cout << "\t[" << price << ", " << quantity << "] ";
+        lvl[0].get_to(buffer);
+        level.price = Utils::priceToLong(buffer);
+
+        lvl[1].get_to(buffer);
+        level.quantity = Utils::priceToLong(buffer);
+
         std::cout << "\t[" << level.price << ", " << level.quantity << "]\n";
     }
 

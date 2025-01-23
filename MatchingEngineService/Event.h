@@ -15,8 +15,8 @@ Description : Event.h
 
 namespace Common
 {
-    using Price = double;
-    using Quantity = double;
+    using Price = int64_t;
+    using Quantity = int64_t;
 
     enum class EventType : uint8_t
     {
@@ -26,8 +26,8 @@ namespace Common
 
     struct PriceLevel
     {
-        Price price { 0.0 };
-        Quantity quantity { 0.0 };
+        Price price { 0 };
+        Quantity quantity { 0 };
     };
 
     struct DepthEvent

@@ -34,11 +34,11 @@ int main([[maybe_unused]] int argc,
     // LowLatencyLogger::TestAll();
     // LowLatencyLoggerDebug::TestAll();
 
-    // RingBuffer_SPSC::TestAll();
+    RingBuffer_SPSC::TestAll();
 
     // SpinLock::TestAll();
 
-    Certificates::TestAll();
+    // Certificates::TestAll();
 
     return EXIT_SUCCESS;
 }

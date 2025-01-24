@@ -8,13 +8,13 @@ Description : EventConsumer.cpp
 ============================================================================**/
 
 #include "EventConsumer.h"
-#include "Event.h"
 #include "Utils.h"
 
+#include <iostream>
 #include <string_view>
 #include <array>
+#include <chrono>
 #include <iostream>
-#include <charconv>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -28,22 +28,24 @@ namespace
     constexpr int INVALID_SOCKET { -1 };
     constexpr int SOCKET_ERROR { -1 };
 
-    using Socket = int32_t;
-    using UserId = uint32_t;
-    using HashType = size_t;
-    using IdType   = size_t;
+    void addPriceLevel(const nlohmann::json& lvl,
+                       std::vector<Common::PriceLevel>& prices)
+    {
+        static std::string buffer;
+        Common::PriceLevel& level = prices.emplace_back();
+
+        lvl[0].get_to(buffer);
+        level.price = Utils::priceToLong(buffer);
+
+        lvl[1].get_to(buffer);
+        level.quantity = Utils::priceToLong(buffer);
+    }
 }
 
-
-struct Server
+namespace EventConsumer
 {
-    constexpr static uint32_t receiveBufferSize { 10 * 1024 };
-    constexpr static std::string_view host {"0.0.0.0" };
-
-    Socket serverSocket { -1 };
-    uint16_t serverPort { 52525 };
-
-    explicit Server(const uint16_t port = 52525) : serverPort { port }
+    Server::Server(Common::Queue<Common::DepthEvent>& queue,
+                   const uint16_t port) : eventQueue {queue}, serverPort { port }
     {
         serverSocket = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (INVALID_SOCKET == serverSocket)
@@ -55,14 +57,13 @@ struct Server
         }
     }
 
-    ~Server()
+    Server::~Server()
     {
         ::close(serverSocket);
     }
 
     /// TODO: Use select/poll/epoll instead od ::recvfrom(....) ???
-    [[noreturn]]
-    void runServer()
+    void Server::consumeEvents()
     {
         sockaddr_in senderAddress {};
         socklen_t len = sizeof(senderAddress);
@@ -87,28 +88,20 @@ struct Server
                 }
             }
             else  {
-                std::cerr << "Failed to receive data from server" << std::endl;
+                std::cout << "[Failed to receive data from server]" << std::endl;
+                return;
             }
         }
     }
 
-    void addPriceLevel(const nlohmann::json& lvl,
-                       std::vector<Common::PriceLevel>& prices)
+    void Server::runServer()
     {
-        static std::string buffer;
-        Common::PriceLevel level = prices.emplace_back();
-
-        lvl[0].get_to(buffer);
-        level.price = Utils::priceToLong(buffer);
-
-        lvl[1].get_to(buffer);
-        level.quantity = Utils::priceToLong(buffer);
-
-        std::cout << "\t[" << level.price << ", " << level.quantity << "]\n";
+        // FIXME
+        serverThread = std::jthread(&Server::consumeEvents, this);
     }
 
-    void processMessage(const std::string& message,
-                        const uint32_t type )
+    void Server::processMessage(const std::string& message,
+                                const uint32_t type )
     {
         using namespace Common;
 
@@ -117,30 +110,38 @@ struct Server
 
         nlohmann::json asks, bids;
         const nlohmann::json data = nlohmann::json::parse(message);
-        if (EventType::DepthSnapshot == event.type) {
+        if (EventType::DepthSnapshot == event.type)
+        {
             asks = data["asks"];
             bids = data["bids"];
+            event.lastUpdateId = data["lastUpdateId"];
 
-        } else if (EventType::DepthUpdate == event.type){
+        }
+        else if (EventType::DepthUpdate == event.type)
+        {
             asks = data["data"]["a"];
             bids = data["data"]["b"];
+            event.id = data["data"]["E"].get<uint64_t>();
+            event.lastUpdateId = data["data"]["u"].get<uint64_t>();
+            event.firstUpdateId = data["data"]["U"].get<uint64_t>();
+            event.symbol = data["data"]["s"].get<std::string>();
         }
 
-        std::cout << std::string(80, '-') << (EventType::DepthSnapshot == event.type ?
-            "DepthSnapshot" : "DepthUpdate") <<  std::string(80, '-')  << std::endl;
-        std::cout << "ASKS:" << std::endl;
         for (const auto& lvl: asks) {
             addPriceLevel(lvl, event.akss);
         }
-        std::cout << "BIDS:" << std::endl;
         for (const auto& lvl: bids) {
             addPriceLevel(lvl, event.bids);
         }
+
+        eventQueue.push(std::move(event));
     }
-};
+}
+
+
 
 void EventConsumer::TestAll()
 {
-    Server server;
-    server.runServer();
+    //Server server;
+    //server.runServer();
 }

@@ -11,10 +11,10 @@ Description : Tests C++ project
 #include <string_view>
 #include <vector>
 
-#include "Order.h"
 #include "OrderBook.h"
 #include "EventConsumer.h"
 #include "Utils.h"
+#include "Queue.h"
 
 #include <nlohmann/json.hpp>
 
@@ -38,19 +38,16 @@ int main([[maybe_unused]] const int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
+    Common::Queue<Common::DepthEvent> queue;
+    EventConsumer::Server server { queue };
+    OrderBook::Engine engine { queue };
+
+    server.runServer();
+    engine.start();
+
     // EventConsumer::TestAll();
     // MatchingEngine::TestAll();
     // PriceCast::DoubleToLong();
-
-    std::vector<std::vector<int>> vVector;
-    vVector.emplace_back(std::vector<int>{1,2,3,4,5});
-
-    std::cout << vVector.back().size() << std::endl;
-
-    std::vector<int> moved = std::move(vVector.back());
-
-    std::cout << vVector.back().size() << std::endl;
-
 
 
     return EXIT_SUCCESS;

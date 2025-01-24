@@ -35,6 +35,13 @@ namespace Common
         EventType type { EventType::DepthSnapshot };
         std::vector<PriceLevel> bids;
         std::vector<PriceLevel> akss;
+
+        // TODO: Refactor std::array<char, 6>
+        std::string symbol;
+
+        uint64_t id { 0 };
+        uint64_t lastUpdateId { 0 };
+        uint64_t firstUpdateId { 0 };
     };
 }
 

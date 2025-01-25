@@ -125,7 +125,7 @@ namespace StringUtilities
     void trim_1(std::string& str)
     {
         size_t beg = 0, end = str.length();
-        for (; end > beg & str[beg] == ' '; beg++) {}
+        for (; end > beg && str[beg] == ' '; beg++) {}
         for (; end > 0 && str[--end] == ' '; ) {}
         str = str.substr(beg, end - beg + 1);
     }

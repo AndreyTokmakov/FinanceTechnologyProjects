@@ -11,10 +11,10 @@ Description : Tests C++ project
 #include <string_view>
 #include <vector>
 
-#include "OrderBook.h"
-#include "EventConsumer.h"
-#include "Utils.h"
-#include "Queue.h"
+#include "order_book/OrderBook.h"
+#include "consumers/EventConsumer.h"
+#include "common/Utils.h"
+#include "common/Queue.h"
 
 #include <nlohmann/json.hpp>
 

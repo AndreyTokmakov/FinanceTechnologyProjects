@@ -7,14 +7,26 @@ project(${PROJECT_NAME} VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
 add_compile_options(-c -Wall -Wextra -O3 -std=c++2c)
 
+set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/MatchingEngineService)
+
+set(COMMON ${PROJECT_DIR}/common)
+set(CONSUMERS ${PROJECT_DIR}/consumers)
+set(ORDER_BOOK ${PROJECT_DIR}/order_book)
+
+include_directories(${COMMON})
+# include_directories(${PROJECT_DIR})
+# include_directories(${CONSUMERS})
+# include_directories(${ORDER_BOOK})
+
+
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
-        Order.cpp
-        OrderBook.cpp
-        EventConsumer.cpp
-        Utils.cpp
-        Event.h
+        ${ORDER_BOOK}/OrderBook.cpp
+        ${CONSUMERS}/EventConsumer.cpp
+        ${COMMON}/Utils.cpp
+        ${COMMON}/Event.h
+        ${COMMON}/Order.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

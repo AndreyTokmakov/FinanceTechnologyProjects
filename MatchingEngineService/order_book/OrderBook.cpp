@@ -112,13 +112,14 @@ namespace OrderBook
                 // FIXME
                 if (DepthBookStatus::Ready == status)
                 {
+                    // FIXME
                     const Price bidPrice = depthBook.bidPriceLevelMap.begin()->first;
                     const Price askPrice = depthBook.askPriceLevelMap.begin()->first;
                     const Price spread = askPrice - bidPrice;
 
                     std::cout << " Book [Buy: " << depthBook.bidPriceLevelMap.size()
                               << ", Ask: " << depthBook.askPriceLevelMap.size()
-                              << ", Spread: " << bidPrice << ", " << askPrice << "." << spread
+                              << ", Spread: " << askPrice  << ", " << bidPrice << " ==> " << spread
                               << "]\n";
                 }
             }

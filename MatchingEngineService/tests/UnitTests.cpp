@@ -32,5 +32,22 @@ namespace PriceCast
 
 void UnitTests::TestAll()
 {
+    Common::Queue<Common::DepthEvent> queue;
+    OrderBook::Engine engine { queue };
+
+    engine.start();
+
+    Common::DepthEvent snapshot { .type = Common::EventType::DepthSnapshot, .lastUpdateId = 1 };
+    snapshot.akss.emplace_back(100, 1);
+    snapshot.bids.emplace_back(90, 1);
+
+    queue.push(std::move(snapshot));
+
+    for (int i = 1; i <= 5; i++)
+    {
+        Common::DepthEvent event { .type = Common::EventType::DepthUpdate, .lastUpdateId = 10  };
+        event.bids.emplace_back(90 + i, 1);
+        queue.push(std::move(event));
+    }
 
 }

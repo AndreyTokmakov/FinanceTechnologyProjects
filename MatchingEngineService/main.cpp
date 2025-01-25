@@ -15,22 +15,7 @@ Description : Tests C++ project
 #include "consumers/EventConsumer.h"
 #include "common/Utils.h"
 #include "common/Queue.h"
-
-#include <nlohmann/json.hpp>
-
-namespace PriceCast
-{
-    using namespace Utils;
-
-    void DoubleToLong()
-    {
-        // const std::string strPrice("771043005.010010123");
-        const std::string strPrice("0.82148000");
-        const int64_t price = priceToLong(strPrice);
-
-        std::cout << strPrice << " ==> " << price << std::endl;
-    }
-}
+#include "tests/UnitTests.h"
 
 
 // TODO:
@@ -45,18 +30,16 @@ int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
-
+    /*
     Common::Queue<Common::DepthEvent> queue;
     EventConsumer::Server server { queue };
     OrderBook::Engine engine { queue };
 
     server.runServer();
     engine.start();
+    */
 
-    // EventConsumer::TestAll();
-    // MatchingEngine::TestAll();
-    // PriceCast::DoubleToLong();
-
+    UnitTests::TestAll();
 
     return EXIT_SUCCESS;
 }

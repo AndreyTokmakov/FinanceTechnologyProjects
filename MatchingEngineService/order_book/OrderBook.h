@@ -26,6 +26,12 @@ namespace OrderBook
         Sell,
     };
 
+    enum class DepthBookStatus : uint8_t
+    {
+        Ready,
+        NoReady,
+    };
+
     struct MarketDepthBook
     {
         /** BID's (BUY Orders) PriceLevels **/
@@ -35,25 +41,31 @@ namespace OrderBook
         boost::container::flat_map<Price, Quantity, std::less<>> askPriceLevelMap;
 
         template<class LevelMap>
-        void addLevel(Price price,
-                      Quantity quantity,
+        void addLevel(const PriceLevel& priceLevel,
                       LevelMap& levelMap);
 
         template<class LevelMap>
-        size_t removeLevel(Price price,
+        size_t removeLevel(const PriceLevel& priceLevel,
                            LevelMap& levelMap);
 
-        void addBidPrice(Price price, Quantity quantity) ;
-        void addAskPrice(Price price, Quantity quantity);
+        void addBidPrice(const PriceLevel& priceLevel);
+        void addAskPrice(const PriceLevel& priceLevel);
 
-        void removeBidPrice(Price price);
-        void removeAskPrice(Price price);
+        void removeBidPrice(const PriceLevel& priceLevel);
+        void removeAskPrice(const PriceLevel& priceLevel);
+
+        void applySnapshot(const Common::DepthEvent& snapshot);
+        void handleDepthUpdate(const Common::DepthEvent& snapshot);
     };
 
     struct Engine
     {
         Common::Queue<Common::DepthEvent>& eventQueue;
         std::jthread eventHandlerThread;
+
+        DepthBookStatus status { DepthBookStatus::NoReady };
+        MarketDepthBook depthBook;
+        std::vector<Common::DepthEvent> depthEvents;
 
         explicit Engine(Common::Queue<Common::DepthEvent>& queue);
 

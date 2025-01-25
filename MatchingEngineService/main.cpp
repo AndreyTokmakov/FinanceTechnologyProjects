@@ -33,6 +33,14 @@ namespace PriceCast
 }
 
 
+// TODO:
+//  - Use NanoLog ?
+//  - Add UnitTests
+//  - How to use Multiple Trading pairs [BTCUSDT, ETHUSDT, ....]
+
+
+/// *** Try NanoLog ****
+
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {

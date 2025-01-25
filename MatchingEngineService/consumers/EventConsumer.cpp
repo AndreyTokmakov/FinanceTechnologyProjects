@@ -104,27 +104,27 @@ namespace EventConsumer
                                 const uint32_t type )
     {
         using namespace Common;
-
         DepthEvent event;
         event.type = type == 1 ? EventType::DepthSnapshot : EventType::DepthUpdate;
 
         nlohmann::json asks, bids;
-        const nlohmann::json data = nlohmann::json::parse(message);
+        const nlohmann::json jsonMessage = nlohmann::json::parse(message);
+        const nlohmann::json& data = jsonMessage["data"];
         if (EventType::DepthSnapshot == event.type)
         {
             asks = data["asks"];
             bids = data["bids"];
             event.lastUpdateId = data["lastUpdateId"];
-
+            event.symbol = jsonMessage["s"].get<std::string>();
         }
         else if (EventType::DepthUpdate == event.type)
         {
-            asks = data["data"]["a"];
-            bids = data["data"]["b"];
-            event.id = data["data"]["E"].get<uint64_t>();
-            event.lastUpdateId = data["data"]["u"].get<uint64_t>();
-            event.firstUpdateId = data["data"]["U"].get<uint64_t>();
-            event.symbol = data["data"]["s"].get<std::string>();
+            asks = data["a"];
+            bids = data["b"];
+            event.id = data["E"].get<uint64_t>();
+            event.lastUpdateId = data["u"].get<uint64_t>();
+            event.firstUpdateId = data["U"].get<uint64_t>();
+            event.symbol = data["s"].get<std::string>();
         }
 
         for (const auto& lvl: asks) {

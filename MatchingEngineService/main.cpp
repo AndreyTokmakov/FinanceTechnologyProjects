@@ -19,27 +19,32 @@ Description : Tests C++ project
 
 
 // TODO:
-//  - Use NanoLog ?
-//  - Add UnitTests
+//  - AddLogging | NanoLog - SPDLog
 //  - How to use Multiple Trading pairs [BTCUSDT, ETHUSDT, ....]
 
+// TODO: Consumer && Producer
+//  - Shared memory exchange queue:
+//    should be possible to exchange data between Py / Java / Rust / C++ apps
 
-/// *** Try NanoLog ****
+// TODO: *** Unit tests ***
+//  - Add UnitTests
+//  - Make unit test an additional CompileTarget ?
+
 
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
-    /*
+
     Common::Queue<Common::DepthEvent> queue;
     EventConsumer::Server server { queue };
     OrderBook::Engine engine { queue };
 
     server.runServer();
     engine.start();
-    */
 
-    UnitTests::TestAll();
+
+    //UnitTests::TestAll();
 
     return EXIT_SUCCESS;
 }

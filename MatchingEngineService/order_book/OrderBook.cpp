@@ -59,14 +59,14 @@ namespace OrderBook
     void MarketDepthBook::handleDepthUpdate(const Common::DepthEvent& snapshot)
     {
         for (const PriceLevel& bidLvl: snapshot.bids) {
-            if (bidLvl.price != 0) {
+            if (bidLvl.quantity != 0) {
                 addBidPrice(bidLvl);
             } else {
                 removeBidPrice(bidLvl);
             }
         }
         for (const PriceLevel &askLvl: snapshot.akss) {
-            if (askLvl.price != 0) {
+            if (askLvl.quantity != 0) {
                 addAskPrice(askLvl);
             } else {
                 removeAskPrice(askLvl);
@@ -98,11 +98,6 @@ namespace OrderBook
 
             if (EventType::DepthUpdate == event.type)
             {
-                /*std::cout << "DepthUpdate : { " << "symbol: "  << event.symbol
-                          << ", id: "  << event.id << ", firstUpdateId: "  << event.firstUpdateId
-                          << ", lastUpdateId: "  << event.lastUpdateId
-                          << ", asks: "  << event.akss.size() << ", bids: " << event.bids.size() << " }";*/
-
                 if (DepthBookStatus::Ready == status){
                     depthBook.handleDepthUpdate(event);
                 } else {
@@ -112,27 +107,25 @@ namespace OrderBook
                 // FIXME
                 if (DepthBookStatus::Ready == status)
                 {
-                    // FIXME
-                    const Price bidPrice = depthBook.bidPriceLevelMap.begin()->first;
-                    const Price askPrice = depthBook.askPriceLevelMap.begin()->first;
-                    const Price spread = askPrice - bidPrice;
+                    if (!depthBook.bidPriceLevelMap.empty() && !depthBook.askPriceLevelMap.empty())
+                    {
+                        const Price bidPrice = depthBook.bidPriceLevelMap.begin()->first;
+                        const Price askPrice = depthBook.askPriceLevelMap.begin()->first;
+                        const Price spread = askPrice - bidPrice;
 
-                    std::cout << " Book [Buy: " << depthBook.bidPriceLevelMap.size()
-                              << ", Ask: " << depthBook.askPriceLevelMap.size()
-                              << ", Spread: " << askPrice  << ", " << bidPrice << " ==> " << spread
-                              << "]\n";
+                        std::cout << "{ pair: " << "BTCUSDT" << ", bid: " << bidPrice << ", ask: " << askPrice
+                                    << ", price: " << bidPrice + spread/2
+                                    << ", spread: " << spread << " }" << std::endl;
+                    }
                 }
             }
             else if (EventType::DepthSnapshot == event.type && DepthBookStatus::NoReady == status)
             {
                 depthBook.applySnapshot(event);
-                for (const Common::DepthEvent& bufferedUpdateEven: depthEvents) {
-                   if (bufferedUpdateEven.lastUpdateId > event.lastUpdateId)
-                   {
+                for (const Common::DepthEvent& bufferedUpdateEven: depthEvents)
+                {
+                   if (bufferedUpdateEven.lastUpdateId > event.lastUpdateId) {
                        depthBook.handleDepthUpdate(bufferedUpdateEven);
-                       std::cout << "[ lastUpdateId:: " << bufferedUpdateEven.lastUpdateId
-                                 << ", Snapshot UpdateID: " << event.lastUpdateId
-                                 << "] " << (bufferedUpdateEven.lastUpdateId > event.lastUpdateId ? "OK" : "Ignore" ) << std::endl;
                    }
                 }
                 depthEvents.clear();

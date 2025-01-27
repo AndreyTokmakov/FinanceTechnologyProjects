@@ -21,6 +21,8 @@ Description : Tests C++ project
 // TODO:
 //  - AddLogging | NanoLog - SPDLog
 //  - How to use Multiple Trading pairs [BTCUSDT, ETHUSDT, ....]
+//  - Storage: need to stored historical data for analysis
+//  - MarketData: Handle Different Types of Events (now only Snapshots and DepthUpdates)
 
 // TODO: Consumer && Producer
 //  - Shared memory exchange queue:

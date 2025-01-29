@@ -16,7 +16,7 @@ set(TESTS ${PROJECT_DIR}/tests)
 
 include_directories(${COMMON})
 # include_directories(${PROJECT_DIR})
-# include_directories(${CONSUMERS})
+include_directories(${CONSUMERS})
 include_directories(${ORDER_BOOK})
 
 
@@ -25,6 +25,7 @@ add_executable(${PROJECT_NAME}
         main.cpp
         ${ORDER_BOOK}/OrderBook.cpp
         ${CONSUMERS}/EventConsumer.cpp
+        ${CONSUMERS}/EventConsumerUDS.cpp
         ${COMMON}/Utils.cpp
         ${COMMON}/Event.h
         ${COMMON}/Order.cpp

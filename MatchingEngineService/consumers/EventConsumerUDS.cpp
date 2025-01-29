@@ -1,13 +1,15 @@
 /**============================================================================
-Name        : UnixDomainSocketConsumer.cpp
+Name        : EventConsumerUDS.cpp
 Created on  : 29.01.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : UnixDomainSocketConsumer.cpp
+Description : EventConsumerUDS.cpp
 ============================================================================**/
 
-#include "UnixDomainSocketConsumer.h"
+#include "EventConsumerUDS.h"
+
+#include <iostream>
 
 #include <unistd.h>
 #include <cerrno>
@@ -27,17 +29,13 @@ Description : UnixDomainSocketConsumer.cpp
 #include <string_view>
 #include <thread>
 #include <chrono>
-#include <utility>
 
-#define RESULT_SUCCESS   (0)
-#define INVALID_HANDLE   (-1)
-#define SOCKET_ERROR     (-1)
 #define SERVER_SOCK_PATH "/tmp/unix_socket"
+
 
 namespace
 {
     using namespace std::string_view_literals;
-    using Socket = int32_t;
 
     std::string_view err2String(const int32_t errorCode)
     {
@@ -96,44 +94,12 @@ namespace
     }
 }
 
-namespace UnixDomainSocketConsumer
+namespace EventConsumerUDS
 {
-    struct UDSAsynchServer
-    {
-        constexpr static size_t BUFFER_SIZE { 10 * 1024 };
-        constexpr static size_t MAX_DESCRIPTORS { 256 };
-        constexpr static int32_t TIMEOUT { 3 * 60 * 1000 };
-
-        Socket serverSocket { INVALID_HANDLE };
-        std::string filePath { SERVER_SOCK_PATH };
-
-        std::array<char, BUFFER_SIZE> buffer {};
-
-        // TODO: Rename
-        std::array<pollfd, MAX_DESCRIPTORS> fds {};
-        uint32_t handlesCount { 0 };
-
-        explicit UDSAsynchServer(std::string udmSockPath);
-        ~UDSAsynchServer();
-
-        void closeEvent(pollfd& pollEvent);
-        void removeClosedHandles();
-
-        // TODO: std::expected<R,E>
-        [[nodiscard]]
-        bool init() const;
-
-        bool start();
-
-        static bool setSocketToNonBlock(Socket socket) ;
-    };
-}
-
-
-
-namespace UnixDomainSocketConsumer
-{
-    UDSAsynchServer::UDSAsynchServer(std::string udmSockPath): filePath { std::move( udmSockPath ) }
+    UDSAsynchServer::UDSAsynchServer(Common::Queue<Common::DepthEvent>& queue,
+                                     std::string udmSockPath):
+            filePath { std::move( udmSockPath ) },
+            eventQueue { queue }
     {
         serverSocket = ::socket(AF_UNIX, SOCK_STREAM, 0);
         if (INVALID_HANDLE == serverSocket) {
@@ -298,18 +264,4 @@ namespace UnixDomainSocketConsumer
         }
     }
 
-
-    void runServer()
-    {
-        UDSAsynchServer server (SERVER_SOCK_PATH);
-        if (!server.init()) {
-            std::cerr << "Failed to initialize server" << std::endl;
-        }
-        server.start();
-    }
-}
-
-void UnixDomainSocketConsumer::TestAll()
-{
-    runServer();
 }

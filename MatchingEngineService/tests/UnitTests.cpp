@@ -11,12 +11,15 @@ Description : UnitTests
 #include "OrderBook.h"
 #include "Utils.h"
 #include "Queue.h"
+#include "EventConsumer.h"
+#include "EventConsumerUDS.h"
 
 #include <nlohmann/json.hpp>
-
 #include <iostream>
 
-namespace PriceCast
+#define SERVER_SOCK_PATH "/tmp/unix_socket"
+
+namespace UnitTests
 {
     using namespace Utils;
 
@@ -28,26 +31,42 @@ namespace PriceCast
 
         std::cout << strPrice << " ==> " << price << std::endl;
     }
+
+    void EventConsumer()
+    {
+        Common::Queue<Common::DepthEvent> queue;
+        OrderBook::Engine engine { queue };
+
+        engine.start();
+
+        Common::DepthEvent snapshot { .type = Common::EventType::DepthSnapshot, .lastUpdateId = 1 };
+        snapshot.akss.emplace_back(100, 1);
+        snapshot.bids.emplace_back(90, 1);
+
+        queue.push(std::move(snapshot));
+
+        for (int i = 1; i <= 5; i++)
+        {
+            Common::DepthEvent event { .type = Common::EventType::DepthUpdate, .lastUpdateId = 10  };
+            event.bids.emplace_back(90 + i, 1);
+            queue.push(std::move(event));
+        }
+    }
+
+    void EventConsumerUDS_Test()
+    {
+        Common::Queue<Common::DepthEvent> queue;
+        EventConsumerUDS::UDSAsynchServer eventConsumer {queue, SERVER_SOCK_PATH};
+        if (!eventConsumer.init()) {
+            std::cerr << "Failed to initialize server" << std::endl;
+        }
+        eventConsumer.start();
+
+    }
 }
 
 void UnitTests::TestAll()
 {
-    Common::Queue<Common::DepthEvent> queue;
-    OrderBook::Engine engine { queue };
-
-    engine.start();
-
-    Common::DepthEvent snapshot { .type = Common::EventType::DepthSnapshot, .lastUpdateId = 1 };
-    snapshot.akss.emplace_back(100, 1);
-    snapshot.bids.emplace_back(90, 1);
-
-    queue.push(std::move(snapshot));
-
-    for (int i = 1; i <= 5; i++)
-    {
-        Common::DepthEvent event { .type = Common::EventType::DepthUpdate, .lastUpdateId = 10  };
-        event.bids.emplace_back(90 + i, 1);
-        queue.push(std::move(event));
-    }
-
+    // EventConsumer();
+    EventConsumerUDS_Test();
 }

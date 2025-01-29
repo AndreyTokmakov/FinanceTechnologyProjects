@@ -38,15 +38,16 @@ int main([[maybe_unused]] const int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
+    /*
     Common::Queue<Common::DepthEvent> queue;
     EventConsumer::Server server { queue };
     OrderBook::Engine engine { queue };
 
     server.runServer();
     engine.start();
+    */
 
-
-    //UnitTests::TestAll();
+    UnitTests::TestAll();
 
     return EXIT_SUCCESS;
 }

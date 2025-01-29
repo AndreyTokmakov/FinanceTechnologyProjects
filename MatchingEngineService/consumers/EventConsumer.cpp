@@ -14,7 +14,6 @@ Description : EventConsumer.cpp
 #include <string_view>
 #include <array>
 #include <chrono>
-#include <iostream>
 
 #include <unistd.h>
 #include <sys/types.h>

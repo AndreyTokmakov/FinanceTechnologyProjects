@@ -10,13 +10,15 @@ add_compile_options(-c -Wall -Wextra -O3 -std=c++2c)
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/MatchingEngineService)
 
 set(COMMON ${PROJECT_DIR}/common)
-set(CONSUMERS ${PROJECT_DIR}/consumers)
+set(GATEWAY ${PROJECT_DIR}/gateway)
 set(ORDER_BOOK ${PROJECT_DIR}/order_book)
+set(PARSER ${PROJECT_DIR}/parser)
 set(TESTS ${PROJECT_DIR}/tests)
 
 include_directories(${COMMON})
 # include_directories(${PROJECT_DIR})
-include_directories(${CONSUMERS})
+include_directories(${GATEWAY})
+include_directories(${PARSER})
 include_directories(${ORDER_BOOK})
 
 
@@ -24,11 +26,13 @@ include_directories(${ORDER_BOOK})
 add_executable(${PROJECT_NAME}
         main.cpp
         ${ORDER_BOOK}/OrderBook.cpp
-        ${CONSUMERS}/EventConsumer.cpp
-        ${CONSUMERS}/EventConsumerUDS.cpp
+        ${ORDER_BOOK}/Manager.cpp
+        ${GATEWAY}/MarketDataGatewayUDP.cpp
+        ${GATEWAY}/MarketDataGatewayUDS.cpp
         ${COMMON}/Utils.cpp
         ${COMMON}/Event.h
         ${COMMON}/Order.cpp
+        ${PARSER}/BinanceEventsParser.cpp
         ${TESTS}/UnitTests.cpp
 )
 

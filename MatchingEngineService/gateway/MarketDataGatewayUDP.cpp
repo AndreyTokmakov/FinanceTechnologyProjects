@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : EventConsumer.cpp
 ============================================================================**/
 
-#include "EventConsumer.h"
+#include "MarketDataGatewayUDP.h"
 #include "Utils.h"
 
 #include <iostream>
@@ -41,7 +41,7 @@ namespace
     }
 }
 
-namespace EventConsumer
+namespace Gateway::UDP
 {
     Server::Server(Common::Queue<Common::DepthEvent>& queue,
                    const uint16_t port) : eventQueue {queue}, serverPort { port }
@@ -135,12 +135,4 @@ namespace EventConsumer
 
         eventQueue.push(std::move(event));
     }
-}
-
-
-
-void EventConsumer::TestAll()
-{
-    //Server server;
-    //server.runServer();
 }

@@ -1,13 +1,13 @@
 /**============================================================================
-Name        : EventConsumerUDS.cpp
+Name        : MarketDataGatewayUDS.cpp
 Created on  : 29.01.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : EventConsumerUDS.cpp
+Description : MarketDataGatewayUDS.cpp
 ============================================================================**/
 
-#include "EventConsumerUDS.h"
+#include "MarketDataGatewayUDS.h"
 
 #include <iostream>
 
@@ -29,8 +29,6 @@ Description : EventConsumerUDS.cpp
 #include <string_view>
 #include <thread>
 #include <chrono>
-
-#define SERVER_SOCK_PATH "/tmp/unix_socket"
 
 
 namespace
@@ -95,7 +93,7 @@ namespace
     }
 }
 
-namespace EventConsumerUDS
+namespace Gateway::UDS
 {
     UDSAsynchServer::UDSAsynchServer(Common::Queue<std::string>& queue,
                                      std::string udmSockPath):
@@ -151,14 +149,16 @@ namespace EventConsumerUDS
             return std::unexpected{"setsockopt(SOL_SOCKET, SO_REUSEADDR) failed. Error: " + err2String(errno)};
         }
 
-        const sockaddr_un serverAddr { .sun_family = AF_UNIX, .sun_path = SERVER_SOCK_PATH };
+        sockaddr_un serverAddr { .sun_family = AF_UNIX };
+        std::copy(filePath.cbegin(), filePath.end(), serverAddr.sun_path);
+
         uint32_t len = sizeof(serverAddr);
         if (RESULT_SUCCESS != ::bind(serverSocket, reinterpret_cast<const sockaddr*>(&serverAddr), len)) {
-            return std::unexpected{"bind() failed. Error: " + err2String(errno)};
+            return std::unexpected {"bind() failed. Error: " + err2String(errno)};
         }
 
         if (RESULT_SUCCESS != ::listen(serverSocket, 32)) {
-            return std::unexpected{"listen() failed. Error: " + err2String(errno)};
+            return std::unexpected {"listen() failed. Error: " + err2String(errno)};
         }
 
         return true;
@@ -254,9 +254,13 @@ namespace EventConsumerUDS
                             break;
                         }
                         else
-                        {
-                            message.assign(buffer.data(), bytesRead);
-                            eventQueue.push(std::move(message));
+                        {   // TODO: We have here at least one copy from 'buffer' -> 'message'
+                            //       if its one part message we can just copy data -> 'eventQueue' ??
+                            //       Will it make sense???
+                            message.append(buffer.data(), bytesRead);
+                            if (BUFFER_SIZE > bytesRead) {
+                                eventQueue.push(std::move(message));
+                            }
                         }
                     }
                 }

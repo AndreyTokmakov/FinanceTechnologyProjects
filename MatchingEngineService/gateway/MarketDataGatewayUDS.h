@@ -1,31 +1,28 @@
 /**============================================================================
-Name        : EventConsumerUDS.h
+Name        : MarketDataGatewayUDS.h
 Created on  : 29.01.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : EventConsumerUDS.h
+Description : MarketDataGatewayUDS.h
 ============================================================================**/
 
-#ifndef FINANCETECHNOLOGYPROJECTS_EVENTCONSUMERUDS_H
-#define FINANCETECHNOLOGYPROJECTS_EVENTCONSUMERUDS_H
+#ifndef FINANCETECHNOLOGYPROJECTS_MARKETDATAGATEWAYUDS_H
+#define FINANCETECHNOLOGYPROJECTS_MARKETDATAGATEWAYUDS_H
+
 
 #include <string_view>
 #include <expected>
 #include <thread>
+
+#include "Gateway.h"
 #include "Event.h"
 #include "Queue.h"
 
 #include <sys/poll.h>
 
-namespace EventConsumerUDS
+namespace Gateway::UDS
 {
-    using Socket = int32_t;
-
-    constexpr int32_t RESULT_SUCCESS = 0;
-    constexpr int32_t INVALID_HANDLE = -1;
-    constexpr int32_t SOCKET_ERROR = -1;
-
     struct UDSAsynchServer
     {
         constexpr static size_t BUFFER_SIZE { 10 * 1024 };
@@ -59,4 +56,4 @@ namespace EventConsumerUDS
     };
 }
 
-#endif //FINANCETECHNOLOGYPROJECTS_EVENTCONSUMERUDS_H
+#endif //FINANCETECHNOLOGYPROJECTS_MARKETDATAGATEWAYUDS_H

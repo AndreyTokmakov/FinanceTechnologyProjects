@@ -11,11 +11,18 @@ Description : Tests C++ project
 #include <string_view>
 #include <vector>
 
+#include "order_book/Manager.h"
 #include "order_book/OrderBook.h"
-#include "consumers/EventConsumer.h"
+#include "MarketDataGatewayUDP.h"
+#include "MarketDataGatewayUDS.h"
 #include "common/Utils.h"
 #include "common/Queue.h"
 #include "tests/UnitTests.h"
+
+
+// FIXME:
+#define SERVER_SOCK_PATH "/tmp/unix_socket"
+
 
 
 // TODO:
@@ -24,9 +31,11 @@ Description : Tests C++ project
 //  - Storage: need to stored historical data for analysis
 //  - MarketData: Handle Different Types of Events (now only Snapshots and DepthUpdates)
 
-// TODO: Consumer && Producer
-//  - Shared memory exchange queue:
-//    should be possible to exchange data between Py / Java / Rust / C++ apps
+// TODO: Renames consumer/Consumer -->
+
+// TODO: Consumer : Shall get data from Queue (update by Gateway) and parse it for specific Exchange
+//  -  Create a BaseConsumer
+//  -  BinanceConsumer
 
 // TODO: *** Unit tests ***
 //  - Add UnitTests
@@ -47,7 +56,20 @@ int main([[maybe_unused]] const int argc,
     engine.start();
     */
 
-    UnitTests::TestAll();
+    // UnitTests::TestAll();
+
+    Common::Queue<std::string> queue;
+    Gateway::UDS::UDSAsynchServer consumerServer { queue, SERVER_SOCK_PATH };
+    const std::expected<bool, std::string> ok = consumerServer.init();
+    if (!ok.has_value()) {
+        std::cerr << "Failed to initialize server. Error: " << ok.error() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    Manager::Manager manager { queue };
+    manager.start();
+
+    consumerServer.start();
 
     return EXIT_SUCCESS;
 }

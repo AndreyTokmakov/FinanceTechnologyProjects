@@ -11,8 +11,8 @@ Description : UnitTests
 #include "OrderBook.h"
 #include "Utils.h"
 #include "Queue.h"
-#include "EventConsumer.h"
-#include "EventConsumerUDS.h"
+#include "MarketDataGatewayUDP.h"
+#include "MarketDataGatewayUDS.h"
 
 #include <nlohmann/json.hpp>
 #include <iostream>
@@ -56,7 +56,7 @@ namespace UnitTests
     void EventConsumerUDS_Test()
     {
         Common::Queue<std::string> queue;
-        EventConsumerUDS::UDSAsynchServer consumerServer {queue, SERVER_SOCK_PATH};
+        Gateway::UDS::UDSAsynchServer consumerServer {queue, SERVER_SOCK_PATH};
         const std::expected<bool, std::string> ok = consumerServer.init();
         if (!ok.has_value()) {
             std::cerr << "Failed to initialize server. Error: " << ok.error() << std::endl;

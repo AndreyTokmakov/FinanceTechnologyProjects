@@ -1,24 +1,24 @@
 /**============================================================================
-Name        : EventConsumer.h
+Name        : MarketDataGatewayUDP.h
 Created on  : 22.01.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : EventConsumer.h
+Description : MarketDataGatewayUDP.h
 ============================================================================**/
 
-#ifndef FINANCETECHNOLOGYPROJECTS_EVENTCONSUMER_H
-#define FINANCETECHNOLOGYPROJECTS_EVENTCONSUMER_H
+#ifndef FINANCETECHNOLOGYPROJECTS_MARKETDATAGATEWAYUDP_H
+#define FINANCETECHNOLOGYPROJECTS_MARKETDATAGATEWAYUDP_H
 
 #include <string_view>
 #include <thread>
+
+#include "Gateway.h"
 #include "Event.h"
 #include "Queue.h"
 
-namespace EventConsumer
+namespace Gateway::UDP
 {
-    using Socket = int32_t;
-
     struct Server
     {
         constexpr static uint32_t receiveBufferSize { 10 * 1024 };
@@ -40,9 +40,6 @@ namespace EventConsumer
         void processMessage(const std::string& message,
                             uint32_t type);
     };
-
-
-    void TestAll();
 }
 
-#endif //FINANCETECHNOLOGYPROJECTS_EVENTCONSUMER_H
+#endif //FINANCETECHNOLOGYPROJECTS_MARKETDATAGATEWAYUDP_H

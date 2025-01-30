@@ -35,47 +35,48 @@ Description : EventConsumerUDS.cpp
 
 namespace
 {
+    using namespace std::string_literals;
     using namespace std::string_view_literals;
 
-    std::string_view err2String(const int32_t errorCode)
+    std::string err2String(const int32_t errorCode)
     {
         switch (errorCode)
         {
-            case EPERM: return "EPERM: Operation not permitted"sv;
-            case ENOENT: return "ENOENT: No such file or directory"sv;
-            case ESRCH: return "ESRCH: No such process"sv;
-            case EINTR: return "EINTR: Interrupted system call"sv;
-            case EIO: return "EIO: I/O error"sv;
-            case ENXIO: return "ENXIO: No such device or address"sv;
-            case E2BIG: return "E2BIG: Argument list too long"sv;
-            case ENOEXEC: return "ENOEXEC: Exec format error"sv;
-            case EBADF: return "EBADF: Bad file number"sv;
-            case ECHILD: return "ECHILD: No child processes"sv;
-            case EAGAIN: return "EAGAIN: Try again"sv;
-            case ENOMEM: return "ENOMEM: Out of memory"sv;
-            case EACCES: return "EACCES:  Permission denied"sv;
-            case EFAULT: return "EFAULT: Bad address"sv;
-            case ENOTBLK: return "ENOTBLK: Block device required"sv;
-            case EBUSY: return "EBUSY: Device or resource busy"sv;
-            case EEXIST: return "EEXIST: File exists"sv;
-            case EXDEV: return "EXDEV: Cross-device link"sv;
-            case ENODEV: return "ENODEV: No such device"sv;
-            case ENOTDIR: return "ENOTDIR: Not a directory"sv;
-            case EISDIR: return "EISDIR: Is a directory "sv;
-            case EINVAL: return "EINVAL: Invalid argument"sv;
-            case ENFILE: return "ENFILE: File table overflow"sv;
-            case EMFILE: return "EMFILE: Too many open files"sv;
-            case ENOTTY: return "ENOTTY: Not a typewriter"sv;
-            case ETXTBSY: return "ETXTBSY: Text file busy "sv;
-            case EFBIG: return "EFBIG: File too large"sv;
-            case ENOSPC: return "ENOSPC: No space left on device"sv;
-            case ESPIPE: return "ESPIPE: Illegal seek"sv;
-            case EROFS: return "EROFS: Read-only file system"sv;
-            case EMLINK: return "EMLINK: Too many links"sv;
-            case EPIPE: return "EPIPE: Broken pipe"sv;
-            case EDOM: return "EDOM: Math argument out of domain of func"sv;
-            case ERANGE: return "ERANGE: Math result not representable"sv;
-            default: return "Unknown"sv;
+            case EPERM: return "EPERM: Operation not permitted"s;
+            case ENOENT: return "ENOENT: No such file or directory"s;
+            case ESRCH: return "ESRCH: No such process"s;
+            case EINTR: return "EINTR: Interrupted system call"s;
+            case EIO: return "EIO: I/O error"s;
+            case ENXIO: return "ENXIO: No such device or address"s;
+            case E2BIG: return "E2BIG: Argument list too long"s;
+            case ENOEXEC: return "ENOEXEC: Exec format error"s;
+            case EBADF: return "EBADF: Bad file number"s;
+            case ECHILD: return "ECHILD: No child processes"s;
+            case EAGAIN: return "EAGAIN: Try again"s;
+            case ENOMEM: return "ENOMEM: Out of memory"s;
+            case EACCES: return "EACCES:  Permission denied"s;
+            case EFAULT: return "EFAULT: Bad address"s;
+            case ENOTBLK: return "ENOTBLK: Block device required"s;
+            case EBUSY: return "EBUSY: Device or resource busy"s;
+            case EEXIST: return "EEXIST: File exists"s;
+            case EXDEV: return "EXDEV: Cross-device link"s;
+            case ENODEV: return "ENODEV: No such device"s;
+            case ENOTDIR: return "ENOTDIR: Not a directory"s;
+            case EISDIR: return "EISDIR: Is a directory "s;
+            case EINVAL: return "EINVAL: Invalid argument"s;
+            case ENFILE: return "ENFILE: File table overflow"s;
+            case EMFILE: return "EMFILE: Too many open files"s;
+            case ENOTTY: return "ENOTTY: Not a typewriter"s;
+            case ETXTBSY: return "ETXTBSY: Text file busy "s;
+            case EFBIG: return "EFBIG: File too large"s;
+            case ENOSPC: return "ENOSPC: No space left on device"s;
+            case ESPIPE: return "ESPIPE: Illegal seek"s;
+            case EROFS: return "EROFS: Read-only file system"s;
+            case EMLINK: return "EMLINK: Too many links"s;
+            case EPIPE: return "EPIPE: Broken pipe"s;
+            case EDOM: return "EDOM: Math argument out of domain of func"s;
+            case ERANGE: return "ERANGE: Math result not representable"s;
+            default: return "Unknown"s;
         }
     }
 
@@ -96,7 +97,7 @@ namespace
 
 namespace EventConsumerUDS
 {
-    UDSAsynchServer::UDSAsynchServer(Common::Queue<Common::DepthEvent>& queue,
+    UDSAsynchServer::UDSAsynchServer(Common::Queue<std::string>& queue,
                                      std::string udmSockPath):
             filePath { std::move( udmSockPath ) },
             eventQueue { queue }
@@ -129,35 +130,35 @@ namespace EventConsumerUDS
         }
     }
 
-    bool UDSAsynchServer::setSocketToNonBlock(const Socket socket)
+    [[nodiscard]]
+    std::expected<bool, std::string> UDSAsynchServer::setSocketToNonBlock(const Socket socket)
     {
         const int flags = ::fcntl(socket, F_GETFL, 0);
         if (SOCKET_ERROR == ::fcntl(socket, F_SETFL, flags | O_NONBLOCK)) {
-            return error("fcntl() failed for client = " + std::to_string(socket));
+            return std::unexpected{"fcntl(F_SETFL, O_NONBLOCK) failed. Error: " + err2String(errno)};
         }
-        return false;
+        return true;
     }
 
-    // TODO: std::expected<R,E>
     [[nodiscard]]
-    bool UDSAsynchServer::init() const
+    std::expected<bool, std::string> UDSAsynchServer::init() const
     {
-        if (setSocketToNonBlock(serverSocket)) {
-            return error("setSocketToNonBlock() failed");
+        if (const auto result = setSocketToNonBlock(serverSocket); !result.has_value()) {
+            return std::unexpected{"setSocketToNonBlock() failed. Error: " + result.error()};
         }
         int32_t yes { 1 };
         if (SOCKET_ERROR == ::setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int))) {
-            return error("setsockopt() failed");
+            return std::unexpected{"setsockopt(SOL_SOCKET, SO_REUSEADDR) failed. Error: " + err2String(errno)};
         }
 
         const sockaddr_un serverAddr { .sun_family = AF_UNIX, .sun_path = SERVER_SOCK_PATH };
         uint32_t len = sizeof(serverAddr);
         if (RESULT_SUCCESS != ::bind(serverSocket, reinterpret_cast<const sockaddr*>(&serverAddr), len)) {
-            return error("bind() failed");
+            return std::unexpected{"bind() failed. Error: " + err2String(errno)};
         }
 
         if (RESULT_SUCCESS != ::listen(serverSocket, 32)) {
-            return error("listen() failed");
+            return std::unexpected{"listen() failed. Error: " + err2String(errno)};
         }
 
         return true;
@@ -188,24 +189,24 @@ namespace EventConsumerUDS
             if (const int32_t result = ::poll(fds.data(), handlesCount, TIMEOUT); SOCKET_ERROR == result) {
                 return error("poll() failed ");
             } else if (0 == result) {
-                return error("poll() timeout ");
+                /** Timeout **/
             }
 
             currentSize = handlesCount;
-            for (int32_t idx = 0; idx < currentSize; idx++)
+            for (uint32_t idx = 0; idx < currentSize; idx++)
             {
-                if (0 == fds[idx].revents)
+                pollfd& pollEvent { fds[idx] };
+                if (0 == pollEvent.revents)
                     continue;
-                if (fds[idx].revents != POLLIN)
+                if (pollEvent.revents != POLLIN)
                 {
-                    const Socket hSocket = fds[idx].fd;
-                    if (fds[idx].revents & POLLHUP)
+                    if (pollEvent.revents & POLLHUP)
                     {
-                        closeEvent(fds[idx]);
+                        closeEvent(pollEvent);
                         break;
                     }
                 }
-                else if (fds[idx].fd == serverSocket) /** Listening descriptor is readable. **/
+                else if (pollEvent.fd == serverSocket) /** Listening descriptor is readable. **/
                 {
                     Socket clientSocket { INVALID_HANDLE };
                     while (true)
@@ -213,17 +214,18 @@ namespace EventConsumerUDS
                         clientSocket = ::accept(serverSocket, nullptr, nullptr);
                         if (SOCKET_ERROR == clientSocket)
                         {
-                            if (errno != EWOULDBLOCK /*|| EAGAIN != errno*/) {
-                                return error("accept() failed = " + std::to_string(fds[idx].revents));
+                            if (errno != EWOULDBLOCK || EAGAIN != errno) {
+                                return error("accept() failed = " + std::to_string(pollEvent.revents));
                             } else {
-                                // std::cout << "Accept ==> EWOULDBLOCK" << std::endl;
                                 break;
                             }
                         }
                         else
                         {
                             std::cout << "New incoming connection. Client socket = " << clientSocket << std::endl;
-                            setSocketToNonBlock(clientSocket);
+                            if (const auto result = setSocketToNonBlock(clientSocket); !result) {
+                                std::cerr << result.error() << std::endl;
+                            }
 
                             fds[handlesCount].fd = clientSocket;
                             fds[handlesCount].events = POLLIN | POLLHUP;
@@ -234,34 +236,31 @@ namespace EventConsumerUDS
                 }
                 else
                 {
-                    const Socket clientSocket = fds[idx].fd;
+                    const Socket clientSocket = pollEvent.fd;
                     while (true)
                     {
                         const int64_t bytesRead = ::recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
                         if (SOCKET_ERROR == bytesRead)
                         {
-                            if (errno != EWOULDBLOCK /*|| EAGAIN != errno*/) {
-                                return error("recv() failed = " + std::to_string(fds[idx].revents));
+                            if (errno != EWOULDBLOCK || EAGAIN != errno) {
+                                return error("recv() failed = " + std::to_string(pollEvent.revents));
                             } else {
-                                // std::cout << "recv ==> EWOULDBLOCK" << std::endl;
                                 break;
                             }
                         }
                         else if (0 == bytesRead)
                         {
-                            std::cout << "Close connection for client = " << clientSocket << std::endl;
-                            closeEvent(fds[idx]);
+                            closeEvent(pollEvent);
                             break;
                         }
                         else
                         {
                             message.assign(buffer.data(), bytesRead);
-                            std::cout  <<  message << std::endl;
+                            eventQueue.push(std::move(message));
                         }
                     }
                 }
             }
         }
     }
-
 }

@@ -55,13 +55,24 @@ namespace UnitTests
 
     void EventConsumerUDS_Test()
     {
-        Common::Queue<Common::DepthEvent> queue;
-        EventConsumerUDS::UDSAsynchServer eventConsumer {queue, SERVER_SOCK_PATH};
-        if (!eventConsumer.init()) {
-            std::cerr << "Failed to initialize server" << std::endl;
+        Common::Queue<std::string> queue;
+        EventConsumerUDS::UDSAsynchServer consumerServer {queue, SERVER_SOCK_PATH};
+        const std::expected<bool, std::string> ok = consumerServer.init();
+        if (!ok.has_value()) {
+            std::cerr << "Failed to initialize server. Error: " << ok.error() << std::endl;
+            return;
         }
-        eventConsumer.start();
 
+        std::jthread consumer([&]{
+            std::string message;
+            while (true) {
+                if (queue.pop(message)){
+                    std::cout << message << std::endl;
+                }
+            }
+        });
+
+        consumerServer.start();
     }
 }
 

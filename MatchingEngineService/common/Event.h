@@ -20,8 +20,8 @@ namespace Common
 
     enum class EventType : uint8_t
     {
-        DepthSnapshot,
-        DepthUpdate,
+        DepthSnapshot = 1,
+        DepthUpdate = 2
     };
 
     struct PriceLevel

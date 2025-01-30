@@ -11,6 +11,7 @@ Description : EventConsumerUDS.h
 #define FINANCETECHNOLOGYPROJECTS_EVENTCONSUMERUDS_H
 
 #include <string_view>
+#include <expected>
 #include <thread>
 #include "Event.h"
 #include "Queue.h"
@@ -39,22 +40,22 @@ namespace EventConsumerUDS
         uint32_t handlesCount { 0 };
 
         std::jthread serverThread;
-        Common::Queue<Common::DepthEvent>& eventQueue;
+        Common::Queue<std::string>& eventQueue;
 
-        explicit UDSAsynchServer(Common::Queue<Common::DepthEvent>& queue,
+        explicit UDSAsynchServer(Common::Queue<std::string>& queue,
                                  std::string udmSockPath);
         ~UDSAsynchServer();
 
         void closeEvent(pollfd& pollEvent);
         void removeClosedHandles();
 
-        // TODO: std::expected<R,E>
         [[nodiscard]]
-        bool init() const;
+        std::expected<bool, std::string> init() const;
 
         bool start();
 
-        static bool setSocketToNonBlock(Socket socket) ;
+        [[nodiscard]]
+        static std::expected<bool, std::string> setSocketToNonBlock(Socket socket) ;
     };
 }
 

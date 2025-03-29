@@ -1,0 +1,248 @@
+
+
+'Ответить на вопросы':
+  - Как эффективно сохранять снапшоты
+  - Как реализовать Primary/BackUp
+  - как работать с большим количеством Бирж одновремнно
+    - как эффективно передать данный на Pricing_Engine
+
+  - Как Передавать данные на UI (из Price Engine)
+  - Куда и как OMS сохраняет Order-ы и кто и как мониторит их состояние
+  - Как UI отдаёт Order-ы ---> OMS
+
+
+============================================================================================================================================================	
+    				                           			  Algo - Trading
+============================================================================================================================================================
+
+# https://dev.to/nashetking/algorithmic-trading-architecture-and-quants-a-deep-dive-with-case-studies-on-blackrock-and-tower-research-55ao
+# https://medium.com/prooftrading/proof-engineering-the-algorithmic-trading-platform-b9c2f195433d#51c7
+# https://blog.quantinsti.com/automated-trading-system/
+
+Компоненты:
+
+-	 Market Data Feed Handlers (MD Gateways)
+-  Storage: Market / Historical data
+-  Strategy Engine ( Algo Engine )
+-  OMS : Order Management System - OrderBook
+-  Storage: Orders / Fills/ Trades
+
+-  Risk Management
+-  EMS : Execution Management System
+-  Backtesting and Simulation
+-  Compliance and Reporting
+-  Snapshots ( Full / Incremental )
+
+
+
+
+
+--> IN Queue (Lock Free - potentially)
+   --> Price Book 
+       --> Storage: Market data && history (как сделать супер быстрым ???)   [Scylla - vs - ClickHouse]
+       --> Strategy Manager && Risk Manager/Engine
+   <-- Order Manager
+<-- OUT Queue
+
+Требования:
+
+- Каждый Order внутри OrderBook - Single Thread && No System Calls
+- Less Kernell Space
+- Less Memory allocation (NO allocation on Critical Path)  - MemoryPool
+- Asynch Logging
+- Constexpr: --> move all possible computation in the compile-time
+- C++23 (или 26)
+
+
+- Метрики ( Tick 2 Trade )
+- Support backtesting and live execution of the preceding strategies throughout the development lifecycle.
+
+Отимизации:
+
+- Linux Huge Pages (Reduce TLB missess)
+
+
+
+============================================================================================================================================================  
+                                              Key performance metrics
+============================================================================================================================================================
+
+The performance metrics we choose to monitor and measure can have a significant impact on the system’s overall performance and reliability. 
+These metrics can range from low-level system metrics, such as CPU usage and memory consumption, to high-level application metrics, such as order latency and throughput
+
+One of the most important metrics, and usually the only one organizations choose, is 'tick-to-trade'.
+tick-to-trade latency is a critical performance metric in high-performance trading(HFT) systems. 
+
+It measures the time it takes for a trading system to react to market data (the “tick”) and send an order to the market (the “trade”). 
+In the ultra-competitive world of HFT, where speed is paramount, minimizing tick-to-trade latency can be the difference between a profitable tradeand a missed opportunity.
+
+
+• 'Market data processing latency':
+
+  This is the time it takes for the system to receive and process market data updates. 
+  This involves receiving the data from the exchange, decoding the message, and updating the internal market data state.
+
+• 'Signal generation latency': 
+
+  Once the market data has been processed, the trading system needs to decide whether to send an order based on its trading algorithm. 
+  The time it takes to generate a trading signal after processing the market data is the signal generation latency.
+
+• 'Order creation latency': 
+
+  After a trading signal has been generated, the system needs to create an order. 
+  This involves generating an order message and preparing it for transmission to the exchange.
+
+• 'Transmission latency':
+
+  This is the time it takes for the order message to travel from the trading system to the exchange. 
+  This latency is largely dependent on the network and the physical distance between the trading system and the exchange
+
+============================================================================================================================================================  
+                                              Модуль стратегий | Scaling the Strategies module
+============================================================================================================================================================
+
+
+Модуль «Стратегии», неотъемлемая часть нашей торговой системы, может быть эффективно масштабирован путем принятия модели распределенных вычислений, аналогичной подходу, используемому для OMS и RMS.
+Эта модель позволяет параллельно выполнять несколько стратегий, тем самым повышая способность системы обрабатывать большие объемы данных и выполнять более сложные вычисления.
+
+В этой модели каждая стратегия может выполняться на отдельном сервере.
+Этот подход не только облегчает параллельную обработку, но и обеспечивает гибкость распределения ресурсов на основе вычислительных потребностей каждой стратегии.
+
+Например, стратегия, требующая интенсивных вычислений, может быть выделена с большей вычислительной мощностью, в то время как менее требовательная стратегия может
+ быть запущена на сервере с более низкими характеристиками.
+
+Более того, стратегии могут быть распределены географически на основе потребностей пользователей. 
+
+Например, стратегии, соответствующие определенным регионам, могут размещаться на серверах, расположенных в этих регионах.
+Этот подход может помочь сократить задержку для пользователей и обеспечить более отзывчивый и эффективный торговый опыт.
+Однако важно отметить, что эта распределенная модель наиболее эффективна для стратегий, которые не чувствительны к задержке.
+
+Для стратегий, где задержка является критическим фактором, могут потребоваться другие методы оптимизации.
+
+
+============================================================================================================================================================  
+                                              Distributed or monolithic architecture?
+============================================================================================================================================================
+
+Given the unique requirements and constraints of our trading system, we’ve opted for a hybrid approach that combines elements of both monolithic and distributed architectures. 
+The high-frequency and time-critical components, such as the 'LOB' and the 'low-latency strategies', are kept within a monolithic architecture to minimize latency.
+At the same time, components that require more flexibility, such as the OMS and the messaging hub, are designed as separate services that can be developed and scaled independently.
+
+
+
+
+============================================================================================================================================================  
+                                              OrderBook && Strategies module (Fast)
+============================================================================================================================================================
+
+# Собирает все Price Updates - для все всех Бирж - для всех Trading_Pair
+
+struct OrderBookService: BaseService  /** Переименовать **/
+{
+    GateWay    : in   <--- Или переименовать в Channel ???
+    Gateway    : out
+    MessageBus : out 
+
+    Parser            <--- Разбор FlatBuffer сообщений 'ExchangeConnector'-ов
+
+    OrderBook           
+
+    Strategy (Fast)
+}
+
+
+Логика:
+
+• получить данные из 'IN GateWay'    - Однопоточно ???
+
+• Распарсить                         - Парсим в потоке чтения??? или
+                                     - Или только Symbol и пихаем в соответствующуюю очередь для данного симаола
+
+• Обновить 'OrderBook'               - Как? Сколко потоков для 'OrderBook' ?
+                                     - Читает из 'RingBuffer' ??? В busy-wait цикле ????
+                              
+• Отдать данные 'Strategy (Fast)'    - Как статегия отдает новый Order в 'OUT GateWay' ---> для 'OrderManagementService'
+
+• Отправить данные в 'MessageBus'
+
+============================================================================================================================================================  
+                                             Order Management && Order Execution module
+============================================================================================================================================================
+
+- единый модуль
+- получает данные от стратегий [от Fast и Slow]
+- Проверяет Order (Risk Management)
+- Записывает в базу данных 
+   - В любом случае (либо со статусом отмены или c Success)
+- Контролирует статус Order-ов
+
+
+struct OrderManagementService:  BaseService
+{
+    GateWay: in      <--- Читает данный от 'OrderBookService'
+
+    Parser           <--- Разбор FlatBuffer сообщений 'OrderBookService'
+
+    RiskEngine       <--- Проверяет Order
+
+    Order_Execution  <--- Отправка Order-а на биржу | API ??? 
+
+    datebase         <--- Store Order statuses to the datebase
+
+}
+
+
+============================================================================================================================================================  
+                                             Strategies module (Fast)
+============================================================================================================================================================
+
+- Читает данные из Database (Historical)
+- Читает данные из MessageBus
+
+
+struct OrderManagementService: BaseService
+{
+    GateWay: in      <--- Читает данный от 'OrderBookService'
+
+    Parser           <--- Разбор FlatBuffer сообщений 'OrderBookService'
+
+    RiskEngine       <--- Проверяет Order
+
+    Order_Execution  <--- Отправка Order-а на биржу | API ??? 
+
+    datebase         <--- Store Order statuses to the datebase
+
+}
+
+============================================================================================================================================================  
+                                              Service | BaseService
+============================================================================================================================================================
+
+Базовый модуль для всех Standalone служб
+
+struct BaseService /** Переименовать **/
+{
+    GateWay: in 
+    Gateway: out
+
+    logger
+}
+
+============================================================================================================================================================  
+                                              Server | Channel
+============================================================================================================================================================
+
+Нужна абстракция для реализации различных протколов обмена данным
+
+- UDP
+- Unix Domain Socket
+- ZeroMQ
+- Kafka
+- Shared Memory
+
+============================================================================================================================================================  
+                                              ApiClient
+============================================================================================================================================================
+
+- Отправляет Order-ы на биржу
+- Запрашивает инфу по Order-ам

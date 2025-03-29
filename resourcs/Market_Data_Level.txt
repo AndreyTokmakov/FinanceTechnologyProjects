@@ -1,0 +1,104 @@
+=============================================================================================================================================================
+                                 Level I Market Data:                
+=============================================================================================================================================================
+
+    Level 1 market data provides basic information on the current price of a security, the bid and ask prices, and the most recent trade. 
+    This level of market data is typically available to the general public and is used by retail investors.
+
+    Level 1 market data is one of the primary sources of financial market information. 
+    It is the most basic level of market data, providing traders and investors with real-time stock quotes, trade volume, bid and ask prices, and other basic information.
+    Level 1 data is essential for making informed trading decisions and monitoring market conditions.
+
+    Level 1 market data provides real-time quotes and trade data for a particular stock or security. This includes:
+
+    • Current market price:
+
+        The current market price is the most recent price at which a stock was traded. 
+        This price is constantly changing as trades occur.
+
+    • Bid and ask prices: 
+    
+        The bid price is the highest price that a buyer is willing to pay for a stock, while the ask price is the lowest price that a seller is willing to accept.
+        The difference between the bid and ask prices is known as the spread.
+
+    • Trade volume: [Bid size, Ask size]
+
+        Trade volume is the number of shares that have been traded in a particular stock over a given period of time. 
+        This information can provide insight into the level of market activity for a particular stock.
+
+    • Ticker symbol: 
+
+        The ticker symbol is a unique identifier for a particular stock.
+        It is used to track the stock’s price and trading activity.
+
+    • Time and sales data: 
+
+        Time and sales data provides a detailed record of all trades that have occurred for a particular stock.
+        This information can be used to analyze market behavior and identify trends.
+
+    • Last price: The price at which the most recent trade was completed
+
+    • Last size: The number of shares, lots, or contracts traded in the most recent trade
+
+=============================================================================================================================================================
+                                 Level II Market Data:                
+=============================================================================================================================================================
+
+    Level 2 market data provides more detailed information than Level 1 market data, including the best bids and offers for a particular security. 
+    This level of market data is typically used by active traders who need more information than what is available in Level 1 data.
+    This data is typically only available to professional traders and is usually provided by specialized financial data vendors.
+
+
+    The key feature of Level 2 data is that it shows the actual prices and quantities of buy and sell orders for a particular security.
+    This is in contrast to Level 1 market data, which only shows the best bid and ask prices. For example, if a stock is currently trading at $50 per share, 
+    Level 1 data might show that the best bid price is $49.95 and the best ask price is $50.05. 
+    Level 2 data, on the other hand, would show all the buy and sell orders for that stock at various price levels, such as $49.95, $50.00, and $50.05.
+
+    Ключевой особенностью данных 'Level 2' является то, что они показывают фактические цены и количество заявок на покупку и продажу конкретной ценной бумаги.
+    Это отличается от рыночных данных уровня 1, которые показывают только лучшие цены предложения и продажи. Например, если акция в настоящее время торгуется по цене 50 долларов за штуку, 
+    Данные уровня 1 могут показать, что наилучшая цена предложения составляет 49,95 долларов, а наилучшая цена предложения - 50,05 долларов. 
+    С другой стороны, данные уровня 2 будут показывать все заказы на покупку и продажу этих акций на различных ценовых уровнях, таких как $49,95, $50,00 и $50,05.
+
+
+    • Highest bid prices:
+
+        The highest bid prices are the prices (usually at least several prices are shown) where traders have placed orders to buy.
+        This means you see the current bid and the bids currently below it.
+        Actively traded stocks typically have bids every $0.01 below the current bid, and in actively traded futures, there is typically a bid for each tick below the current bid.
+        Gaps between the current bid and the next bid typically mean the stock or contract has a larger bid/ask spread and less volume.
+
+    • Lowest ask prices
+
+        The lowest prices (usually at least several prices are shown) where traders have placed orders to sell.
+        This means you see the current ask and the asks currently above it.
+        Actively traded stocks typically have asks (offers) every $0.01 above the current offer, and in actively traded futures, there is typically an offer for each tick above the current offer.
+        Gaps between the current ask and the next ask typically mean the stock or contract has a larger bid/ask spread and less volume.
+
+    • Bid sizes
+
+        The number of shares, lots, or futures contracts available at each of the bid prices.
+
+    • Ask sizes
+
+        The number of shares, lots, or futures contracts available at each of the ask prices
+
+
+=============================================================================================================================================================
+                                 Level III Market Data:                
+=============================================================================================================================================================
+
+Рыночные данные 3-го уровня - это самый высокий уровень доступных рыночных данных, обеспечивающий наиболее подробное и всестороннее представление о рынке.
+Он включает в себя всю информацию, предоставляемую данными 1-го и 2-го уровней, а также дополнительную информацию, такую как 'depth of market' and 'order book' data..
+Этот уровень рыночных данных обычно используется институциональными инвесторами и частыми трейдерами, которым требуется самая свежая информация для принятия обоснованных решений.
+
+How does Level 3 Market Data differ from other levels?
+
+    Level 1 market data provides basic information on the current price of a security, the bid and ask prices, and the most recent trade. 
+            This level of market data is typically available to the general public and is used by retail investors.
+
+    Level 2 market data provides more detailed information than Level 1 market data, including the best bids and offers for a particular security. 
+            This level of market data is typically used by active traders who need more information than what is available in Level 1 data.
+
+    Level 3 market data, as mentioned earlier, provides the most detailed and comprehensive view of the market. 
+            It includes all the information provided by Level 1 and Level 2 data, plus additional information such as depth of market and order book data.
+            This level of market data is typically used by institutional investors and high-frequency traders who require the most up-to-date information to make informed decisions.

@@ -1045,7 +1045,7 @@ namespace MatchingEngineEx::Testsing::MatchingEngine_Ex_Tests
         PerfUtilities::ScopedTimer timer { "MatchingEngineEx"};
         uint64_t count = 0;
 
-        for (int i = 0; i < 400; ++i)
+        for (int i = 0; i < 600; ++i)
         {
             for (uint32_t price: prices) {
                 for (uint32_t n = 0; n < buyOrders; ++n) {

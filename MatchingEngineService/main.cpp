@@ -23,23 +23,38 @@ Description : Tests C++ project
 // FIXME:
 #define SERVER_SOCK_PATH "/tmp/unix_socket"
 
+// TODO: *** Unit tests ***
+//  - Add UnitTests
+//  - Make unit test an additional CompileTarget ?
 
 
 // TODO:
-//  - AddLogging | NanoLog - SPDLog
-//  - How to use Multiple Trading pairs [BTCUSDT, ETHUSDT, ....]
 //  - Storage: need to stored historical data for analysis
 //  - MarketData: Handle Different Types of Events (now only Snapshots and DepthUpdates)
 
 // TODO: Renames consumer/Consumer -->
 
-// TODO: Consumer : Shall get data from Queue (update by Gateway) and parse it for specific Exchange
-//  -  Create a BaseConsumer
-//  -  BinanceConsumer
+// TODO: Components && Modules
+//  - Logger | NanoLog - SPDLog
+//  - RingBuffer-LockFree Queue
+//  -
 
-// TODO: *** Unit tests ***
-//  - Add UnitTests
-//  - Make unit test an additional CompileTarget ?
+// TODO: Multiple Trading pairs [BTCUSDT, ETHUSDT, ....] && Multiple Exchanges
+//  - 4 (for example - 1 per thread) RingBuffer-LockFree - queues <--- Data from Connectors
+//  - 4 LOB (Price Engine) on the same Threads
+
+// TODO: - Message Processing -
+//  - FlatBuffers
+
+// TODO: Consumer : Shall get data from Queue (update by Gateway) and parse it for specific Exchange
+//  - Create a BaseConsumer
+//  - BinanceConsumer
+
+// TODO
+//  - Rename Project - TradingSystom
+//  - Add / Find performant cast Double --> Pair[Long, Long]
+//  - MarketDataGatewayUDS  - Move to separate class + extract base
+//  - Queue --> Try Lock-Free Ring-Bufer
 
 
 int main([[maybe_unused]] const int argc,

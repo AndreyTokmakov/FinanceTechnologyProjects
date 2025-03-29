@@ -216,22 +216,18 @@ namespace Gateway::UDS
                         {
                             if (errno != EWOULDBLOCK || EAGAIN != errno) {
                                 return error("accept() failed = " + std::to_string(pollEvent.revents));
-                            } else {
-                                break;
                             }
-                        }
-                        else
-                        {
-                            std::cout << "New incoming connection. Client socket = " << clientSocket << std::endl;
-                            if (const auto result = setSocketToNonBlock(clientSocket); !result) {
-                                std::cerr << result.error() << std::endl;
-                            }
-
-                            fds[handlesCount].fd = clientSocket;
-                            fds[handlesCount].events = POLLIN | POLLHUP;
-                            ++handlesCount;
                             break;
                         }
+                        std::cout << "New incoming connection. Client socket = " << clientSocket << std::endl;
+                        if (const auto result = setSocketToNonBlock(clientSocket); !result) {
+                            std::cerr << result.error() << std::endl;
+                        }
+
+                        fds[handlesCount].fd = clientSocket;
+                        fds[handlesCount].events = POLLIN | POLLHUP;
+                        ++handlesCount;
+                        break;
                     }
                 }
                 else
@@ -244,23 +240,20 @@ namespace Gateway::UDS
                         {
                             if (errno != EWOULDBLOCK || EAGAIN != errno) {
                                 return error("recv() failed = " + std::to_string(pollEvent.revents));
-                            } else {
-                                break;
                             }
+                            break;
                         }
-                        else if (0 == bytesRead)
+                        if (0 == bytesRead)
                         {
                             closeEvent(pollEvent);
                             break;
                         }
-                        else
-                        {   // TODO: We have here at least one copy from 'buffer' -> 'message'
-                            //       if its one part message we can just copy data -> 'eventQueue' ??
-                            //       Will it make sense???
-                            message.append(buffer.data(), bytesRead);
-                            if (BUFFER_SIZE > bytesRead) {
-                                eventQueue.push(std::move(message));
-                            }
+                        // TODO: We have here at least one copy from 'buffer' -> 'message'
+                        //       if its one part message we can just copy data -> 'eventQueue' ??
+                        //       Will it make sense???
+                        message.append(buffer.data(), bytesRead);
+                        if (BUFFER_SIZE > bytesRead) {
+                            eventQueue.push(std::move(message));
                         }
                     }
                 }

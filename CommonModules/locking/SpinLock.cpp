@@ -162,7 +162,7 @@ namespace Experimental
             if (retries < max_retries) {
                 std::this_thread::yield();
             } else {
-                auto delay = std::chrono::microseconds(1 << (retries - max_retries));
+                auto delay = std::chrono::microseconds(static_cast<unsigned>(1 << (retries - max_retries)));
                 std::this_thread::sleep_for(delay);
             }
         }

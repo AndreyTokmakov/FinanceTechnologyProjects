@@ -17,7 +17,7 @@ Description : MarketDataGatewayUDP.h
 #include "Event.h"
 #include "Queue.h"
 
-namespace Gateway::UDP
+namespace Gateway_Experimental::UDP
 {
     struct Server
     {

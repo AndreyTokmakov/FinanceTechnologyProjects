@@ -12,7 +12,7 @@ Description : Gateway.h
 
 #include <cstdint>
 
-namespace Gateway
+namespace Gateway_Experimental
 {
     using Socket = int32_t;
 

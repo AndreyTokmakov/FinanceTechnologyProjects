@@ -21,7 +21,7 @@ Description : MarketDataGatewayUDS.h
 
 #include <sys/poll.h>
 
-namespace Gateway::UDS
+namespace Gateway_Experimental::UDS
 {
     struct UDSAsynchServer
     {
@@ -36,7 +36,7 @@ namespace Gateway::UDS
         std::array<pollfd, MAX_DESCRIPTORS> fds {};
         uint32_t handlesCount { 0 };
 
-        std::jthread serverThread;
+        // std::jthread serverThread;
         Common::Queue<std::string>& eventQueue;
 
         explicit UDSAsynchServer(Common::Queue<std::string>& queue,

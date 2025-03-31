@@ -41,7 +41,7 @@ namespace
     }
 }
 
-namespace Gateway::UDP
+namespace Gateway_Experimental::UDP
 {
     Server::Server(Common::Queue<Common::DepthEvent>& queue,
                    const uint16_t port) : eventQueue {queue}, serverPort { port }

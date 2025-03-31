@@ -56,7 +56,7 @@ namespace UnitTests
     void EventConsumerUDS_Test()
     {
         Common::Queue<std::string> queue;
-        Gateway::UDS::UDSAsynchServer consumerServer {queue, SERVER_SOCK_PATH};
+        Gateway_Experimental::UDS::UDSAsynchServer consumerServer {queue, SERVER_SOCK_PATH};
         const std::expected<bool, std::string> ok = consumerServer.init();
         if (!ok.has_value()) {
             std::cerr << "Failed to initialize server. Error: " << ok.error() << std::endl;

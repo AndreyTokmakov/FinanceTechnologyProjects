@@ -93,7 +93,7 @@ namespace
     }
 }
 
-namespace Gateway::UDS
+namespace Gateway_Experimental::UDS
 {
     UDSAsynchServer::UDSAsynchServer(Common::Queue<std::string>& queue,
                                      std::string udmSockPath):

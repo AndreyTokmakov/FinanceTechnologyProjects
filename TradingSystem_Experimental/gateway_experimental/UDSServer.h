@@ -15,7 +15,6 @@ Description : UDSServer.h
 #include <thread>
 
 #include <unistd.h>
-#include <cerrno>
 #include <sys/un.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -130,8 +129,6 @@ namespace Gateway_Experimental
                 return std::unexpected {"listen() failed. Error: " + Utils::err2String(errno)};
             }
 
-            std::cout << "INIT: " << filePath << std::endl;
-
             return true;
         }
 
@@ -174,7 +171,6 @@ namespace Gateway_Experimental
                                 }
                                 break;
                             }
-                            std::cout << "New incoming connection. Client socket = " << clientSocket << std::endl;
                             if (const auto result = setSocketToNonBlock(clientSocket); !result) {
                                 std::cerr << result.error() << std::endl;
                             }

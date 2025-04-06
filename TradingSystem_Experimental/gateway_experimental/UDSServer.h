@@ -211,7 +211,7 @@ namespace Gateway_Experimental
 
                             // TODO: Refactor
                             buff.data.insert(buff.data.end(),
-                                             receiveBuffer.begin(), receiveBuffer.begin() + bytesRead);
+                                             receiveBuffer  .begin(), receiveBuffer.begin() + bytesRead);
                             if (BUFFER_SIZE > bytesRead)
                             {
                                 handle(buff);

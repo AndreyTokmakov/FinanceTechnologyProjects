@@ -12,6 +12,7 @@ add_library(common_modules
     logging/LowLatencyLogger.cpp
     logging/LowLatencyLoggerDebug.cpp
     ring_buffer/RingBuffer_SPSC.cpp
+    ring_buffer_ex/RingBufferEx.cpp
     locking/SpinLock.cpp
     cryptography/Certificates.cpp
     consumers/UnixDomainSocketConsumer.cpp
@@ -23,6 +24,8 @@ target_link_directories(common_modules PUBLIC "${CMAKE_BINARY_DIR}/Utilities")
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
+        ring_buffer_ex/RingBufferEx.cpp
+        ring_buffer_ex/RingBufferEx.h
 )
 
 target_link_libraries(${PROJECT_NAME}

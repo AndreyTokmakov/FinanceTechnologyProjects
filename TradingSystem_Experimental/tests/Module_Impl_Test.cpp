@@ -7,9 +7,9 @@ Copyright   : Your copyright notice
 Description : Module_Impl_Test.cpp
 ============================================================================**/
 
-#include "Module_Impl_Test.h"
 #include "UDSServer.h"
 #include "IService.h"
+#include "Tests.h"
 
 #include <iostream>
 #include <string>

@@ -42,9 +42,11 @@ add_executable(${PROJECT_NAME}
         ${COMMON}/Event.h
         ${COMMON}/Order.cpp
         ${PARSER}/BinanceEventsParser.cpp
-        ${SERVICE_EXPERIMENTAL}/Service_Implementation_Experiments.cpp
+        ${SERVICE_EXPERIMENTAL}/Service_Demo_One.cpp
+        ${SERVICE_EXPERIMENTAL}/Service_Demo_Two.cpp
         ${TESTS}/UnitTests.cpp
         ${TESTS}/Module_Impl_Test.cpp
+        ${TESTS}/Buffer_Tests.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

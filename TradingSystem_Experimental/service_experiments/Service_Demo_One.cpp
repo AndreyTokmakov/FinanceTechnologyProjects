@@ -8,6 +8,7 @@ Description : IService.cpp
 ============================================================================**/
 
 #include "IService.h"
+#include "Experiments.h"
 
 #include <iostream>
 #include <string_view>
@@ -281,8 +282,7 @@ namespace Demo_Three
 }
 
 
-
-void Service_Experimental::TestAll()
+void Experiments::Service_Demo_One::TestAll()
 {
     // Demo_One::test();
     // Demo_Two::test();

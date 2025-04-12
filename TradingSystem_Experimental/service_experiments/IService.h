@@ -73,8 +73,6 @@ namespace Service_Experimental
 
         ServerType& server;
     };
-
-    void TestAll();
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_ISERVICE_H

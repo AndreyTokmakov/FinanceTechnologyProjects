@@ -1,18 +1,28 @@
 /**============================================================================
-Name        : Module_Impl_Test.h
-Created on  : 31.03.2025
+Name        : Tests.h
+Created on  : 12.04.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : Module_Impl_Test.h
+Description : Tests.h
 ============================================================================**/
 
-#ifndef FINANCETECHNOLOGYPROJECTS_MODULE_IMPL_TEST_H
-#define FINANCETECHNOLOGYPROJECTS_MODULE_IMPL_TEST_H
+#ifndef FINANCETECHNOLOGYPROJECTS_TESTS_H
+#define FINANCETECHNOLOGYPROJECTS_TESTS_H
+
+namespace Tests::UnitTests
+{
+    void TestAll();
+};
 
 namespace Tests::Module_Impl_Test
 {
     void TestAll();
 }
 
-#endif //FINANCETECHNOLOGYPROJECTS_MODULE_IMPL_TEST_H
+namespace Tests::BufferTests
+{
+    void TestAll();
+}
+
+#endif //FINANCETECHNOLOGYPROJECTS_TESTS_H

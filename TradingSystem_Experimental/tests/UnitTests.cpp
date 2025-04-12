@@ -7,19 +7,19 @@ Copyright   : Your copyright notice
 Description : UnitTests
 ============================================================================**/
 
-#include "UnitTests.h"
 #include "OrderBook.h"
 #include "Utils.h"
 #include "Queue.h"
 #include "MarketDataGatewayUDP.h"
 #include "MarketDataGatewayUDS.h"
+#include "Tests.h"
 
 #include <nlohmann/json.hpp>
 #include <iostream>
 
 #define SERVER_SOCK_PATH "/tmp/unix_socket"
 
-namespace UnitTests
+namespace
 {
     using namespace Utils;
 
@@ -76,8 +76,9 @@ namespace UnitTests
     }
 }
 
-void UnitTests::TestAll()
+void Tests::UnitTests::TestAll()
 {
+
     // EventConsumer();
     EventConsumerUDS_Test();
 }

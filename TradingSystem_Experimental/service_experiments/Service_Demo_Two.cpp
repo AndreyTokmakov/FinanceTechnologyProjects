@@ -13,8 +13,9 @@ Description : Service_Demo_Two.cpp
 #include <iostream>
 #include <string_view>
 #include <memory>
+#include <concepts>
 
-namespace
+namespace One
 {
     struct IServer
     {
@@ -59,14 +60,97 @@ namespace
             std::cout << result.size() << std::endl;
         }
     };
+
+    void test()
+    {
+
+        std::unique_ptr<IServer> server { std::make_unique<RealServer>() };
+        Service service { std::move(server) };
+
+        service.start();
+    }
+}
+
+
+namespace Two
+{
+    template<typename ServiceType>
+    concept HasHandle = requires(ServiceType service, Common::Buffer& buffer) {
+        { service.handle(buffer) } -> std::same_as<bool>;
+    };
+
+    template<typename Server>
+    concept HasRunMethod = requires(Server server, Common::Buffer& buffer) {
+        { server.run() } -> std::same_as<void>;
+    };
+
+
+    template<HasHandle ServiceType>
+    struct ServerBase /** : IServer **/
+    {
+        virtual void run() = 0;
+        virtual ~ServerBase() = default;
+
+        void setService(ServiceType* const serviceImpl) noexcept {
+            service = serviceImpl;
+        }
+
+    private:
+        ServiceType* service { nullptr };
+    };
+
+
+    template<HasRunMethod Srv>
+    struct ModuleBase
+    {
+        using ServerType = ServerBase<Srv>;
+
+        explicit ModuleBase(ServerType& serverImpl): server { serverImpl } {
+            server.setService(static_cast<Srv*>(this));
+        }
+
+        void start()
+        {
+            // NOTE: One virtual dispatch: non critical
+            server.run();
+        }
+
+    private:
+        ServerType& server;
+    };
+
+
+    template<HasHandle ServiceType>
+    struct ServerImpl final : ServerBase<ServiceType>
+    {
+        void run() override
+        {
+
+        }
+    };
+
+
+    struct ModuleImpl final : public ModuleBase<Service>
+    {
+        using ServiceBase<Service>::ServiceBase;
+
+        void handle(Buffer& buffer)
+        {
+            std::cout << "Service::handle(): message = " << std::string_view(
+                    reinterpret_cast<const char *>(buffer.data.data()), buffer.size)<< std::endl;
+        }
+    };
+
+
+    void test()
+    {
+
+    }
 }
 
 
 void Experiments::Service_Demo_Two::TestAll()
 {
-
-    std::unique_ptr<IServer> server { std::make_unique<RealServer>() };
-    Service service { std::move(server) };
-
-    service.start();
+    // One::test();
+    Two::test();
 }

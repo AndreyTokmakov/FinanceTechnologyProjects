@@ -18,4 +18,12 @@ namespace Experiments::Service_Demo_Two {
     void TestAll();
 }
 
+namespace Experiments::Service_Callback_Tests {
+    void TestAll();
+}
+
+namespace Experiments::Modular_Service_Final {
+    void TestAll();
+}
+
 #endif //FINANCETECHNOLOGYPROJECTS_EXPERIMENTS_H

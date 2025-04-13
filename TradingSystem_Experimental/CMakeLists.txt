@@ -44,6 +44,8 @@ add_executable(${PROJECT_NAME}
         ${PARSER}/BinanceEventsParser.cpp
         ${SERVICE_EXPERIMENTAL}/Service_Demo_One.cpp
         ${SERVICE_EXPERIMENTAL}/Service_Demo_Two.cpp
+        ${SERVICE_EXPERIMENTAL}/Service_Callback_Tests.cpp
+        ${SERVICE_EXPERIMENTAL}/Modular_Service_Final.cpp
         ${TESTS}/UnitTests.cpp
         ${TESTS}/Module_Impl_Test.cpp
         ${TESTS}/Buffer_Tests.cpp

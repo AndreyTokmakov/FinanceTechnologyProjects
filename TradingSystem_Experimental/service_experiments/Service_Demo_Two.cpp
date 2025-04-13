@@ -74,20 +74,25 @@ namespace One
 
 namespace Two
 {
-    template<typename ServiceType>
-    concept HasHandle = requires(ServiceType service, Common::Buffer& buffer) {
+#if 0
+    using Common::Buffer;
+
+    template<typename Service>
+    concept HasHandleMethod = requires(Service service, Buffer& buffer) {
         { service.handle(buffer) } -> std::same_as<bool>;
     };
 
+    /*
     template<typename Server>
-    concept HasRunMethod = requires(Server server, Common::Buffer& buffer) {
+    concept HasRunMethod = requires(Server server, Buffer& buffer) {
         { server.run() } -> std::same_as<void>;
-    };
+    };*/
 
 
-    template<HasHandle ServiceType>
+    template<HasHandleMethod ServiceType>
     struct ServerBase /** : IServer **/
     {
+        // TODO: ???  do we need VIRTUAL ??
         virtual void run() = 0;
         virtual ~ServerBase() = default;
 
@@ -95,18 +100,27 @@ namespace Two
             service = serviceImpl;
         }
 
+    protected:
+
+        // TODO: Rename
+        inline bool process(Buffer& buffer) noexcept
+        {
+            // NOTE: No Virtual dispatch
+            return service->handle(buffer);
+        }
+
     private:
         ServiceType* service { nullptr };
     };
 
 
-    template<HasRunMethod Srv>
+    template<HasHandleMethod ImplType>
     struct ModuleBase
     {
-        using ServerType = ServerBase<Srv>;
+        using ServerType = ServerBase<ImplType>;
 
         explicit ModuleBase(ServerType& serverImpl): server { serverImpl } {
-            server.setService(static_cast<Srv*>(this));
+            server.setService(static_cast<ImplType*>(this));
         }
 
         void start()
@@ -115,36 +129,148 @@ namespace Two
             server.run();
         }
 
+
     private:
         ServerType& server;
     };
 
 
-    template<HasHandle ServiceType>
-    struct ServerImpl final : ServerBase<ServiceType>
+    /*
+
+    template<typename Module>
+    struct ServerImpl : ServerBase<Module>
     {
+        Common::Buffer buffer;
+
         void run() override
         {
-
+            for (int i = 0; i < 10; ++i)
+            {
+                std::string message { "Message-" + std::to_string(i) };
+                buffer.validateCapacity(message.size());
+                std::copy_n(message.data(), message.size(), buffer.head());
+                buffer.incrementLength(message.length());
+                ServerBase<Module>::process(buffer);
+                buffer.reset();
+            }
         }
     };
 
 
-    struct ModuleImpl final : public ModuleBase<Service>
+    struct Service final : public ModuleBase<Service>
     {
-        using ServiceBase<Service>::ServiceBase;
+        using ModuleBase<Service>::ModuleBase;
 
-        void handle(Buffer& buffer)
+        bool handle(Buffer& buffer)
         {
-            std::cout << "Service::handle(): message = " << std::string_view(
-                    reinterpret_cast<const char *>(buffer.data.data()), buffer.size)<< std::endl;
+            std::cout << std::string_view(buffer.data<char>(), buffer.size())<< std::endl;
+            return true;
+        }
+    };
+     */
+
+
+    struct ServiceImpl : public ModuleBase<ServiceImpl>
+    {
+
+        bool handle(Buffer& buffer){
+            return true;
         }
     };
 
+    /*
+    template<typename Module>
+    struct ServerImpl : ServerBase<Module>
+    {
+        void run() override { }
+    };*/
+
+#endif
 
     void test()
     {
+        // ServerImpl<Service> server;
+        // Service module { server };
+        // module.start();
 
+
+
+        //ServerImpl<ServiceImpl> serverBase;
+    }
+}
+
+namespace Concepts_CRTP_DeducingThis
+{
+    struct Event {};
+
+    template<typename Service>
+    concept Handler = requires(Service service, Event event) {
+        { service.handle(event) } -> std::same_as<bool>;
+    };
+
+
+    template<typename Module>
+    struct BaseServer
+    {
+        inline void setService(Module* const moduleImpl) noexcept {
+            module = moduleImpl;
+        }
+
+        void process(Event event) noexcept
+        {
+            // NOTE: No Virtual dispatch
+            module->handle(event);
+        }
+
+    private:
+        Module* module { nullptr };
+    };
+
+    struct BaseModule
+    {
+        /*
+        using ServerType = BaseServer<BaseModule>;
+
+        explicit BaseModule(ServerType& serverImpl): server { serverImpl } {
+            initialize();
+        }
+        */
+
+        template <typename Self>
+        void initialize(this Self self){
+            // self.server.setService(&self);
+            self.setService();
+        }
+
+        // TODO: Remove ?? Concepts ??
+        void setService(){
+            std::cout << "ServiceBase::setService()" << '\n';
+        }
+
+        // BaseServer<BaseModule>& server;
+    };
+
+
+    template<typename ModuleType>
+    struct RealServer: BaseServer<ModuleType>
+    {
+
+    };
+
+    struct RealService: BaseModule
+    {
+        using BaseModule::BaseModule;
+
+        void setService(){
+            std::cout << "RealService::setService()" << '\n';
+        }
+    };
+
+    void test()
+    {
+        RealServer<RealService> server;
+        RealService service;
+        service.initialize();
     }
 }
 
@@ -152,5 +278,7 @@ namespace Two
 void Experiments::Service_Demo_Two::TestAll()
 {
     // One::test();
-    Two::test();
+    // Two::test();
+
+    Concepts_CRTP_DeducingThis::test();
 }

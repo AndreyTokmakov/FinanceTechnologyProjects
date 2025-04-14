@@ -43,7 +43,7 @@ namespace
                 buffer.validateCapacity(message.size());
                 std::copy_n(message.data(), message.size(), buffer.head());
                 buffer.incrementLength(message.length());
-                process(buffer);
+                BaseServer<RealService>::process(buffer);
                 buffer.reset();
             }
         }

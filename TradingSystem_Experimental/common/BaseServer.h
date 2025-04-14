@@ -22,13 +22,12 @@ namespace Common
         virtual void run() = 0;
         virtual ~BaseServer() = default;
 
-        inline void setService(ServiceType* const serviceImpl) noexcept {
+        void setService(ServiceType* const serviceImpl) noexcept {
             service = serviceImpl;
         }
 
     protected:
-
-        inline void process(Buffer& buffer) noexcept {
+        void process(Buffer& buffer) noexcept {
             service->handle(buffer);
         }
 

@@ -19,6 +19,7 @@ Description : Tests C++ project
 #include "common/Queue.h"
 #include "Experiments.h"
 #include "Tests.h"
+#include "Modules.h"
 
 
 // FIXME:
@@ -71,14 +72,13 @@ int main([[maybe_unused]] const int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
     // UnitTests::TestAll();
     // Tests::Module_Impl_Test::TestAll();
-
     // Experiments::Service_Demo_One::TestAll();
     // Experiments::Service_Demo_Two::TestAll();
     // Experiments::Service_Callback_Tests::TestAll();
-    Experiments::Modular_Service_Final::TestAll();
-
-
+    // Experiments::Modular_Service_Final::TestAll();
     // Tests::BufferTests::TestAll();
+
+    Modules::BookBuilder::TestAll();
 
     /*
     Common::Queue<Common::DepthEvent> queue;

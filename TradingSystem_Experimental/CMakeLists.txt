@@ -15,6 +15,8 @@ set(GATEWAY_EXPERIMENTAL ${PROJECT_DIR}/gateway_experimental)
 set(ORDER_BOOK ${PROJECT_DIR}/order_book)
 set(PARSER ${PROJECT_DIR}/parser)
 set(TESTS ${PROJECT_DIR}/tests)
+set(SERVERS ${PROJECT_DIR}/servers)
+set(MODULES ${PROJECT_DIR}/modules)
 # set(SERVICE ${PROJECT_DIR}/service)
 set(SERVICE_EXPERIMENTAL ${PROJECT_DIR}/service_experiments)
 
@@ -24,10 +26,11 @@ include_directories(${GATEWAY})
 include_directories(${GATEWAY_EXPERIMENTAL})
 include_directories(${PARSER})
 include_directories(${ORDER_BOOK})
-include_directories(${TESTS})
+include_directories(${MODULES})
 include_directories(${SERVICE})
+include_directories(${SERVERS})
 include_directories(${SERVICE_EXPERIMENTAL})
-
+include_directories(${TESTS})
 
 # include all components
 add_executable(${PROJECT_NAME}
@@ -49,6 +52,8 @@ add_executable(${PROJECT_NAME}
         ${TESTS}/UnitTests.cpp
         ${TESTS}/Module_Impl_Test.cpp
         ${TESTS}/Buffer_Tests.cpp
+        ${SERVERS}/UdsServerAsynch.cpp
+        ${MODULES}/BookBuilder.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

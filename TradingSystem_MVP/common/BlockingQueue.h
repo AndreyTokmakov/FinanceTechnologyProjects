@@ -1,14 +1,14 @@
 /**============================================================================
-Name        : Queue.h
+Name        : BlockingQueue.h
 Created on  : 24.01.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : Queue.h
+Description : BlockingQueue.h
 ============================================================================**/
 
 #ifndef FINANCETECHNOLOGYPROJECTS_BLOCKINGQUEUE_H
-#define FINANCETECHNOLOGYPROJECTS_QUEUE_H
+#define FINANCETECHNOLOGYPROJECTS_BLOCKINGQUEUE_H
 
 #include <deque>
 #include <mutex>
@@ -17,7 +17,7 @@ Description : Queue.h
 namespace Common
 {
     template<typename T>
-    class Queue
+    class BlockingQueue
     {
         using value_type = T;
         static_assert(!std::is_same_v<value_type, void>, "ERROR: Value type can not be void");

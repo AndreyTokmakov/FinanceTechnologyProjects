@@ -253,6 +253,7 @@ namespace BinanceWssStream
         while (true)
         {
             size_t bytesRead = wsStream.read(buffer);
+
             // std::cout << "Bytes read: " << bytesRead << std::endl;
             // std::cout << beast::make_printable(buffer.data()) << std::endl;
 

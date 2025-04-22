@@ -20,8 +20,8 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    // BinanceWssStream::TestAll();
-    ApiClient::TestAll();
+    BinanceWssStream::TestAll();
+    // ApiClient::TestAll();
 
     return EXIT_SUCCESS;
 }

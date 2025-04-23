@@ -128,7 +128,34 @@ namespace SimpleDemo
     }
 }
 
+namespace Processing
+{
+    struct BookKeeper
+    {
+        JsonMessagesQueue queue;
 
+        void start()
+        {
+            nlohmann::json message;
+            std::jthread worker { [this, &message]
+            {
+                while (true)
+                {
+                    queue.pop(message);
+                    std::cout << "Got message (CPU: " << Utils::getCpu() << ") : " << message << std::endl;
+                }
+            }};
+        }
+
+        // TODO: Add --MULTIPLEXER-- logic here
+        //   ---->  Table [ Exchange-Symbol, RingBuffer && List[OrderBook] && Processor]
+        void push(nlohmann::json&& jsonMessage)
+        {
+            // std::cout << "push (CPU: " << Utils::getCpu() << ") : " << jsonMessage << std::endl;
+            queue.push(std::move(jsonMessage));
+        }
+    };
+}
 
 
 namespace Connectors
@@ -138,17 +165,20 @@ namespace Connectors
         static inline constexpr std::string_view host { "testnet.binance.vision" };
         static inline constexpr uint16_t port { 443 };
 
-        JsonMessagesQueue& queue;
+        Processing::BookKeeper& bookKeeper;
         std::jthread worker;
         uint32_t coreId = 0;
 
-        explicit BinanceWsConnector(JsonMessagesQueue& queue, uint32_t cpuId): queue { queue }, coreId { cpuId } {
+        explicit BinanceWsConnector(Processing::BookKeeper& keeper,
+            const uint32_t cpuId): bookKeeper { keeper }, coreId { cpuId } {
         }
 
         // TODO: Re-structure code -- Coroutines ??
-        void start()
+        void start(const std::string& pair)
         {
-            worker = std::jthread{ [this]
+            const std::string subscription { R"({"method": "SUBSCRIBE","params": [")" + pair + R"(@ticker"], "id": 1})" };
+
+            worker = std::jthread{ [this, subscription]
             {
                 const auto threadId { std::this_thread::get_id() };
                 if (!Utils::setThreadCore(coreId)) {
@@ -177,15 +207,19 @@ namespace Connectors
                     req.set(http::field::user_agent,std::string(BOOST_BEAST_VERSION_STRING) +" websocket-client-coro");
                 }));
 
-                wsStream.handshake(host, "/stream");
-                constexpr std::string_view subscription { R"({"method": "SUBSCRIBE","params": ["btcusdt@ticker"], "id": 1})" };
+                wsStream.handshake(host, "/stream");;
 
                 const size_t bytesSend = wsStream.write(net::buffer(subscription));
                 size_t bytesRead = 0;
                 beast::flat_buffer buffer;
                 while (true) {
                     bytesRead = wsStream.read(buffer);
-                    queue.push( nlohmann::json::parse(beast::buffers_to_string(buffer.data())));
+                    // TODO: Rename push() ??
+                    //  - Push only std::string to the Queue?
+                    //  - beast::buffers_to_string(buffer.data()) ---> BAD: Create a copy
+                    //  - Как то можно избежать копирований ???
+                    //  - Memory / Object Pool ???? (For MarkerData Events)
+                    bookKeeper.push( nlohmann::json::parse(beast::buffers_to_string(buffer.data())));
                     buffer.clear();
                 }
             }};
@@ -195,26 +229,7 @@ namespace Connectors
 }
 
 
-namespace Processing
-{
-    struct BookBuilder
-    {
-        JsonMessagesQueue& queue;
 
-        void start()
-        {
-            nlohmann::json message;
-            std::jthread worker { [this, &message]
-            {
-                while (true)
-                {
-                    queue.pop(message);
-                    std::cout << "Got message (CPU: " << Utils::getCpu() << ") : " << message << std::endl;
-                }
-            }};
-        }
-    };
-}
 
 
 // TODO:       *************** MULTIPLEXER ************************
@@ -224,19 +239,24 @@ namespace Processing
 //  - В этом же Thread-e живет OrderBook-и для всех Бирж что публикуются в данное кольцо
 
 
+// TODO: Next steps
+//  1. Доделать мультиплексер
+//  2. Убрать копирования прочитанных сообщений в очереди
+//     - каждый сервер читает сообщения в свой кольцевой буффер
+//     - после этого push-ит УКАЗАТЕЛЬ на даннный элемент буффера в соотвествующий кольцевой буффер BookKeeper-а?
+
+
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    JsonMessagesQueue queue;
-
-    Connectors::BinanceWsConnector binanceWsConnector { queue, 1 };
-    binanceWsConnector.start();
-
-    Processing::BookBuilder bookBuilder { queue };
+    Processing::BookKeeper bookBuilder;
+    Connectors::BinanceWsConnector binanceWsConnectorBtc { bookBuilder, 1 };
+    Connectors::BinanceWsConnector binanceWsConnectorEth { bookBuilder, 1 };
+    binanceWsConnectorBtc.start("btcusdt");
+    binanceWsConnectorEth.start("ethusdt");
     bookBuilder.start();
-
 
     return EXIT_SUCCESS;
 }

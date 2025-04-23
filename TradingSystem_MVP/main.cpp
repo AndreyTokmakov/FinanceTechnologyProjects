@@ -37,6 +37,7 @@ Description : Tests C++ project
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
 #include "boost/url/scheme.hpp"
+#include <boost/container/flat_map.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -58,6 +59,7 @@ namespace
 
 }
 
+#if 0
 namespace SimpleDemo
 {
     struct WsServer
@@ -105,8 +107,9 @@ namespace SimpleDemo
             std::string message;
             std::jthread worker { [this, &message] {
                 while (true) {
-                    queue.pop(message);
-                    std::cout << "Got message (CPU: " << Utils::getCpu() << ") : " << message << std::endl;
+                    if (queue.pop(message)) {
+                        std::cout << "Got message (CPU: " << Utils::getCpu() << ") : " << message << std::endl;
+                    }
                 }
             }};
         }
@@ -128,6 +131,8 @@ namespace SimpleDemo
     }
 }
 
+#endif
+
 namespace
 {
     enum class Exchange
@@ -140,31 +145,88 @@ namespace
     };
 }
 
-namespace Processing
+namespace Engine
 {
-    struct BookKeeper
+    using namespace std::string_literals;
+
+    // using Ticker = std::string;
+    using Pair = std::string;
+
+
+    struct OrderBook
     {
+        Pair pair;
+
+        // TODO: Rename method
+        void processEvent(const nlohmann::json& message) const {
+            std::cout << "Processing event: " << message << std::endl;
+        }
+    };
+
+    // TODO: Rename
+    struct ExchangeBookKeeper
+    {
+        boost::container::flat_map<Pair, std::unique_ptr<OrderBook>> orderBooksByTicker;
         JsonMessagesQueue queue;
+        std::jthread worker;
+
+        explicit ExchangeBookKeeper()
+        {
+            for (const auto& ticker: { "APPL"s, "TEST"s }){
+                orderBooksByTicker.emplace(ticker, std::make_unique<OrderBook>(ticker));
+            }
+        }
+
+        // TODO: Rename??
+        void push(nlohmann::json&& message)
+        {
+            queue.push(std::move(message));
+        }
+
+        void start(const uint32_t cpuId)
+        {
+            nlohmann::json message;
+            worker = std::jthread{ [this, &message, cpuId]
+            {
+                const auto threadId { std::this_thread::get_id() };
+                if (!Utils::setThreadCore(cpuId)) {
+                    std::cerr << "Failed to set core " << cpuId << " for " << threadId << std::endl;
+                    return;
+                } else {
+                    std::cout << "Starting ExchangeBookKeeper on CPU: " << Utils::getCpu() << std::endl;
+                }
+
+                while (true) {
+                    if (queue.pop(message))
+                    {
+                        Pair pair = "APPL";  // TODO: Get TICKER/PAIR here ??
+                        const auto& book = orderBooksByTicker[pair];
+                        // TODO: Rename method
+                        book->processEvent(message);
+                    }
+                }
+            }};
+            worker.detach();
+        }
+    };
+
+
+    struct PricingEngine
+    {
+        ExchangeBookKeeper binanceBookKeeper;
+        ExchangeBookKeeper byBitBookKeeper;
+        std::array<ExchangeBookKeeper*, 2> books { &binanceBookKeeper, &byBitBookKeeper };
 
         void start()
         {
-            nlohmann::json message;
-            std::jthread worker { [this, &message]
-            {
-                while (true)
-                {
-                    queue.pop(message);
-                    std::cout << "Got message (CPU: " << Utils::getCpu() << ") : " << message << std::endl;
-                }
-            }};
+            for (uint32_t cpuId = 2; ExchangeBookKeeper* bookKeeper: books)
+                bookKeeper->start(cpuId++);
         }
 
-        // TODO: Add --MULTIPLEXER-- logic here
-        //   ---->  Table [ Exchange-Symbol, RingBuffer && List[OrderBook] && Processor]
         void push(Exchange exchange, nlohmann::json&& jsonMessage)
         {
             // std::cout << "push (CPU: " << Utils::getCpu() << ") : " << jsonMessage << std::endl;
-            queue.push(std::move(jsonMessage));
+            books[static_cast<uint32_t>(exchange)]->push(std::move(jsonMessage));
         }
     };
 }
@@ -177,12 +239,12 @@ namespace Connectors
         static inline constexpr std::string_view host { "testnet.binance.vision" };
         static inline constexpr uint16_t port { 443 };
 
-        Processing::BookKeeper& bookKeeper;
+        Engine::PricingEngine& pricingEngine;
         std::jthread worker;
         uint32_t coreId = 0;
 
-        explicit BinanceWsConnector(Processing::BookKeeper& keeper,
-            const uint32_t cpuId): bookKeeper { keeper }, coreId { cpuId } {
+        explicit BinanceWsConnector(Engine::PricingEngine& engine, const uint32_t cpuId):
+                pricingEngine { engine }, coreId { cpuId } {
         }
 
         // TODO: Re-structure code -- Coroutines ??
@@ -224,14 +286,17 @@ namespace Connectors
                 const size_t bytesSend = wsStream.write(net::buffer(subscription));
                 size_t bytesRead = 0;
                 beast::flat_buffer buffer;
-                while (true) {
-                    bytesRead = wsStream.read(buffer);
-                    // TODO: Rename push() ??
+
+                while (true)
+                {   // TODO: Rename push() ??
                     //  - Push only std::string to the Queue?
                     //  - beast::buffers_to_string(buffer.data()) ---> BAD: Create a copy
                     //  - Как то можно избежать копирований ???
                     //  - Memory / Object Pool ???? (For MarkerData Events)
-                    bookKeeper.push(Exchange::Binance, nlohmann::json::parse(beast::buffers_to_string(buffer.data())));
+
+                    bytesRead = wsStream.read(buffer);
+                    pricingEngine.push(Exchange::Binance,
+                                       nlohmann::json::parse(beast::buffers_to_string(buffer.data())));
                     buffer.clear();
                 }
             }};
@@ -251,6 +316,10 @@ namespace Connectors
 //  - В этом же Thread-e живет OrderBook-и для всех Бирж что публикуются в данное кольцо
 
 
+// TODO: Optimisations:
+//  -  Pair [usdtbtc] --> uint64_t  [так как длина 'usdtbtc' максимум 8 байт]
+//     Возможно использовать SIMD для корвертации в INT
+
 // TODO: Next steps
 //  1. Доделать мультиплексер
 //  2. Убрать копирования прочитанных сообщений в очереди
@@ -258,17 +327,24 @@ namespace Connectors
 //     - после этого push-ит УКАЗАТЕЛЬ на даннный элемент буффера в соотвествующий кольцевой буффер BookKeeper-а?
 
 
+
+
+
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    Processing::BookKeeper bookBuilder;
-    Connectors::BinanceWsConnector binanceWsConnectorBtc { bookBuilder, 1 };
-    Connectors::BinanceWsConnector binanceWsConnectorEth { bookBuilder, 1 };
+    Engine::PricingEngine pricingEngine;
+    Connectors::BinanceWsConnector binanceWsConnectorBtc { pricingEngine, 1 };
+    Connectors::BinanceWsConnector binanceWsConnectorEth { pricingEngine, 1 };
     binanceWsConnectorBtc.start("btcusdt");
     binanceWsConnectorEth.start("ethusdt");
-    bookBuilder.start();
+    pricingEngine.start();
+
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100U));
+    }
 
     return EXIT_SUCCESS;
 }

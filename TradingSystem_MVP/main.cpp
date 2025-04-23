@@ -128,6 +128,18 @@ namespace SimpleDemo
     }
 }
 
+namespace
+{
+    enum class Exchange
+    {
+        Binance,
+        ByBit,
+        Deribit,
+        GateIO,
+        OKX,
+    };
+}
+
 namespace Processing
 {
     struct BookKeeper
@@ -149,7 +161,7 @@ namespace Processing
 
         // TODO: Add --MULTIPLEXER-- logic here
         //   ---->  Table [ Exchange-Symbol, RingBuffer && List[OrderBook] && Processor]
-        void push(nlohmann::json&& jsonMessage)
+        void push(Exchange exchange, nlohmann::json&& jsonMessage)
         {
             // std::cout << "push (CPU: " << Utils::getCpu() << ") : " << jsonMessage << std::endl;
             queue.push(std::move(jsonMessage));
@@ -219,7 +231,7 @@ namespace Connectors
                     //  - beast::buffers_to_string(buffer.data()) ---> BAD: Create a copy
                     //  - Как то можно избежать копирований ???
                     //  - Memory / Object Pool ???? (For MarkerData Events)
-                    bookKeeper.push( nlohmann::json::parse(beast::buffers_to_string(buffer.data())));
+                    bookKeeper.push(Exchange::Binance, nlohmann::json::parse(beast::buffers_to_string(buffer.data())));
                     buffer.clear();
                 }
             }};

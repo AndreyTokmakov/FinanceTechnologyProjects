@@ -27,13 +27,18 @@ FetchContent_MakeAvailable(boost)
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/${PROJECT_NAME})
 set(COMMON ${PROJECT_DIR}/common)
+set(CONNECTORS ${PROJECT_DIR}/connectors)
 
 include_directories(${COMMON})
+include_directories(${CONNECTORS})
+
 
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
-        ${COMMON}/Utils.cpp
+        Engine.cpp
+        ${CONNECTORS}/BinanceConnector.cpp
+        ${COMMON}/Utilities.cpp
         ${COMMON}/Event.h
 )
 

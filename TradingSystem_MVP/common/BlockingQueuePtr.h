@@ -21,6 +21,8 @@ namespace Common
     {
         using value_type = T;
         using pointer = T*;
+
+
         static_assert(!std::is_same_v<value_type, void>, "ERROR: Value type can not be void");
 
         static constexpr std::chrono::duration<int64_t, std::ratio<1, 1000>> waitTimeout { std::chrono::seconds(5U) };
@@ -31,6 +33,10 @@ namespace Common
 
     public:
 
+        struct Wrapper {
+            pointer ptr {nullptr};
+        };
+
         void push(pointer new_value)
         {
             {
@@ -40,7 +46,7 @@ namespace Common
             updated.notify_one();
         }
 
-        bool pop(pointer value)
+        bool pop(Wrapper& data)
         {
             std::unique_lock<std::mutex> lock(mutex);
             bool ok = updated.wait_for(lock, waitTimeout, [this] {
@@ -48,7 +54,7 @@ namespace Common
             });
             if (!ok)
                 return false;
-            value = queue.front();
+            data.ptr = queue.front();
             queue.pop_front();
             return true;
         }

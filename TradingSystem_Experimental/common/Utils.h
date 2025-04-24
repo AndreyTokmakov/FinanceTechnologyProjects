@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : Utils.h
 ============================================================================**/
 
-#ifndef FINANCETECHNOLOGYPROJECTS_UTILS_H
+#ifndef FINANCETECHNOLOGYPROJECTS_UTILITIES_H
 #define FINANCETECHNOLOGYPROJECTS_UTILS_H
 
 #include <string>
@@ -19,4 +19,4 @@ namespace Utils
     int64_t priceToLong(const char* strPrice, uint32_t size);
 }
 
-#endif //FINANCETECHNOLOGYPROJECTS_UTILS_H
+#endif //FINANCETECHNOLOGYPROJECTS_UTILITIES_H

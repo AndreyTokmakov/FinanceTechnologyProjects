@@ -7,10 +7,10 @@ Copyright   : Your copyright notice
 Description : Utilities.cpp
 ============================================================================**/
 
-#include "Utils.h"
+#include "Utilities.h"
 #include <thread>
 
-namespace Utils
+namespace Utilities
 {
     constexpr int32_t offset = static_cast<int32_t>('0');
 

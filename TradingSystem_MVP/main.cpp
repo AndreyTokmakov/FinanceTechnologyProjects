@@ -43,6 +43,7 @@ Description : Tests C++ project
 
 #include "common/Utils.h"
 #include "common/BlockingQueue.h"
+#include "common/BlockingQueuePtr.h"
 
 namespace
 {
@@ -56,7 +57,19 @@ namespace
 
     using MessagesQueue = Common::BlockingQueue<std::string>;
     using JsonMessagesQueue = Common::BlockingQueue<nlohmann::json>;
+    using FlatBufferQueue = Common::BlockingQueuePtr<beast::flat_buffer>;
 
+}
+
+namespace
+{
+    constexpr uint32_t fast_modulo(const uint32_t n, const uint32_t d) noexcept {
+        return n & (d - 1);
+    }
+
+    constexpr bool is_pow_of_2(const int value) noexcept {
+        return (value && !(value & value - 1));
+    }
 }
 
 #if 0
@@ -158,8 +171,8 @@ namespace Engine
         Pair pair;
 
         // TODO: Rename method
-        void processEvent(const nlohmann::json& message) const {
-            std::cout << "Processing event: " << message << std::endl;
+        void processEvent(beast::flat_buffer* message) const {
+            std::cout << "Processing event: " << nlohmann::json::parse(beast::buffers_to_string(message->data())) << std::endl;
         }
     };
 
@@ -167,7 +180,7 @@ namespace Engine
     struct ExchangeBookKeeper
     {
         boost::container::flat_map<Pair, std::unique_ptr<OrderBook>> orderBooksByTicker;
-        JsonMessagesQueue queue;
+        FlatBufferQueue queue;
         std::jthread worker;
 
         explicit ExchangeBookKeeper()
@@ -178,14 +191,14 @@ namespace Engine
         }
 
         // TODO: Rename??
-        void push(nlohmann::json&& message)
+        void push(beast::flat_buffer* buffer)
         {
-            queue.push(std::move(message));
+            queue.push(buffer);
         }
 
         void start(const uint32_t cpuId)
         {
-            nlohmann::json message;
+            beast::flat_buffer* message;
             worker = std::jthread{ [this, &message, cpuId]
             {
                 const auto threadId { std::this_thread::get_id() };
@@ -223,10 +236,10 @@ namespace Engine
                 bookKeeper->start(cpuId++);
         }
 
-        void push(Exchange exchange, nlohmann::json&& jsonMessage)
+        void push(Exchange exchange, beast::flat_buffer* buffer)
         {
             // std::cout << "push (CPU: " << Utils::getCpu() << ") : " << jsonMessage << std::endl;
-            books[static_cast<uint32_t>(exchange)]->push(std::move(jsonMessage));
+            books[static_cast<uint32_t>(exchange)]->push(buffer);
         }
     };
 }
@@ -243,8 +256,11 @@ namespace Connectors
         std::jthread worker;
         uint32_t coreId = 0;
 
+        uint32_t counter = 0;
+        std::vector<beast::flat_buffer> buffers {};
+
         explicit BinanceWsConnector(Engine::PricingEngine& engine, const uint32_t cpuId):
-                pricingEngine { engine }, coreId { cpuId } {
+                pricingEngine { engine }, coreId { cpuId }, buffers (1024) {
         }
 
         // TODO: Re-structure code -- Coroutines ??
@@ -285,7 +301,6 @@ namespace Connectors
 
                 const size_t bytesSend = wsStream.write(net::buffer(subscription));
                 size_t bytesRead = 0;
-                beast::flat_buffer buffer;
 
                 while (true)
                 {   // TODO: Rename push() ??
@@ -294,10 +309,10 @@ namespace Connectors
                     //  - Как то можно избежать копирований ???
                     //  - Memory / Object Pool ???? (For MarkerData Events)
 
-                    bytesRead = wsStream.read(buffer);
-                    pricingEngine.push(Exchange::Binance,
-                                       nlohmann::json::parse(beast::buffers_to_string(buffer.data())));
+                    beast::flat_buffer& buffer = buffers[fast_modulo(counter, 1024)];
                     buffer.clear();
+                    bytesRead = wsStream.read(buffer);
+                    pricingEngine.push(Exchange::Binance, &buffer);
                 }
             }};
             worker.detach();
@@ -334,6 +349,7 @@ int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
+
 
     Engine::PricingEngine pricingEngine;
     Connectors::BinanceWsConnector binanceWsConnectorBtc { pricingEngine, 1 };

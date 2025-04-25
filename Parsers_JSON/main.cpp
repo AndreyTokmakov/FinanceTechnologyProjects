@@ -91,13 +91,15 @@ namespace SymbolTicker
         simdjson::dom::element doc;
 
         const simdjson::error_code error = parser.parse(symbolTicker).get(doc);
-        std::cout << error << std::endl;
+        // std::cout << error << std::endl;
+
+        SymbolTicker::Ticker ticker;
 
         auto data = doc.at('data');
 
 
-        std::string_view symbol = doc["data"]["s"].get_string();
-        std::cout <<  symbol << std::endl;
+        ticker.symbol.assign(doc["data"]["s"].get_string());
+        std::cout << ticker << std::endl;
     }
 }
 
@@ -111,9 +113,6 @@ int main([[maybe_unused]] int argc,
 
     SymbolTicker::parse();
 
-    SymbolTicker::Ticker ticker;
-
-    std::cout << ticker << std::endl;
 
     return EXIT_SUCCESS;
 }

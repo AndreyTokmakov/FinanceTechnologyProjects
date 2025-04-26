@@ -14,12 +14,17 @@ Description : Types.h
 #include "BlockingQueuePtr.h"
 #include <boost/beast/core.hpp>
 
-namespace Common
+namespace common
 {
     using Pair = std::string;
     using FlatBuffer = boost::beast::flat_buffer;
-    using FlatBufferQueue = Common::BlockingQueuePtr<FlatBuffer>;
+    using FlatBufferQueue = common::BlockingQueuePtr<FlatBuffer>;
 
+
+    using price_t = double;
+    using quantity_t = double;
+    using time_t = int64_t;
+    using number_t = int64_t;
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_TYPES_H

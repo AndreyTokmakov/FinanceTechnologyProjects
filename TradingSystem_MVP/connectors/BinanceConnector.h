@@ -11,26 +11,26 @@ Description : BinanceConnector.h
 #define FINANCETECHNOLOGYPROJECTS_BINANCECONNECTOR_H
 
 #include "Types.h"
-#include "../Engine.h"
+#include "Engine.h"
 #include <thread>
 
-namespace Connectors
+namespace connectors
 {
-    using Common::FlatBuffer;
+    using common::FlatBuffer;
 
     struct BinanceWsConnector
     {
         static inline constexpr std::string_view host { "testnet.binance.vision" };
         static inline constexpr uint16_t port { 443 };
 
-        Engine::PricingEngine& pricingEngine;
+        engine::PricingEngine& pricingEngine;
         std::jthread worker;
         uint32_t coreId = 0;
 
         uint32_t counter = 0;
         std::vector<FlatBuffer> buffers {};
 
-        explicit BinanceWsConnector(Engine::PricingEngine& engine, const uint32_t cpuId);
+        explicit BinanceWsConnector(engine::PricingEngine& engine, const uint32_t cpuId);
 
         // TODO: Re-structure code -- Coroutines ??
         void start(const std::string& pair);

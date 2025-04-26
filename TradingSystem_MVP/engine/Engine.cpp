@@ -9,6 +9,7 @@ Description : Engine.cpp
 
 #include "Engine.h"
 #include "Utilities.h"
+#include "Parser.h"
 
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -21,18 +22,38 @@ namespace
 }
 
 
-namespace Engine
+namespace engine
 {
+    using market_data::Ticker;
+
+    void OrderBook::processEvent(boost::beast::flat_buffer* message) const
+    {
+        const std::variant event = market_data::parse(static_cast<char*>(message->data().data()),
+                                                      message->data().size());
+        if (std::holds_alternative<Ticker>(event))
+        {
+            const Ticker& ticker = std::get<Ticker>(event);
+            std::cout << ticker << std::endl;
+        }
+    }
+
+    /*
     void OrderBook::processEvent(boost::beast::flat_buffer* message) const
     {
         const auto& data = message->data();
-        std::string_view svData { static_cast<char*>(data.data()), data.size()};
+        const std::string_view svData { static_cast<char*>(data.data()), data.size()};
 
-        std::cout << "Processing event: " << nlohmann::json::parse(svData)<< std::endl;
+        const std::variant event = market_data::parse(svData);
+        if (std::holds_alternative<Ticker>(event))
+        {
+            const Ticker& ticker = std::get<Ticker>(event);
+            std::cout << ticker << std::endl;
+        }
     }
+    */
 }
 
-namespace Engine
+namespace engine
 {
     ExchangeBookKeeper::ExchangeBookKeeper()
     {
@@ -52,11 +73,11 @@ namespace Engine
         worker = std::jthread{ [this, cpuId]
         {
             const auto threadId { std::this_thread::get_id() };
-            if (!Utilities::setThreadCore(cpuId)) {
+            if (!utilities::setThreadCore(cpuId)) {
                 std::cerr << "Failed to set core " << cpuId << " for " << threadId << std::endl;
                 return;
             } else {
-                std::cout << "Starting ExchangeBookKeeper on CPU: " << Utilities::getCpu() << std::endl;
+                std::cout << "Starting ExchangeBookKeeper on CPU: " << utilities::getCpu() << std::endl;
             }
 
             decltype(queue)::Wrapper dataWrapper;
@@ -73,7 +94,7 @@ namespace Engine
     }
 }
 
-namespace Engine
+namespace engine
 {
     void PricingEngine::start()
     {
@@ -82,7 +103,7 @@ namespace Engine
             bookKeeper->start(cpuId++);
     }
 
-    void PricingEngine::push(Common::Exchange exchange, beast::flat_buffer* message)
+    void PricingEngine::push(common::Exchange exchange, beast::flat_buffer* message)
     {
         // std::cout << "push (CPU: " << Utils::getCpu() << ") : " << jsonMessage << std::endl;
         books[static_cast<uint32_t>(exchange)]->push(message);

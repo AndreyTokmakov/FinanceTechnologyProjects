@@ -10,7 +10,7 @@ Description : Utilities.cpp
 #include "Utilities.h"
 #include <thread>
 
-namespace Utilities
+namespace utilities
 {
     constexpr int32_t offset = static_cast<int32_t>('0');
 

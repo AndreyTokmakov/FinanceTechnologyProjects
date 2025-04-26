@@ -14,7 +14,7 @@ Description : Event.h
 #include <vector>
 #include <string>
 
-namespace Common
+namespace common
 {
     using Price = int64_t;
     using Quantity = int64_t;

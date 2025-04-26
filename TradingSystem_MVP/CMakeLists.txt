@@ -27,35 +27,45 @@ FetchContent_MakeAvailable(boost)
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/${PROJECT_NAME})
 set(COMMON ${PROJECT_DIR}/common)
+set(ENGINE ${PROJECT_DIR}/engine)
 set(CONNECTORS ${PROJECT_DIR}/connectors)
+set(MARKET_DATA ${PROJECT_DIR}/market_data)
 
 include_directories(${COMMON})
 include_directories(${CONNECTORS})
-
+include_directories(${MARKET_DATA})
+include_directories(${ENGINE})
 
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
-        Engine.cpp
+        ${ENGINE}/Engine.cpp ${ENGINE}/Engine.h
         ${CONNECTORS}/BinanceConnector.cpp
         ${COMMON}/Utilities.cpp
         ${COMMON}/Event.h
+        ${MARKET_DATA}/Ticker.cpp ${MARKET_DATA}/Ticker.h
+        ${MARKET_DATA}/Parser.cpp ${MARKET_DATA}/Parser.h
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")
 target_link_directories(${PROJECT_NAME} PUBLIC "${CMAKE_BINARY_DIR}/Utilities")
+
+# SIMD Json
+include_directories(${THIRD_PARTY_DIR}/simdjson/include)
+target_link_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/simdjson/build)
 
 include_directories(${THIRD_PARTY_DIR}/json/include)
 
 TARGET_LINK_LIBRARIES(${PROJECT_NAME}
         utils
         pthread
-        Boost::json
-        Boost::any
-        Boost::url
+        simdjson
+        # Boost::json
+        # Boost::any
+        # Boost::url
+        # Boost::uuid
+        # Boost::thread
         Boost::asio
-        Boost::thread
-        Boost::uuid
         Boost::beast
         crypto
         ssl

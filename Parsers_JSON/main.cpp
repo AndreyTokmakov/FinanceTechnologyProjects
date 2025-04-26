@@ -14,8 +14,10 @@ Description : Parsers_JSON
 
 #include "simdjson.h"
 #include "PerfUtilities.h"
+#include "FileUtilities.h"
 
-namespace SymbolTicker
+
+namespace Data
 {
     /**
     {
@@ -48,10 +50,14 @@ namespace SymbolTicker
 "p":"-828.79000000","q":"216672881.48598570","s":"BTCUSDT","v":"2319.45099000","w":"93415.58947360","x":"93499.99000000"},
 "stream":"btcusdt@ticker"})"
     };
+}
 
+namespace market_data
+{
     struct Ticker
     {
         using price_t = double;
+        using quantity_t = double;
         using time_t = int64_t;
         using number_t = int64_t;
 
@@ -67,8 +73,8 @@ namespace SymbolTicker
         price_t highPrice {};
         price_t lowPrice {};
 
-        number_t totalTradedVolume {};
-        price_t totalTradedBaseAssetVolume {};
+        quantity_t totalTradedVolume {};
+        quantity_t totalTradedBaseAssetVolume {};
 
         number_t firstTradeId {};
         number_t lastTradeId {};
@@ -78,36 +84,62 @@ namespace SymbolTicker
     std::ostream& operator<<(std::ostream& stream, const Ticker& ticker)
     {
         stream << std::format("Ticker(\n\teventTime: {},\n\tsymbol: {},"
-            "\n\tpriceChange: {},\n\tpriceChangePercent: {},\n\tlastPrice: {},\n\tlastQuantity: {},\n\topenPrice: {},"
-            "\n\thighPrice: {},\n\tlowPrice: {},\n\ttotalTradedVolume: {},\n\ttotalTradedBaseAssetVolume: {},"
-            "\n\tfirstTradeId: {},\n\tlastTradeId: {},\n\ttotalTradesNumber: {}\n)",
-            ticker.eventTime, ticker.symbol, ticker.priceChange, ticker.priceChangePercent, ticker.lastPrice,
-            ticker.lastQuantity, ticker.openPrice, ticker.highPrice, ticker.lowPrice, ticker.totalTradedVolume,
-            ticker.totalTradedBaseAssetVolume, ticker.firstTradeId, ticker.lastTradeId, ticker.totalTradesNumber
+                              "\n\tpriceChange: {},\n\tpriceChangePercent: {},\n\tlastPrice: {},\n\tlastQuantity: {},\n\topenPrice: {},"
+                              "\n\thighPrice: {},\n\tlowPrice: {},\n\ttotalTradedVolume: {},\n\ttotalTradedBaseAssetVolume: {},"
+                              "\n\tfirstTradeId: {},\n\tlastTradeId: {},\n\ttotalTradesNumber: {}\n)",
+                              ticker.eventTime, ticker.symbol, ticker.priceChange, ticker.priceChangePercent, ticker.lastPrice,
+                              ticker.lastQuantity, ticker.openPrice, ticker.highPrice, ticker.lowPrice, ticker.totalTradedVolume,
+                              ticker.totalTradedBaseAssetVolume, ticker.firstTradeId, ticker.lastTradeId, ticker.totalTradesNumber
         );
         return stream;
     }
 
 
+    struct Result {};
+}
+
+namespace SymbolTicker
+{
+    using market_data::Ticker;
+    using market_data::Result;
+
+    simdjson::ondemand::parser parser;
+    simdjson::ondemand::document document;
+    simdjson::padded_string jsonBuffer;
+
     const uint64_t pageSize = sysconf(_SC_PAGESIZE);
 
-    bool need_allocation(const std::string& buffer)
+    bool need_allocation(const char *data,
+                         const size_t length)
     {
-        return ((reinterpret_cast<uintptr_t>(buffer.data() + buffer.size() - 1) % pageSize) + simdjson::SIMDJSON_PADDING > pageSize);
+        return ((reinterpret_cast<uintptr_t>(data + length - 1) % pageSize) + simdjson::SIMDJSON_PADDING > pageSize);
     }
 
     simdjson::padded_string_view
-    get_padded_string_view(const std::string& buffer,
-                           simdjson::padded_string &jsonBuffer) {
-        if (need_allocation(buffer)) [[unlikely]]
+    to_padded_string_view(const char *data,
+                          const size_t length,
+                          simdjson::padded_string &jsonBuffer) {
+        if (need_allocation(data, length)) [[unlikely]]
         {
-            jsonBuffer = simdjson::padded_string(buffer.data(), buffer.size());
+            jsonBuffer = simdjson::padded_string(data, length);
             return jsonBuffer;
         }
         else [[likely]]
         {
-            return simdjson::padded_string_view(buffer.data(), buffer.size(), buffer.size() + simdjson::SIMDJSON_PADDING);
+            return simdjson::padded_string_view(data, length, length + simdjson::SIMDJSON_PADDING);
         }
+    }
+
+    simdjson::padded_string_view get_padded_string(const std::string& buffer,
+                                                   simdjson::padded_string &jsonBuffer)
+    {
+        return to_padded_string_view(buffer.data(), buffer.size(), jsonBuffer);
+    }
+
+    simdjson::padded_string_view get_padded_string(const std::string_view& buffer,
+                                                   simdjson::padded_string &jsonBuffer)
+    {
+        return to_padded_string_view(buffer.data(), buffer.size(), jsonBuffer);
     }
 
     // TODO:
@@ -117,9 +149,9 @@ namespace SymbolTicker
     //  std::string_view {"c"}
 
 
-    SymbolTicker::Ticker parseTicker(simdjson::ondemand::object& data)
+    Ticker parseTicker(simdjson::ondemand::object& data)
     {
-        SymbolTicker::Ticker ticker;
+        Ticker ticker;
         {
             ticker.eventTime = data["E"].get_int64();
             data["s"].get_string(ticker.symbol);
@@ -130,44 +162,73 @@ namespace SymbolTicker
             ticker.openPrice = data["o"].get_double_in_string();
             ticker.highPrice = data["h"].get_double_in_string();
             ticker.lowPrice = data["l"].get_double_in_string();
-            // ticker.totalTradedVolume = data["v"].get_int64();
+            ticker.totalTradedVolume = data["v"].get_double_in_string();
             ticker.totalTradedBaseAssetVolume = data["q"].get_double_in_string();
-            //ticker.firstTradeId = data["F"].get_int64();
-            //ticker.lastTradeId = data["L"].get_int64();
-            //ticker.totalTradesNumber = data["n"].get_int64();
+            ticker.firstTradeId = data["F"].get_int64();
+            ticker.lastTradeId = data["L"].get_int64();
+            ticker.totalTradesNumber = data["n"].get_int64();
         }
         return ticker;
+    }
+
+    Ticker parseTicker1(simdjson::ondemand::object& data)
+    {
+        Ticker ticker {
+            .eventTime = data["E"].get_int64(),
+            .priceChange = data["p"].get_double_in_string(),
+            .priceChangePercent = data["P"].get_double_in_string(),
+            .lastPrice = data["c"].get_double_in_string(),
+            .lastQuantity = data["Q"].get_double_in_string(),
+            .openPrice = data["o"].get_double_in_string(),
+            .highPrice = data["h"].get_double_in_string(),
+            .lowPrice = data["l"].get_double_in_string(),
+            .totalTradedVolume = data["v"].get_double_in_string(),
+            .totalTradedBaseAssetVolume = data["q"].get_double_in_string(),
+            .firstTradeId = data["F"].get_int64(),
+            .lastTradeId = data["L"].get_int64(),
+            .totalTradesNumber = data["n"].get_int64(),
+        };
+        data["s"].get_string(ticker.symbol);
+        return ticker;
+    }
+
+    std::variant<Ticker, Result> parse(const std::string_view& payload)
+    {
+        //parser.iterate(get_padded_string(binanceTickerJson, jsonBuffer)).get(document);
+        parser.iterate(get_padded_string(payload, jsonBuffer)).get(document);
+
+        simdjson::ondemand::object data;
+        const simdjson::error_code result = document["data"].get(data);
+
+        if (simdjson::SUCCESS != result) {
+            return Result{};
+        }
+
+        return parseTicker(data);
     }
 
 
     void parse()
     {
-        /*
-        simdjson::dom::parser parser;
-        simdjson::dom::element doc;
-
-        const simdjson::error_code error = parser.parse(symbolTicker).get(doc);
-        auto data = doc.at('data');
-        //ticker.symbol.assign(doc["data"]["s"].get_string());
-        */
-
+        const std::string binanceTickerJson { FileUtilities::ReadFile(
+                R"(../../Parsers_JSON/data/binance/binance_ticker.json)")
+        };
+        const std::string result { FileUtilities::ReadFile(
+                R"(../../Parsers_JSON/data/binance/result.json)")
+        };
+        // const std::string_view binanceTickerJsonSv { binanceTickerJson };
 
 
-        simdjson::ondemand::parser parser;
-        simdjson::ondemand::document document;
-        simdjson::padded_string jsonBuffer;
 
-        parser.iterate(get_padded_string_view(symbolTicker, jsonBuffer)).get(document);
-        // std::cout << document << std::endl;
 
-        simdjson::ondemand::object data = document["data"];
-        SymbolTicker::Ticker ticker = parseTicker(data);
-
-        std::cout << ticker << std::endl;
+        const std::variant event = parse(binanceTickerJson);
+        if (std::holds_alternative<Ticker>(event))
+        {
+            const Ticker& ticker = std::get<Ticker>(event);
+            std::cout << ticker << std::endl;
+        }
     }
 }
-
-
 
 
 int main([[maybe_unused]] int argc,

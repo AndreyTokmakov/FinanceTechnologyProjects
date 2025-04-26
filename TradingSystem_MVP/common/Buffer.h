@@ -13,7 +13,7 @@ Description : Buffer.h
 #include <vector>
 #include <cstdint>
 
-namespace Common
+namespace common
 {
     class Buffer
     {

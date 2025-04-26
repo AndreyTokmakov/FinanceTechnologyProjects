@@ -35,13 +35,13 @@ namespace
     namespace ssl = boost::asio::ssl;
     using tcp = boost::asio::ip::tcp;
 
-    using Utilities::fast_modulo;
-    using Common::Exchange;
+    using utilities::fast_modulo;
+    using common::Exchange;
 }
 
-namespace Connectors
+namespace connectors
 {
-    BinanceWsConnector::BinanceWsConnector(Engine::PricingEngine& engine, const uint32_t cpuId):
+    BinanceWsConnector::BinanceWsConnector(engine::PricingEngine& engine, const uint32_t cpuId):
         pricingEngine { engine }, coreId { cpuId }, buffers (1024) {
     }
 
@@ -56,7 +56,7 @@ namespace Connectors
         worker = std::jthread{[this, subscription]
         {
             const auto threadId { std::this_thread::get_id() };
-            if (!Utilities::setThreadCore(coreId)) {
+            if (!utilities::setThreadCore(coreId)) {
                                        std::cerr << "Failed to set core " << coreId << " for " << threadId << std::endl;
                                        return;
             }

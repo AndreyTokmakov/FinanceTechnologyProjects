@@ -13,7 +13,7 @@ Description : Utilities.h
 #include <string>
 #include <cstdint>
 
-namespace Utilities
+namespace utilities
 {
     int64_t priceToLong(const std::string& strPrice);
     int64_t priceToLong(const char* strPrice, uint32_t size);

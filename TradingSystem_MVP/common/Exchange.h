@@ -10,7 +10,7 @@ Description : Exchange.h
 #ifndef FINANCETECHNOLOGYPROJECTS_EXCHANGE_H
 #define FINANCETECHNOLOGYPROJECTS_EXCHANGE_H
 
-namespace Common
+namespace common
 {
     enum class Exchange
     {

@@ -20,12 +20,12 @@ Description : Engine.h
 #include <boost/beast/core.hpp>
 #include <boost/container/flat_map.hpp>
 
-namespace Engine
+namespace engine
 {
     using namespace std::string_literals;
-    using Common::Pair;
-    using Common::FlatBuffer;
-    using Common::FlatBufferQueue;
+    using common::Pair;
+    using common::FlatBuffer;
+    using common::FlatBufferQueue;
 
     struct OrderBook
     {
@@ -55,7 +55,7 @@ namespace Engine
         std::array<ExchangeBookKeeper*, 2> books { &binanceBookKeeper, &byBitBookKeeper };
 
         void start();
-        void push(Common::Exchange exchange, FlatBuffer* message);
+        void push(common::Exchange exchange, FlatBuffer* message);
     };
 
 }

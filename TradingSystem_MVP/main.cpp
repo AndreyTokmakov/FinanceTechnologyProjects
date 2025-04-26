@@ -8,11 +8,7 @@ Description : Tests C++ project
 ============================================================================**/
 
 #include <iostream>
-#include <string_view>
-#include <vector>
-
 #include "BinanceConnector.h"
-#include "Engine.h"
 
 
 // TODO:       *************** MULTIPLEXER ************************
@@ -39,9 +35,9 @@ int main([[maybe_unused]] const int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
 
-    Engine::PricingEngine pricingEngine;
-    Connectors::BinanceWsConnector binanceWsConnectorBtc { pricingEngine, 1 };
-    Connectors::BinanceWsConnector binanceWsConnectorEth { pricingEngine, 1 };
+    engine::PricingEngine pricingEngine;
+    connectors::BinanceWsConnector binanceWsConnectorBtc { pricingEngine, 1 };
+    connectors::BinanceWsConnector binanceWsConnectorEth { pricingEngine, 1 };
     binanceWsConnectorBtc.start("btcusdt");
     binanceWsConnectorEth.start("ethusdt");
     pricingEngine.start();

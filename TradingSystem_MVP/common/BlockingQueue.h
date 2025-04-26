@@ -14,7 +14,7 @@ Description : BlockingQueue.h
 #include <mutex>
 #include <condition_variable>
 
-namespace Common
+namespace common
 {
     template<typename T>
     class BlockingQueue

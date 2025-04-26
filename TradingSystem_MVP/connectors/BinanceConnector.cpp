@@ -48,7 +48,10 @@ namespace Connectors
     // TODO: Re-structure code -- Coroutines ??
     void BinanceWsConnector::start(const std::string& pair)
     {
-        const std::string subscription { R"({"method": "SUBSCRIBE","params": [")" + pair + R"(@ticker"], "id": 1})" };
+        //const std::string subscription { R"({"method": "SUBSCRIBE","params": [")" + pair + R"(@ticker"], "id": 1})" };
+        const std::string subscription { R"({"method": "SUBSCRIBE","params": [
+        "ethusdt@ticker@ticker", "btcusdt@ticker", "bnbusdt@ticker", "xrpusdt@ticker","memeusdt@ticker", "pythusdt@ticker"
+        ], "id": 1})" };
 
         worker = std::jthread{[this, subscription]
         {

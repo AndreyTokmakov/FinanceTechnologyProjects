@@ -25,8 +25,10 @@ namespace Engine
 {
     void OrderBook::processEvent(boost::beast::flat_buffer* message) const
     {
-        std::cout << "Processing event: " << nlohmann::json::parse(beast::buffers_to_string(message->data()))
-                  << std::endl;
+        const auto& data = message->data();
+        std::string_view svData { static_cast<char*>(data.data()), data.size()};
+
+        std::cout << "Processing event: " << nlohmann::json::parse(svData)<< std::endl;
     }
 }
 

@@ -50,63 +50,17 @@ namespace Data
 "p":"-828.79000000","q":"216672881.48598570","s":"BTCUSDT","v":"2319.45099000","w":"93415.58947360","x":"93499.99000000"},
 "stream":"btcusdt@ticker"})"
     };
-}
 
-namespace market_data
-{
-    struct Ticker
-    {
-        using price_t = double;
-        using quantity_t = double;
-        using time_t = int64_t;
-        using number_t = int64_t;
-
-        time_t eventTime { 0 };
-        std::string symbol {};
-        price_t priceChange {};
-        price_t priceChangePercent {};
-
-        price_t lastPrice {};
-        price_t lastQuantity {};
-
-        price_t openPrice {};
-        price_t highPrice {};
-        price_t lowPrice {};
-
-        quantity_t totalTradedVolume {};
-        quantity_t totalTradedBaseAssetVolume {};
-
-        number_t firstTradeId {};
-        number_t lastTradeId {};
-        number_t totalTradesNumber {};
+    const std::string binanceTickerJson { FileUtilities::ReadFile(
+            R"(../../Parsers_JSON/data/binance/ticker.json)")
     };
-
-    std::ostream& operator<<(std::ostream& stream, const Ticker& ticker)
-    {
-        stream << std::format("Ticker(\n\teventTime: {},\n\tsymbol: {},"
-                              "\n\tpriceChange: {},\n\tpriceChangePercent: {},\n\tlastPrice: {},\n\tlastQuantity: {},\n\topenPrice: {},"
-                              "\n\thighPrice: {},\n\tlowPrice: {},\n\ttotalTradedVolume: {},\n\ttotalTradedBaseAssetVolume: {},"
-                              "\n\tfirstTradeId: {},\n\tlastTradeId: {},\n\ttotalTradesNumber: {}\n)",
-                              ticker.eventTime, ticker.symbol, ticker.priceChange, ticker.priceChangePercent, ticker.lastPrice,
-                              ticker.lastQuantity, ticker.openPrice, ticker.highPrice, ticker.lowPrice, ticker.totalTradedVolume,
-                              ticker.totalTradedBaseAssetVolume, ticker.firstTradeId, ticker.lastTradeId, ticker.totalTradesNumber
-        );
-        return stream;
-    }
-
-
-    struct Result {};
+    const std::string result { FileUtilities::ReadFile(
+            R"(../../Parsers_JSON/data/binance/result.json)")
+    };
 }
 
-namespace SymbolTicker
+namespace parser
 {
-    using market_data::Ticker;
-    using market_data::Result;
-
-    simdjson::ondemand::parser parser;
-    simdjson::ondemand::document document;
-    simdjson::padded_string jsonBuffer;
-
     const uint64_t pageSize = sysconf(_SC_PAGESIZE);
 
     bool need_allocation(const char *data,
@@ -142,19 +96,98 @@ namespace SymbolTicker
         return to_padded_string_view(buffer.data(), buffer.size(), jsonBuffer);
     }
 
+
+    simdjson::ondemand::parser parser;
+    simdjson::ondemand::document document;
+    simdjson::padded_string jsonBuffer;
+
+}
+
+namespace market_data
+{
+    using Price     = double;
+    using Quantity  = double;
+    using Timestamp = int64_t;
+    using Number    = int64_t;
+
+    // TODO: ---> implement StaticString (stack only)
+    using String = std::string;
+
+    struct Result
+    {
+        int id { 0 };
+    };
+
+    struct JsonParams
+    {
+        static inline constexpr std::string_view data { "data" };
+        static inline constexpr std::string_view symbol { "s" };
+        static inline constexpr std::string_view eventType { "e" };
+        static inline constexpr std::string_view eventTime { "E" };
+    };
+
+
+    struct EventTypeNames
+    {
+        static inline constexpr std::string_view depthUpdate { "depthUpdate" };
+        static inline constexpr std::string_view ticker { "24hrTicker" };
+        static inline constexpr std::string_view miniTicker { "24hrMiniTicker" };
+        static inline constexpr std::string_view aggTrade { "aggTrade" };
+        static inline constexpr std::string_view trade { "trade" };
+    };
+
+
     // TODO:
-    //  std::string_view {"E"}
     //  std::string_view {"p"}
     //  std::string_view {"P"}
     //  std::string_view {"c"}
+}
 
+namespace parser::SymbolTicker
+{
+    using namespace market_data;
+
+    struct Ticker
+    {
+        Timestamp eventTime { 0 };
+        String symbol {};
+        Price priceChange {};
+        Price priceChangePercent {};
+
+        Price lastPrice {};
+        Price lastQuantity {};
+
+        Price openPrice {};
+        Price highPrice {};
+        Price lowPrice {};
+
+        Quantity totalTradedVolume {};
+        Quantity totalTradedBaseAssetVolume {};
+
+        Number firstTradeId {};
+        Number lastTradeId {};
+        Number totalTradesNumber {};
+    };
+
+    std::ostream& operator<<(std::ostream& stream, const Ticker& ticker)
+    {
+        stream << std::format("Ticker(\n\teventTime: {},\n\tsymbol: {},"
+                              "\n\tpriceChange: {},\n\tpriceChangePercent: {},\n\tlastPrice: {},\n\tlastQuantity: {},\n\topenPrice: {},"
+                              "\n\thighPrice: {},\n\tlowPrice: {},\n\ttotalTradedVolume: {},\n\ttotalTradedBaseAssetVolume: {},"
+                              "\n\tfirstTradeId: {},\n\tlastTradeId: {},\n\ttotalTradesNumber: {}\n)",
+                              ticker.eventTime, ticker.symbol, ticker.priceChange, ticker.priceChangePercent, ticker.lastPrice,
+                              ticker.lastQuantity, ticker.openPrice, ticker.highPrice, ticker.lowPrice, ticker.totalTradedVolume,
+                              ticker.totalTradedBaseAssetVolume, ticker.firstTradeId, ticker.lastTradeId, ticker.totalTradesNumber
+        );
+        return stream;
+    }
 
     Ticker parseTicker(simdjson::ondemand::object& data)
     {
         Ticker ticker;
         {
-            ticker.eventTime = data["E"].get_int64();
-            data["s"].get_string(ticker.symbol);
+            ticker.eventTime = data[JsonParams::eventTime].get_int64();
+            data[JsonParams::symbol].get_string(ticker.symbol);
             ticker.priceChange = data["p"].get_double_in_string();
             ticker.priceChangePercent = data["P"].get_double_in_string();
             ticker.lastPrice = data["c"].get_double_in_string();
@@ -174,7 +207,7 @@ namespace SymbolTicker
     Ticker parseTicker1(simdjson::ondemand::object& data)
     {
         Ticker ticker {
-            .eventTime = data["E"].get_int64(),
+            .eventTime = data[JsonParams::eventTime].get_int64(),
             .priceChange = data["p"].get_double_in_string(),
             .priceChangePercent = data["P"].get_double_in_string(),
             .lastPrice = data["c"].get_double_in_string(),
@@ -188,7 +221,7 @@ namespace SymbolTicker
             .lastTradeId = data["L"].get_int64(),
             .totalTradesNumber = data["n"].get_int64(),
         };
-        data["s"].get_string(ticker.symbol);
+        data[JsonParams::symbol].get_string(ticker.symbol);
         return ticker;
     }
 
@@ -198,7 +231,7 @@ namespace SymbolTicker
         parser.iterate(get_padded_string(payload, jsonBuffer)).get(document);
 
         simdjson::ondemand::object data;
-        const simdjson::error_code result = document["data"].get(data);
+        const simdjson::error_code result = document[JsonParams::data].get(data);
 
         if (simdjson::SUCCESS != result) {
             return Result{};
@@ -207,26 +240,153 @@ namespace SymbolTicker
         return parseTicker(data);
     }
 
-
     void parse()
     {
-        const std::string binanceTickerJson { FileUtilities::ReadFile(
-                R"(../../Parsers_JSON/data/binance/binance_ticker.json)")
-        };
-        const std::string result { FileUtilities::ReadFile(
-                R"(../../Parsers_JSON/data/binance/result.json)")
-        };
         // const std::string_view binanceTickerJsonSv { binanceTickerJson };
 
 
-
-
-        const std::variant event = parse(binanceTickerJson);
+        const std::variant event = parse(Data::binanceTickerJson);
         if (std::holds_alternative<Ticker>(event))
         {
             const Ticker& ticker = std::get<Ticker>(event);
             std::cout << ticker << std::endl;
         }
+    }
+}
+
+namespace parser::Parser2
+{
+    using namespace market_data;
+
+    enum class EventType: uint8_t
+    {
+        None,
+        Result,
+        Ticker,
+        MiniTicker,
+        BookTicker,
+        Trade,
+        AggTrade,
+        MarkPrice,
+        DepthUpdate
+    };
+
+    std::ostream& operator<<(std::ostream& stream, const EventType& eventType)
+    {
+        switch (eventType) {
+            case EventType::None: stream << "None"; break;
+            case EventType::Result: stream << "Result"; break;
+            case EventType::Ticker: stream << "Ticker"; break;
+            case EventType::MiniTicker: stream << "MiniTicker"; break;
+            case EventType::BookTicker: stream << "BookTicker"; break;
+            case EventType::Trade: stream << "Trade"; break;
+            case EventType::AggTrade: stream << "AggTrade"; break;
+            case EventType::MarkPrice: stream << "MarkPrice"; break;
+            case EventType::DepthUpdate: stream << "DepthUpdate"; break;
+        }
+        return stream;
+    }
+
+    struct Ticker
+    {
+        Price priceChange {};
+        Price priceChangePercent {};
+        Price lastPrice {};
+        Price lastQuantity {};
+        Price openPrice {};
+        Price highPrice {};
+        Price lowPrice {};
+
+        Quantity totalTradedVolume {};
+        Quantity totalTradedBaseAssetVolume {};
+
+        Number firstTradeId {};
+        Number lastTradeId {};
+        Number totalTradesNumber {};
+    };
+
+    struct Event
+    {
+        EventType type { EventType::None };
+        String symbol;
+        String pair;
+        Timestamp eventTime;
+
+        Ticker ticker;
+        Result result;
+    };
+
+
+    void parse(const std::string_view& payload)
+    {
+        simdjson::ondemand::object data;
+        parser.iterate(get_padded_string(payload, jsonBuffer)).get(document);
+        const simdjson::error_code result = document[JsonParams::data].get(data);
+
+        Event event;
+        if (simdjson::SUCCESS != result)
+        {
+            std::cout << payload << std::endl;
+            event.type = EventType::Result;
+            return;
+        }
+
+        data[JsonParams::symbol].get_string(event.symbol);
+        event.eventTime = data[JsonParams::eventTime].get_int64();
+
+        const std::string_view eventTypeSv = data[JsonParams::eventType].get_string().value();
+        if (EventTypeNames::ticker == eventTypeSv)
+        {
+            event.type = EventType::Ticker;
+
+            event.ticker.priceChange = data["p"].get_double_in_string();
+            event.ticker.priceChangePercent = data["P"].get_double_in_string();
+
+            /*
+
+
+            ticker.lastPrice = data["c"].get_double_in_string();
+            ticker.lastQuantity = data["Q"].get_double_in_string();
+            ticker.openPrice = data["o"].get_double_in_string();
+            ticker.highPrice = data["h"].get_double_in_string();
+            ticker.lowPrice = data["l"].get_double_in_string();
+            ticker.totalTradedVolume = data["v"].get_double_in_string();
+            ticker.totalTradedBaseAssetVolume = data["q"].get_double_in_string();
+            ticker.firstTradeId = data["F"].get_int64();
+            ticker.lastTradeId = data["L"].get_int64();
+            ticker.totalTradesNumber = data["n"].get_int64();
+            */
+        }
+        else if (EventTypeNames::miniTicker == eventTypeSv)
+        {
+            event.type = EventType::MiniTicker;
+        }
+        else if (EventTypeNames::aggTrade == eventTypeSv)
+        {
+            event.type = EventType::AggTrade;
+        }
+        else if (EventTypeNames::trade == eventTypeSv)
+        {
+            event.type = EventType::Trade;
+        }
+        else if (EventTypeNames::depthUpdate == eventTypeSv)
+        {
+            event.type = EventType::DepthUpdate;
+        }
+
+
+
+        // std::cout << data << std::endl;
+        // std::cout << event.symbol << std::endl;
+        std::cout << event.eventTime << std::endl;
+        std::cout << event.type << std::endl;
+    }
+
+
+    void parse()
+    {
+       // parse(Data::result);
+       parse(Data::binanceTickerJson);
     }
 }
 
@@ -236,7 +396,8 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    SymbolTicker::parse();
+    // parser::SymbolTicker::parse();
+    parser::Parser2::parse();
 
 
     return EXIT_SUCCESS;

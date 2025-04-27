@@ -10,17 +10,13 @@ Description : Parser.h
 #ifndef FINANCETECHNOLOGYPROJECTS_PARSER_H
 #define FINANCETECHNOLOGYPROJECTS_PARSER_H
 
-#include <variant>
 #include "simdjson.h"
-#include "Ticker.h"
+#include "MarketDataTypes.h"
 
 namespace market_data
 {
-    struct Result {};
-
-    std::variant<Ticker, Result> parse(const std::string_view& str);
-    std::variant<Ticker, Result> parse(const char *data,
-                                       const size_t length);
+    MarketEvent parse(const std::string_view& str);
+    MarketEvent parse(const char *data, size_t length);
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_PARSER_H

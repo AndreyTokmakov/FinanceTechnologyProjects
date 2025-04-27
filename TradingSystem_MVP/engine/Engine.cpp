@@ -26,10 +26,8 @@ namespace engine
 {
     using market_data::Ticker;
 
-    void OrderBook::processEvent(boost::beast::flat_buffer* message) const
+    void OrderBook::processEvent(const market_data::MarketEvent& event) const
     {
-        const std::variant event = market_data::parse(static_cast<char*>(message->data().data()),
-                                                      message->data().size());
         if (std::holds_alternative<Ticker>(event))
         {
             const Ticker& ticker = std::get<Ticker>(event);
@@ -57,7 +55,7 @@ namespace engine
 {
     ExchangeBookKeeper::ExchangeBookKeeper()
     {
-        for (const std::string& ticker: { "APPL"s, "TEST"s }){
+        for (const std::string& ticker: { "BTCUSDT"s, "XRPUSDT"s, "MEMEUSDT"s }){
             orderBooksByTicker.emplace(ticker, std::make_unique<OrderBook>(ticker));
         }
     }
@@ -84,9 +82,11 @@ namespace engine
             while (true) {
                 if (queue.pop(dataWrapper))
                 {
-                    Pair pair = "APPL";  // TODO: Get TICKER/PAIR here ??
+                    const std::variant event = market_data::parse(static_cast<char*>(dataWrapper.ptr->data().data()),
+                                                                  dataWrapper.ptr->data().size());
+
                     const auto& book = orderBooksByTicker[pair];
-                    book->processEvent(dataWrapper.ptr);  // TODO: Rename method
+                    book->processEvent(event);  // TODO: Rename method
                 }
             }
         }};

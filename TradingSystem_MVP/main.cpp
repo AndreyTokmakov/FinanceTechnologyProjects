@@ -11,7 +11,7 @@ Description : Tests C++ project
 #include "BinanceConnector.h"
 
 
-// TODO:       *************** MULTIPLEXER ************************
+// TODO:       *************** MULTIPLEXER ************************                               [ DONE ]
 //  - Каждый сервер должен публиковать сообщения в очереь соответствующую для данной
 //    Exchange или symbol
 //  - Каждое такое кольцо живёт в отдельном Thread-e
@@ -22,11 +22,29 @@ Description : Tests C++ project
 //  -  Pair [usdtbtc] --> uint64_t  [так как длина 'usdtbtc' максимум 8 байт]
 //     Возможно использовать SIMD для корвертации в INT
 
+
+// TODO: Parser:
+//  - Парсер может быть отдельный для каждой конкретной биржы
+//  - Dependency Injection: Parser --> ExchangeBookKeeper
+
+
 // TODO: Next steps
-//  1. Доделать мультиплексер
-//  2. Убрать копирования прочитанных сообщений в очереди [типа Direct Memory Access.....]
+//  1. Доделать мультиплексер                                                                     [ DONE ]
+//  2. Убрать копирования прочитанных сообщений в очереди [типа Direct Memory Access.....]        [ DONE ]
 //     - каждый сервер читает сообщения в свой кольцевой буффер
 //     - после этого push-ит УКАЗАТЕЛЬ на даннный элемент буффера в соотвествующий кольцевой буффер BookKeeper-а?
+
+
+
+
+
+// TODO: --- Modules to Add / Implement
+//  1. Configuration ?
+//  2. Types: Price [int,int]
+//  3. Logger
+//  4. Symbol (as static lightweight string>
+//  5. Database
+//  6. Networking: API client ?
 
 
 int main([[maybe_unused]] const int argc,
@@ -34,12 +52,11 @@ int main([[maybe_unused]] const int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-
     engine::PricingEngine pricingEngine;
     connectors::BinanceWsConnector binanceWsConnectorBtc { pricingEngine, 1 };
-    connectors::BinanceWsConnector binanceWsConnectorEth { pricingEngine, 1 };
+    //connectors::BinanceWsConnector binanceWsConnectorEth { pricingEngine, 1 };
     binanceWsConnectorBtc.start("btcusdt");
-    binanceWsConnectorEth.start("ethusdt");
+    // binanceWsConnectorEth.start("ethusdt");
     pricingEngine.start();
 
     while (true) {

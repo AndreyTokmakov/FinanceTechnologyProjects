@@ -20,15 +20,19 @@ namespace market_data
     using common::quantity_t;
     using common::number_t;
 
+    // TODO: Restructure
+    //  - Place variables uses together close to each other
+    //  - CacheLine Alignement - try to Fit all data in the same CacheLine
     struct Ticker
     {
-        time_t eventTime { 0 };
         std::string symbol {};
         price_t priceChange {};
         price_t priceChangePercent {};
 
         price_t lastPrice {};
         price_t lastQuantity {};
+
+        time_t eventTime { 0 };
 
         price_t openPrice {};
         price_t highPrice {};

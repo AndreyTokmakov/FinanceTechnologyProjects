@@ -42,9 +42,8 @@ add_executable(${PROJECT_NAME}
         ${ENGINE}/Engine.cpp ${ENGINE}/Engine.h
         ${CONNECTORS}/BinanceConnector.cpp
         ${COMMON}/Utilities.cpp
-        ${COMMON}/Event.h
-        ${MARKET_DATA}/Ticker.cpp ${MARKET_DATA}/Ticker.h
         ${MARKET_DATA}/Parser.cpp ${MARKET_DATA}/Parser.h
+        ${MARKET_DATA}/MarketData.cpp ${MARKET_DATA}/MarketData.h
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

@@ -11,12 +11,11 @@ Description : Parser.h
 #define FINANCETECHNOLOGYPROJECTS_PARSER_H
 
 #include "simdjson.h"
-#include "MarketDataTypes.h"
+#include "MarketData.h"
 
 namespace market_data
 {
-    MarketEvent parse(const std::string_view& str);
-    MarketEvent parse(const char *data, size_t length);
+    bool parse(const std::string_view& str, market_data::Event& event);
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_PARSER_H

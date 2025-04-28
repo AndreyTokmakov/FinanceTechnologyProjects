@@ -121,9 +121,22 @@ namespace market_data
     struct JsonParams
     {
         static inline constexpr std::string_view data { "data" };
+        static inline constexpr std::string_view pair { "ps" };
         static inline constexpr std::string_view symbol { "s" };
         static inline constexpr std::string_view eventType { "e" };
         static inline constexpr std::string_view eventTime { "E" };
+        static inline constexpr std::string_view priceChange { "p" };
+        static inline constexpr std::string_view priceChangePercent { "P" };
+        static inline constexpr std::string_view lastPrice { "c" };
+        static inline constexpr std::string_view lastQuantity { "Q" };
+        static inline constexpr std::string_view openPrice { "o" };
+        static inline constexpr std::string_view highPrice { "h" };
+        static inline constexpr std::string_view lowPrice { "l" };
+        static inline constexpr std::string_view totalTradedVolume { "v" };
+        static inline constexpr std::string_view totalTradedBaseAssetVolume{ "q" };
+        static inline constexpr std::string_view firstTradeId { "F" };
+        static inline constexpr std::string_view lastTradeId { "L" };
+        static inline constexpr std::string_view totalTradesNumber { "n" };
     };
 
 
@@ -136,11 +149,6 @@ namespace market_data
         static inline constexpr std::string_view trade { "trade" };
     };
 
-
-    // TODO:
-    //  std::string_view {"p"}
-    //  std::string_view {"P"}
-    //  std::string_view {"c"}
 }
 
 namespace parser::SymbolTicker
@@ -188,18 +196,18 @@ namespace parser::SymbolTicker
         {
             ticker.eventTime = data[JsonParams::eventTime].get_int64();
             data[JsonParams::symbol].get_string(ticker.symbol);
-            ticker.priceChange = data["p"].get_double_in_string();
-            ticker.priceChangePercent = data["P"].get_double_in_string();
-            ticker.lastPrice = data["c"].get_double_in_string();
-            ticker.lastQuantity = data["Q"].get_double_in_string();
-            ticker.openPrice = data["o"].get_double_in_string();
-            ticker.highPrice = data["h"].get_double_in_string();
-            ticker.lowPrice = data["l"].get_double_in_string();
-            ticker.totalTradedVolume = data["v"].get_double_in_string();
-            ticker.totalTradedBaseAssetVolume = data["q"].get_double_in_string();
-            ticker.firstTradeId = data["F"].get_int64();
-            ticker.lastTradeId = data["L"].get_int64();
-            ticker.totalTradesNumber = data["n"].get_int64();
+            ticker.priceChange = data[JsonParams::priceChange].get_double_in_string();
+            ticker.priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string();
+            ticker.lastPrice = data[JsonParams::lastPrice].get_double_in_string();
+            ticker.lastQuantity = data[JsonParams::lastQuantity].get_double_in_string();
+            ticker.openPrice = data[JsonParams::openPrice].get_double_in_string();
+            ticker.highPrice = data[JsonParams::highPrice].get_double_in_string();
+            ticker.lowPrice = data[JsonParams::lowPrice].get_double_in_string();
+            ticker.totalTradedVolume = data[JsonParams::totalTradedVolume].get_double_in_string();
+            ticker.totalTradedBaseAssetVolume = data[JsonParams::totalTradedBaseAssetVolume].get_double_in_string();
+            ticker.firstTradeId = data[JsonParams::firstTradeId].get_int64();
+            ticker.lastTradeId = data[JsonParams::lastTradeId].get_int64();
+            ticker.totalTradesNumber = data[JsonParams::totalTradesNumber].get_int64();
         }
         return ticker;
     }
@@ -208,18 +216,18 @@ namespace parser::SymbolTicker
     {
         Ticker ticker {
             .eventTime = data[JsonParams::eventTime].get_int64(),
-            .priceChange = data["p"].get_double_in_string(),
-            .priceChangePercent = data["P"].get_double_in_string(),
-            .lastPrice = data["c"].get_double_in_string(),
-            .lastQuantity = data["Q"].get_double_in_string(),
-            .openPrice = data["o"].get_double_in_string(),
-            .highPrice = data["h"].get_double_in_string(),
-            .lowPrice = data["l"].get_double_in_string(),
-            .totalTradedVolume = data["v"].get_double_in_string(),
-            .totalTradedBaseAssetVolume = data["q"].get_double_in_string(),
-            .firstTradeId = data["F"].get_int64(),
-            .lastTradeId = data["L"].get_int64(),
-            .totalTradesNumber = data["n"].get_int64(),
+            .priceChange = data[JsonParams::priceChange].get_double_in_string(),
+            .priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string(),
+            .lastPrice = data[JsonParams::lastPrice].get_double_in_string(),
+            .lastQuantity = data[JsonParams::lastQuantity].get_double_in_string(),
+            .openPrice = data[JsonParams::openPrice].get_double_in_string(),
+            .highPrice = data[JsonParams::highPrice].get_double_in_string(),
+            .lowPrice = data[JsonParams::lowPrice].get_double_in_string(),
+            .totalTradedVolume = data[JsonParams::totalTradedVolume].get_double_in_string(),
+            .totalTradedBaseAssetVolume = data[JsonParams::totalTradedBaseAssetVolume].get_double_in_string(),
+            .firstTradeId = data[JsonParams::firstTradeId].get_int64(),
+            .lastTradeId = data[JsonParams::lastTradeId].get_int64(),
+            .totalTradesNumber = data[JsonParams::totalTradesNumber].get_int64(),
         };
         data[JsonParams::symbol].get_string(ticker.symbol);
         return ticker;
@@ -332,6 +340,7 @@ namespace parser::Parser2
         }
 
         data[JsonParams::symbol].get_string(event.symbol);
+        data[JsonParams::pair].get_string(event.pair);
         event.eventTime = data[JsonParams::eventTime].get_int64();
 
         const std::string_view eventTypeSv = data[JsonParams::eventType].get_string().value();
@@ -339,23 +348,18 @@ namespace parser::Parser2
         {
             event.type = EventType::Ticker;
 
-            event.ticker.priceChange = data["p"].get_double_in_string();
-            event.ticker.priceChangePercent = data["P"].get_double_in_string();
-
-            /*
-
-
-            ticker.lastPrice = data["c"].get_double_in_string();
-            ticker.lastQuantity = data["Q"].get_double_in_string();
-            ticker.openPrice = data["o"].get_double_in_string();
-            ticker.highPrice = data["h"].get_double_in_string();
-            ticker.lowPrice = data["l"].get_double_in_string();
-            ticker.totalTradedVolume = data["v"].get_double_in_string();
-            ticker.totalTradedBaseAssetVolume = data["q"].get_double_in_string();
-            ticker.firstTradeId = data["F"].get_int64();
-            ticker.lastTradeId = data["L"].get_int64();
-            ticker.totalTradesNumber = data["n"].get_int64();
-            */
+            event.ticker.priceChange = data[JsonParams::priceChange].get_double_in_string();
+            event.ticker.priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string();
+            event.ticker.lastPrice = data[JsonParams::lastPrice].get_double_in_string();
+            event.ticker.lastQuantity = data[JsonParams::lastQuantity].get_double_in_string();
+            event.ticker.openPrice = data[JsonParams::openPrice].get_double_in_string();
+            event.ticker.highPrice = data[JsonParams::highPrice].get_double_in_string();
+            event.ticker.lowPrice = data[JsonParams::lowPrice].get_double_in_string();
+            event.ticker.totalTradedVolume = data[JsonParams::totalTradedVolume].get_double_in_string();
+            event.ticker.totalTradedBaseAssetVolume = data[JsonParams::totalTradedBaseAssetVolume].get_double_in_string();
+            event.ticker.firstTradeId = data[JsonParams::firstTradeId].get_int64();
+            event.ticker.lastTradeId = data[JsonParams::lastTradeId].get_int64();
+            event.ticker.totalTradesNumber = data[JsonParams::totalTradesNumber].get_int64();
         }
         else if (EventTypeNames::miniTicker == eventTypeSv)
         {

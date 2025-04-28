@@ -26,29 +26,10 @@ namespace engine
 {
     using market_data::Ticker;
 
-    void OrderBook::processEvent(const market_data::MarketEvent& event) const
+    void OrderBook::processEvent(const market_data::Event& event) const
     {
-        if (std::holds_alternative<Ticker>(event))
-        {
-            const Ticker& ticker = std::get<Ticker>(event);
-            std::cout << ticker << std::endl;
-        }
-    }
 
-    /*
-    void OrderBook::processEvent(boost::beast::flat_buffer* message) const
-    {
-        const auto& data = message->data();
-        const std::string_view svData { static_cast<char*>(data.data()), data.size()};
-
-        const std::variant event = market_data::parse(svData);
-        if (std::holds_alternative<Ticker>(event))
-        {
-            const Ticker& ticker = std::get<Ticker>(event);
-            std::cout << ticker << std::endl;
-        }
     }
-    */
 }
 
 namespace engine
@@ -78,14 +59,12 @@ namespace engine
                 std::cout << "Starting ExchangeBookKeeper on CPU: " << utilities::getCpu() << std::endl;
             }
 
+            market_data::Event event;
             decltype(queue)::Wrapper dataWrapper;
             while (true) {
                 if (queue.pop(dataWrapper))
                 {
-                    const std::variant event = market_data::parse(static_cast<char*>(dataWrapper.ptr->data().data()),
-                                                                  dataWrapper.ptr->data().size());
-
-                    const auto& book = orderBooksByTicker[pair];
+                    const auto& book = orderBooksByTicker[event.pair];
                     book->processEvent(event);  // TODO: Rename method
                 }
             }

@@ -16,7 +16,7 @@ Description : Engine.h
 #include "BlockingQueuePtr.h"
 #include "Exchange.h"
 #include "Types.h"
-#include "MarketDataTypes.h"
+#include "MarketData.h"
 
 #include <boost/beast/core.hpp>
 #include <boost/container/flat_map.hpp>
@@ -33,7 +33,7 @@ namespace engine
         Pair pair;
 
         // TODO: Rename method
-        void processEvent(const market_data::MarketEvent& event) const;
+        void processEvent(const market_data::Event& event) const;
     };
 
     struct ExchangeBookKeeper

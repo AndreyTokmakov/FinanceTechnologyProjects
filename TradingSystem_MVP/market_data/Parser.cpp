@@ -59,64 +59,94 @@ namespace
     simdjson::ondemand::parser parser;
     simdjson::ondemand::document document;
     simdjson::padded_string jsonBuffer;
+}
 
-    // TODO:
-    //  std::string_view {"E"}
-    //  std::string_view {"p"}
-    //  std::string_view {"P"}
-    //  std::string_view {"c"}
-    //  std::string_view {"data"}
+namespace
+{
+    struct JsonParams
+    {
+        static inline constexpr std::string_view data { "data" };
+        static inline constexpr std::string_view pair { "ps" };
+        static inline constexpr std::string_view symbol { "s" };
+        static inline constexpr std::string_view eventType { "e" };
+        static inline constexpr std::string_view eventTime { "E" };
+        static inline constexpr std::string_view priceChange { "p" };
+        static inline constexpr std::string_view priceChangePercent { "P" };
+        static inline constexpr std::string_view lastPrice { "c" };
+        static inline constexpr std::string_view lastQuantity { "Q" };
+        static inline constexpr std::string_view openPrice { "o" };
+        static inline constexpr std::string_view highPrice { "h" };
+        static inline constexpr std::string_view lowPrice { "l" };
+        static inline constexpr std::string_view totalTradedVolume { "v" };
+        static inline constexpr std::string_view totalTradedBaseAssetVolume{ "q" };
+        static inline constexpr std::string_view firstTradeId { "F" };
+        static inline constexpr std::string_view lastTradeId { "L" };
+        static inline constexpr std::string_view totalTradesNumber { "n" };
+    };
 
 
+    struct EventTypeNames
+    {
+        static inline constexpr std::string_view depthUpdate { "depthUpdate" };
+        static inline constexpr std::string_view ticker { "24hrTicker" };
+        static inline constexpr std::string_view miniTicker { "24hrMiniTicker" };
+        static inline constexpr std::string_view aggTrade { "aggTrade" };
+        static inline constexpr std::string_view trade { "trade" };
+    };
 }
 
 namespace market_data
 {
-    Ticker parseTicker(simdjson::ondemand::object& data)
+    bool parse(const std::string_view& payload, market_data::Event& event)
     {
-        Ticker ticker {
-                .eventTime = data["E"].get_int64(),
-                .priceChange = data["p"].get_double_in_string(),
-                .priceChangePercent = data["P"].get_double_in_string(),
-                .lastPrice = data["c"].get_double_in_string(),
-                .lastQuantity = data["Q"].get_double_in_string(),
-                .openPrice = data["o"].get_double_in_string(),
-                .highPrice = data["h"].get_double_in_string(),
-                .lowPrice = data["l"].get_double_in_string(),
-                .totalTradedVolume = data["v"].get_double_in_string(),
-                .totalTradedBaseAssetVolume = data["q"].get_double_in_string(),
-                .firstTradeId = data["F"].get_int64(),
-                .lastTradeId = data["L"].get_int64(),
-                .totalTradesNumber = data["n"].get_int64(),
-        };
-        data["s"].get_string(ticker.symbol);
-        return ticker;
-    }
-
-    std::variant<Ticker, Result> parse(const std::string_view& payload)
-    {
+        simdjson::ondemand::object data;
         parser.iterate(get_padded_string(payload, jsonBuffer)).get(document);
-        simdjson::ondemand::object dataObject;
-        const simdjson::error_code result = document["data"].get(dataObject);
 
-        if (simdjson::SUCCESS != result) {
-            return Result{};
+        if (simdjson::SUCCESS != document[JsonParams::data].get(data))
+        {
+            event.type = EventType::Result;
+            return false;
         }
 
-        return parseTicker(dataObject);
-    }
+        data[JsonParams::symbol].get_string(event.symbol);
+        data[JsonParams::pair].get_string(event.pair);
+        event.eventTime = data[JsonParams::eventTime].get_int64();
 
-    std::variant<Ticker, Result> parse(const char *data,
-                                       const size_t length)
-    {
-        parser.iterate(get_padded_string(data, length, jsonBuffer)).get(document);
-        simdjson::ondemand::object dataObject;
-        const simdjson::error_code result = document["data"].get(dataObject);
+        const std::string_view eventTypeSv = data[JsonParams::eventType].get_string().value();
+        if (EventTypeNames::ticker == eventTypeSv)
+        {
+            event.type = EventType::Ticker;
 
-        if (simdjson::SUCCESS != result) {
-            return Result{};
+            event.ticker.priceChange = data[JsonParams::priceChange].get_double_in_string();
+            event.ticker.priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string();
+            event.ticker.lastPrice = data[JsonParams::lastPrice].get_double_in_string();
+            event.ticker.lastQuantity = data[JsonParams::lastQuantity].get_double_in_string();
+            event.ticker.openPrice = data[JsonParams::openPrice].get_double_in_string();
+            event.ticker.highPrice = data[JsonParams::highPrice].get_double_in_string();
+            event.ticker.lowPrice = data[JsonParams::lowPrice].get_double_in_string();
+            event.ticker.totalTradedVolume = data[JsonParams::totalTradedVolume].get_double_in_string();
+            event.ticker.totalTradedBaseAssetVolume = data[JsonParams::totalTradedBaseAssetVolume].get_double_in_string();
+            event.ticker.firstTradeId = data[JsonParams::firstTradeId].get_int64();
+            event.ticker.lastTradeId = data[JsonParams::lastTradeId].get_int64();
+            event.ticker.totalTradesNumber = data[JsonParams::totalTradesNumber].get_int64();
+        }
+        else if (EventTypeNames::miniTicker == eventTypeSv)
+        {
+            event.type = EventType::MiniTicker;
+        }
+        else if (EventTypeNames::aggTrade == eventTypeSv)
+        {
+            event.type = EventType::AggTrade;
+        }
+        else if (EventTypeNames::trade == eventTypeSv)
+        {
+            event.type = EventType::Trade;
+        }
+        else if (EventTypeNames::depthUpdate == eventTypeSv)
+        {
+            event.type = EventType::DepthUpdate;
         }
 
-        return parseTicker(dataObject);
+        return true;
     }
 }

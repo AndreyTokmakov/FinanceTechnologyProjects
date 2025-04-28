@@ -97,38 +97,48 @@ namespace
 
 namespace market_data
 {
+    /*
     bool parse(const std::string_view& payload, market_data::Event& event)
     {
-        simdjson::ondemand::object data;
-        parser.iterate(get_padded_string(payload, jsonBuffer)).get(document);
 
-        if (simdjson::SUCCESS != document[JsonParams::data].get(data))
+    }*/
+
+    bool parse(const char *data,
+               const size_t length,
+               market_data::Event& event)
+    {
+        simdjson::ondemand::object dataObj;
+        parser.iterate(get_padded_string(data, length, jsonBuffer)).get(document);
+
+        if (simdjson::SUCCESS != document[JsonParams::data].get(dataObj))
         {
             event.type = EventType::Result;
             return false;
         }
 
-        data[JsonParams::symbol].get_string(event.symbol);
-        data[JsonParams::pair].get_string(event.pair);
-        event.eventTime = data[JsonParams::eventTime].get_int64();
+        // std::cout << dataObj << std::endl; /** DEBUG **/
 
-        const std::string_view eventTypeSv = data[JsonParams::eventType].get_string().value();
+        const std::string_view eventTypeSv = dataObj[JsonParams::eventType].get_string().value();
         if (EventTypeNames::ticker == eventTypeSv)
         {
             event.type = EventType::Ticker;
 
-            event.ticker.priceChange = data[JsonParams::priceChange].get_double_in_string();
-            event.ticker.priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string();
-            event.ticker.lastPrice = data[JsonParams::lastPrice].get_double_in_string();
-            event.ticker.lastQuantity = data[JsonParams::lastQuantity].get_double_in_string();
-            event.ticker.openPrice = data[JsonParams::openPrice].get_double_in_string();
-            event.ticker.highPrice = data[JsonParams::highPrice].get_double_in_string();
-            event.ticker.lowPrice = data[JsonParams::lowPrice].get_double_in_string();
-            event.ticker.totalTradedVolume = data[JsonParams::totalTradedVolume].get_double_in_string();
-            event.ticker.totalTradedBaseAssetVolume = data[JsonParams::totalTradedBaseAssetVolume].get_double_in_string();
-            event.ticker.firstTradeId = data[JsonParams::firstTradeId].get_int64();
-            event.ticker.lastTradeId = data[JsonParams::lastTradeId].get_int64();
-            event.ticker.totalTradesNumber = data[JsonParams::totalTradesNumber].get_int64();
+            // dataObj[JsonParams::pair].get_string(event.pair);
+            dataObj[JsonParams::symbol].get_string(event.symbol);
+            event.eventTime = dataObj[JsonParams::eventTime].get_int64();
+
+            event.ticker.priceChange = dataObj[JsonParams::priceChange].get_double_in_string();
+            event.ticker.priceChangePercent = dataObj[JsonParams::priceChangePercent].get_double_in_string();
+            event.ticker.lastPrice = dataObj[JsonParams::lastPrice].get_double_in_string();
+            event.ticker.lastQuantity = dataObj[JsonParams::lastQuantity].get_double_in_string();
+            event.ticker.openPrice = dataObj[JsonParams::openPrice].get_double_in_string();
+            event.ticker.highPrice = dataObj[JsonParams::highPrice].get_double_in_string();
+            event.ticker.lowPrice = dataObj[JsonParams::lowPrice].get_double_in_string();
+            event.ticker.totalTradedVolume = dataObj[JsonParams::totalTradedVolume].get_double_in_string();
+            event.ticker.totalTradedBaseAssetVolume = dataObj[JsonParams::totalTradedBaseAssetVolume].get_double_in_string();
+            event.ticker.firstTradeId = dataObj[JsonParams::firstTradeId].get_int64();
+            event.ticker.lastTradeId = dataObj[JsonParams::lastTradeId].get_int64();
+            event.ticker.totalTradesNumber = dataObj[JsonParams::totalTradesNumber].get_int64();
         }
         else if (EventTypeNames::miniTicker == eventTypeSv)
         {
@@ -145,6 +155,10 @@ namespace market_data
         else if (EventTypeNames::depthUpdate == eventTypeSv)
         {
             event.type = EventType::DepthUpdate;
+
+            // dataObj[JsonParams::pair].get_string(event.pair);
+            dataObj[JsonParams::symbol].get_string(event.symbol);
+            event.eventTime = dataObj[JsonParams::eventTime].get_int64();
         }
 
         return true;

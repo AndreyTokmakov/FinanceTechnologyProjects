@@ -30,6 +30,7 @@ namespace engine
 
     struct OrderBook
     {
+        // TODO: pair ?? symbol ??
         Pair pair;
 
         // TODO: Rename method

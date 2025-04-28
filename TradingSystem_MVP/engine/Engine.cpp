@@ -28,7 +28,9 @@ namespace engine
 
     void OrderBook::processEvent(const market_data::Event& event) const
     {
-
+        std::cout << "Book '" << pair << "' processing event: " <<  event.type << std::endl;
+        //std::cout << event.symbol << std::endl;
+        //std::cout << event.pair << std::endl;
     }
 }
 
@@ -36,6 +38,7 @@ namespace engine
 {
     ExchangeBookKeeper::ExchangeBookKeeper()
     {
+        // TODO: Read Symbols from configuration
         for (const std::string& ticker: { "BTCUSDT"s, "XRPUSDT"s, "MEMEUSDT"s }){
             orderBooksByTicker.emplace(ticker, std::make_unique<OrderBook>(ticker));
         }
@@ -64,8 +67,22 @@ namespace engine
             while (true) {
                 if (queue.pop(dataWrapper))
                 {
-                    const auto& book = orderBooksByTicker[event.pair];
-                    book->processEvent(event);  // TODO: Rename method
+                    market_data::parse(static_cast<char*>(dataWrapper.ptr->data().data()),
+                                       dataWrapper.ptr->data().size(),
+                                       event);
+                    if (event.type == market_data::EventType::Result)
+                    {
+                        std::cout << event.type << " received\n";
+                        continue;
+                    }
+
+                    std::cout << std::quoted(event.symbol) << " " <<  std::quoted(event.pair) << std::endl;
+
+                    // TODO: Check that OrderBook exists ???
+                    const auto& book = orderBooksByTicker[event.symbol];
+
+                    // TODO: Rename method
+                    book->processEvent(event);
                 }
             }
         }};
@@ -82,7 +99,8 @@ namespace engine
             bookKeeper->start(cpuId++);
     }
 
-    void PricingEngine::push(common::Exchange exchange, beast::flat_buffer* message)
+    void PricingEngine::push(common::Exchange exchange,
+                             beast::flat_buffer* message)
     {
         // std::cout << "push (CPU: " << Utils::getCpu() << ") : " << jsonMessage << std::endl;
         books[static_cast<uint32_t>(exchange)]->push(message);

@@ -22,6 +22,7 @@ namespace connectors
     {
         static inline constexpr std::string_view host { "testnet.binance.vision" };
         static inline constexpr uint16_t port { 443 };
+        static inline constexpr uint32_t bufferSize { 1024 };
 
         engine::PricingEngine& pricingEngine;
         std::jthread worker;

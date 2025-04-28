@@ -54,8 +54,8 @@ int main([[maybe_unused]] const int argc,
 
     engine::PricingEngine pricingEngine;
     connectors::BinanceWsConnector binanceWsConnectorBtc { pricingEngine, 1 };
-    //connectors::BinanceWsConnector binanceWsConnectorEth { pricingEngine, 1 };
     binanceWsConnectorBtc.start("btcusdt");
+    //connectors::BinanceWsConnector binanceWsConnectorEth { pricingEngine, 1 };
     // binanceWsConnectorEth.start("ethusdt");
     pricingEngine.start();
 

@@ -15,7 +15,9 @@ Description : Parser.h
 
 namespace market_data
 {
-    bool parse(const std::string_view& str, market_data::Event& event);
+    bool parse(const char *data,
+               size_t length,
+               market_data::Event& event);
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_PARSER_H

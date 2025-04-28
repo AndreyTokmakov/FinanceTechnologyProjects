@@ -42,18 +42,24 @@ namespace
 namespace connectors
 {
     BinanceWsConnector::BinanceWsConnector(engine::PricingEngine& engine, const uint32_t cpuId):
-        pricingEngine { engine }, coreId { cpuId }, buffers (1024) {
+        pricingEngine { engine }, coreId { cpuId }, buffers (bufferSize ) {
     }
 
     // TODO: Re-structure code -- Coroutines ??
     void BinanceWsConnector::start(const std::string& pair)
     {
         //const std::string subscription { R"({"method": "SUBSCRIBE","params": [")" + pair + R"(@ticker"], "id": 1})" };
-        const std::string subscription { R"({"method": "SUBSCRIBE","params": [
-            "ethusdt@ticker@ticker", "btcusdt@ticker", ,"memeusdt@ticker"
+
+        const std::string subscriptionTicker { R"({"method": "SUBSCRIBE","params": [
+            "ethusdt@ticker@ticker", "btcusdt@ticker", "memeusdt@ticker"
         ], "id": 1})" };
 
-        worker = std::jthread{[this, subscription]
+        const std::string subscriptionDepth { R"({"method": "SUBSCRIBE","params": [
+            "ethusdt@ticker@depth", "btcusdt@depth", "memeusdt@depth"
+        ], "id": 1})" };
+
+
+        worker = std::jthread{[this, subscriptionDepth]
         {
             const auto threadId { std::this_thread::get_id() };
             if (!utilities::setThreadCore(coreId)) {
@@ -87,7 +93,7 @@ namespace connectors
             wsStream.handshake(host, "/stream");;
 
             [[maybe_unused]]
-            const size_t bytesSend = wsStream.write(net::buffer(subscription));
+            const size_t bytesSend = wsStream.write(net::buffer(subscriptionDepth));
             size_t bytesRead = 0;
 
             while (true)
@@ -97,7 +103,9 @@ namespace connectors
                 //  - Как то можно избежать копирований ???
                 //  - Memory / Object Pool ???? (For MarkerData Events)
 
-                beast::flat_buffer& buffer = buffers[fast_modulo(counter, 1024)];
+                // TODO: Handle Exception ????
+
+                beast::flat_buffer& buffer = buffers[fast_modulo(counter, bufferSize)];
                 buffer.clear();
                 ++counter;
                 bytesRead = wsStream.read(buffer);

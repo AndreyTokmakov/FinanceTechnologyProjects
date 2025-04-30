@@ -188,20 +188,6 @@ namespace binance::SymbolTicker
         Number totalTradesNumber {};
     };
 
-    struct Depth
-    {
-        struct PriceUpdate
-        {
-            Number price { 0 };
-            Number quantity { 0 };
-        };
-
-        Number firstUpdateId { 0 };
-        Number finalUpdateId { 0 };
-        std::vector<PriceUpdate> bid;
-        std::vector<PriceUpdate> ask;
-    };
-
     std::ostream& operator<<(std::ostream& stream, const Ticker& ticker)
     {
         stream << std::format("Ticker(\n\teventTime: {},\n\tsymbol: {},"
@@ -320,6 +306,20 @@ namespace binance::parser2
         return stream;
     }
 
+    struct Depth
+    {
+        struct PriceUpdate
+        {
+            Number price { 0 };
+            Number quantity { 0 };
+        };
+
+        Number firstUpdateId { 0 };
+        Number finalUpdateId { 0 };
+        std::vector<PriceUpdate> bid;
+        std::vector<PriceUpdate> ask;
+    };
+
     struct Ticker
     {
         Price priceChange {};
@@ -347,6 +347,7 @@ namespace binance::parser2
 
         Ticker ticker;
         Result result;
+        Depth depth;
     };
 
 
@@ -407,22 +408,24 @@ namespace binance::parser2
 
             // FIXME: not create array all the time
             simdjson::ondemand::array array;
+
             result = data[JsonParams::bids].get(array);
-
-
-            for (const auto& entry: array) {
-                std::cout << entry << std::endl;
+            event.depth.bid.clear();
+            for (auto entry: array) {
+                auto& bid = event.depth.bid.emplace_back();
+                entry.get(bid.price);
+                entry.get(bid.quantity);
             }
 
-            /*
+            result = data[JsonParams::asks].get(array);
+            event.depth.ask.clear();
+            for (auto entry: array) {
+                auto& ask = event.depth.ask.emplace_back();
+                entry.get(ask.price);
+                entry.get(ask.quantity);
+            }
 
-
-
-            std::cout << bids << std::endl;
-
-            result = data[JsonParams::asks].get(asks);
-            std::cout << asks << std::endl;
-            */
+            std::cout << event.depth.bid.size() << "  " << event.depth.ask.size() << std::endl;
         }
 
         //std::cout << data << std::endl;

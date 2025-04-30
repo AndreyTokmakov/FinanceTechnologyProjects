@@ -10,6 +10,7 @@ add_compile_options(-c -Wall -Wextra -O3 -std=c++26)
 
 add_executable(${PROJECT_NAME}
         main.cpp
+        binance/BinanceDataParser.cpp
 )
 
 include_directories(${THIRD_PARTY_DIR}/simdjson/include)

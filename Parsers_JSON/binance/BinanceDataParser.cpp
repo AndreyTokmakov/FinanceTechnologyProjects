@@ -142,6 +142,12 @@ namespace binance::market_data
         static inline constexpr std::string_view firstTradeId { "F" };
         static inline constexpr std::string_view lastTradeId { "L" };
         static inline constexpr std::string_view totalTradesNumber { "n" };
+
+        /** Depth **/
+        static inline constexpr std::string_view firstUpdateId { "U" };
+        static inline constexpr std::string_view finalUpdateId { "u" };
+        static inline constexpr std::string_view bids { "b" };
+        static inline constexpr std::string_view asks { "a" };
     };
 
 
@@ -180,6 +186,20 @@ namespace binance::SymbolTicker
         Number firstTradeId {};
         Number lastTradeId {};
         Number totalTradesNumber {};
+    };
+
+    struct Depth
+    {
+        struct PriceUpdate
+        {
+            Number price { 0 };
+            Number quantity { 0 };
+        };
+
+        Number firstUpdateId { 0 };
+        Number finalUpdateId { 0 };
+        std::vector<PriceUpdate> bid;
+        std::vector<PriceUpdate> ask;
     };
 
     std::ostream& operator<<(std::ostream& stream, const Ticker& ticker)
@@ -323,7 +343,7 @@ namespace binance::parser2
         EventType type { EventType::None };
         String symbol;
         String pair;
-        Timestamp eventTime;
+        Timestamp eventTime { 0 };
 
         Ticker ticker;
         Result result;
@@ -334,7 +354,7 @@ namespace binance::parser2
     {
         simdjson::ondemand::object data;
         parser.iterate(get_padded_string(payload, jsonBuffer)).get(document);
-        const simdjson::error_code result = document[JsonParams::data].get(data);
+        simdjson::error_code result = document[JsonParams::data].get(data);
 
         Event event;
         if (simdjson::SUCCESS != result)
@@ -343,14 +363,14 @@ namespace binance::parser2
             return;
         }
 
-        data[JsonParams::symbol].get_string(event.symbol);
-        data[JsonParams::pair].get_string(event.pair);
-        event.eventTime = data[JsonParams::eventTime].get_int64();
-
         const std::string_view eventTypeSv = data[JsonParams::eventType].get_string().value();
         if (EventTypeNames::ticker == eventTypeSv)
         {
             event.type = EventType::Ticker;
+
+            data[JsonParams::symbol].get_string(event.symbol);
+            data[JsonParams::pair].get_string(event.pair);
+            event.eventTime = data[JsonParams::eventTime].get_int64();
 
             event.ticker.priceChange = data[JsonParams::priceChange].get_double_in_string();
             event.ticker.priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string();
@@ -380,15 +400,36 @@ namespace binance::parser2
         else if (EventTypeNames::depthUpdate == eventTypeSv)
         {
             event.type = EventType::DepthUpdate;
+
+            data[JsonParams::symbol].get_string(event.symbol);
+            //data[JsonParams::pair].get_string(event.pair);
+            event.eventTime = data[JsonParams::eventTime].get_int64();
+
+            // FIXME: not create array all the time
+            simdjson::ondemand::array array;
+            result = data[JsonParams::bids].get(array);
+
+
+            for (const auto& entry: array) {
+                std::cout << entry << std::endl;
+            }
+
+            /*
+
+
+
+            std::cout << bids << std::endl;
+
+            result = data[JsonParams::asks].get(asks);
+            std::cout << asks << std::endl;
+            */
         }
 
+        //std::cout << data << std::endl;
 
-        std::cout << data << std::endl;
-
-        // std::cout << data << std::endl;
-        // std::cout << event.symbol << std::endl;
         std::cout << event.eventTime << std::endl;
         std::cout << event.type << std::endl;
+        std::cout << event.symbol << std::endl;
     }
 }
 

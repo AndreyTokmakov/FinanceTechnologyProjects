@@ -10,18 +10,18 @@ Description : MarketData.h
 #ifndef FINANCETECHNOLOGYPROJECTS_MARKETDATATYPES_H
 #define FINANCETECHNOLOGYPROJECTS_MARKETDATATYPES_H
 
-#include <iostream>
 #include <vector>
+#include "Types.h"
 
 namespace market_data
 {
-    using Price     = double;
-    using Quantity  = double;
-    using Timestamp = int64_t;
-    using Number    = int64_t;
+    using namespace common;
 
-    // TODO: ---> implement StaticString (stack only)
-    using String = std::string;
+    struct PriceLevel
+    {
+        Number price { 0 };
+        Number quantity { 0 };
+    };
 
     struct Result
     {
@@ -63,11 +63,7 @@ namespace market_data
 
     struct Depth
     {
-        struct PriceUpdate
-        {
-            Number price { 0 };
-            Number quantity { 0 };
-        };
+        using PriceUpdate = PriceLevel;
 
         Number firstUpdateId { 0 };
         Number finalUpdateId { 0 };

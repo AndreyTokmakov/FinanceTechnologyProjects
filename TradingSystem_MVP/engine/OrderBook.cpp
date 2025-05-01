@@ -7,18 +7,42 @@ Copyright   : Your copyright notice
 Description : OrderBook.cpp
 ============================================================================**/
 
+#include <iostream>
 #include "OrderBook.h"
-
 
 namespace engine
 {
-    using market_data::Ticker;
+    using market_data::EventType;
+    using market_data::Depth;
 
-    void OrderBook::processEvent(const market_data::Event& event) const
+    void OrderBook::processEvent(const market_data::Event& event)
     {
-        std::cout << "Book '" << pair << "' processing event: " <<  event.type << std::endl;
-        std::cout << "\t{ bids: " << event.depth.bid.size() << ", asks: " << event.depth.ask.size() << " }\n";
-        //std::cout << event.symbol << std::endl;
-        //std::cout << event.pair << std::endl;
+        // std::cout << "Book '" << pair << "' processing event: " <<  event.type << std::endl;
+        switch (event.type)
+        {
+            case EventType::DepthUpdate:
+                handleDepthUpdate(event.depth);
+                break;
+            default:
+                std::cout << "Unhandled event type: " << event.type << std::endl;
+                break;
+        }
+    }
+
+    void OrderBook::handleDepthUpdate(const market_data::Depth& depthUpdate)
+    {
+        // std::cout << "\t{ bids: " << depthUpdate.bid.size() << ", asks: " << depthUpdate.ask.size() << " }\n";
+
+        std::cout << "BIDS:" << std::endl;
+        for (const auto& [price, quantity] : depthUpdate.bid)
+        {
+            std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
+        }
+
+        std::cout << "ASKS:" << std::endl;
+        for (const auto& [price, quantity] : depthUpdate.ask)
+        {
+            std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
+        }
     }
 }

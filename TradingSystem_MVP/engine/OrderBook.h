@@ -10,21 +10,32 @@ Description : OrderBook.h
 #ifndef ORDERBOOK_H
 #define ORDERBOOK_H
 
-#include "Exchange.h"
 #include "Types.h"
 #include "MarketData.h"
 
+#include <boost/container/flat_map.hpp>
+
 namespace engine
 {
-    using common::Pair;
+    using namespace common;
 
     struct OrderBook
     {
+        using PriceLevel = boost::container::flat_map<Pair, Quantity>;
+
         // TODO: pair ?? symbol ??
         Pair pair;
 
+        PriceLevel buyOrders;
+        PriceLevel sellOrders;
+
         // TODO: Rename method
-        void processEvent(const market_data::Event& event) const;
+        void processEvent(const market_data::Event& event);
+
+    private:
+
+        void handleDepthUpdate(const market_data::Depth& depthUpdate);
+
     };
 };
 

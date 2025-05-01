@@ -20,11 +20,14 @@ namespace common
     using FlatBuffer = boost::beast::flat_buffer;
     using FlatBufferQueue = common::BlockingQueuePtr<FlatBuffer>;
 
+    using Price     = double;
+    using Quantity  = double;
+    using Timestamp = int64_t;
+    using Number    = int64_t;
 
-    using price_t = double;
-    using quantity_t = double;
-    using time_t = int64_t;
-    using number_t = int64_t;
+    // TODO: ---> implement StaticString (stack only)
+    using String = std::string;
+
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_TYPES_H

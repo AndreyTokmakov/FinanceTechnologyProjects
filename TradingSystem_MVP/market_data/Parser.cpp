@@ -172,6 +172,9 @@ namespace market_data
                 auto& bid = event.depth.bid.emplace_back();
                 entry.get(bid.price);
                 entry.get(bid.quantity);
+                bid.price = entry.at(0).get<double>();
+                bid.quantity = entry.at(1).get<double>();
+                std::cout << entry << " = [" << bid.price << ", " << bid.quantity << "]\n";
             }
 
             event.depth.ask.clear();
@@ -182,6 +185,7 @@ namespace market_data
                 auto& ask = event.depth.ask.emplace_back();
                 entry.get(ask.price);
                 entry.get(ask.quantity);
+                std::cout << entry << std::endl;
             }
         }
 

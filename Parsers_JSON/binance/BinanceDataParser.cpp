@@ -103,6 +103,7 @@ namespace binance
 
 
     simdjson::ondemand::parser parser;
+    simdjson::ondemand::array array;
     simdjson::ondemand::document document;
     simdjson::padded_string jsonBuffer;
 
@@ -351,17 +352,13 @@ namespace binance::parser2
     };
 
 
-    void parse(const std::string_view& payload)
+    bool parse(const std::string_view& payload, Event event)
     {
         simdjson::ondemand::object data;
         parser.iterate(get_padded_string(payload, jsonBuffer)).get(document);
-        simdjson::error_code result = document[JsonParams::data].get(data);
-
-        Event event;
-        if (simdjson::SUCCESS != result)
-        {
+        if (simdjson::SUCCESS != document[JsonParams::data].get(data)) {
             event.type = EventType::Result;
-            return;
+            return false;
         }
 
         const std::string_view eventTypeSv = data[JsonParams::eventType].get_string().value();
@@ -406,38 +403,41 @@ namespace binance::parser2
             //data[JsonParams::pair].get_string(event.pair);
             event.eventTime = data[JsonParams::eventTime].get_int64();
 
-            // FIXME: not create array all the time
-            simdjson::ondemand::array array;
-
-            result = data[JsonParams::bids].get(array);
             event.depth.bid.clear();
+            if (simdjson::SUCCESS != data[JsonParams::bids].get(array)) {
+                return false;
+            }
             for (auto entry: array) {
                 auto& bid = event.depth.bid.emplace_back();
                 entry.get(bid.price);
                 entry.get(bid.quantity);
             }
 
-            result = data[JsonParams::asks].get(array);
             event.depth.ask.clear();
+            if (simdjson::SUCCESS != data[JsonParams::asks].get(array)) {
+                return false;
+            }
             for (auto entry: array) {
                 auto& ask = event.depth.ask.emplace_back();
                 entry.get(ask.price);
                 entry.get(ask.quantity);
             }
-
-            std::cout << event.depth.bid.size() << "  " << event.depth.ask.size() << std::endl;
         }
 
-        //std::cout << data << std::endl;
-
+        // std::cout << data << std::endl;
         std::cout << event.eventTime << std::endl;
         std::cout << event.type << std::endl;
         std::cout << event.symbol << std::endl;
+
+        return true;
     }
 }
 
 void binance::TestAll()
 {
+    parser2::Event event;
+
     // binance::parser2::parse(data::binanceTickerJson);
-    binance::parser2::parse(data::depth);
+    binance::parser2::parse(data::depth, event);
+    binance::parser2::parse(data::depth, event);
 }

@@ -11,6 +11,7 @@ Description : MarketData.h
 #define FINANCETECHNOLOGYPROJECTS_MARKETDATATYPES_H
 
 #include <iostream>
+#include <vector>
 
 namespace market_data
 {
@@ -60,15 +61,30 @@ namespace market_data
         Number totalTradesNumber {};
     };
 
+    struct Depth
+    {
+        struct PriceUpdate
+        {
+            Number price { 0 };
+            Number quantity { 0 };
+        };
+
+        Number firstUpdateId { 0 };
+        Number finalUpdateId { 0 };
+        std::vector<PriceUpdate> bid;
+        std::vector<PriceUpdate> ask;
+    };
+
     struct Event
     {
         EventType type { EventType::None };
         String symbol;
         String pair;
-        Timestamp eventTime;
+        Timestamp eventTime { 0 };
 
         Ticker ticker;
         Result result;
+        Depth depth;
     };
 }
 

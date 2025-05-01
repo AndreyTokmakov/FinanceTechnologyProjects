@@ -57,6 +57,7 @@ namespace
     // FIXME ---> thread_local ???
 
     simdjson::ondemand::parser parser;
+    simdjson::ondemand::array array;
     simdjson::ondemand::document document;
     simdjson::padded_string jsonBuffer;
 }
@@ -82,6 +83,12 @@ namespace
         static inline constexpr std::string_view firstTradeId { "F" };
         static inline constexpr std::string_view lastTradeId { "L" };
         static inline constexpr std::string_view totalTradesNumber { "n" };
+
+        /** Depth **/
+        static inline constexpr std::string_view firstUpdateId { "U" };
+        static inline constexpr std::string_view finalUpdateId { "u" };
+        static inline constexpr std::string_view bids { "b" };
+        static inline constexpr std::string_view asks { "a" };
     };
 
 
@@ -109,22 +116,19 @@ namespace market_data
     {
         simdjson::ondemand::object dataObj;
         parser.iterate(get_padded_string(data, length, jsonBuffer)).get(document);
-
         if (simdjson::SUCCESS != document[JsonParams::data].get(dataObj))
         {
             event.type = EventType::Result;
             return false;
         }
 
-        // std::cout << dataObj << std::endl; /** DEBUG **/
-
         const std::string_view eventTypeSv = dataObj[JsonParams::eventType].get_string().value();
         if (EventTypeNames::ticker == eventTypeSv)
         {
             event.type = EventType::Ticker;
 
-            // dataObj[JsonParams::pair].get_string(event.pair);
             dataObj[JsonParams::symbol].get_string(event.symbol);
+            dataObj[JsonParams::pair].get_string(event.pair);
             event.eventTime = dataObj[JsonParams::eventTime].get_int64();
 
             event.ticker.priceChange = dataObj[JsonParams::priceChange].get_double_in_string();
@@ -156,9 +160,29 @@ namespace market_data
         {
             event.type = EventType::DepthUpdate;
 
-            // dataObj[JsonParams::pair].get_string(event.pair);
             dataObj[JsonParams::symbol].get_string(event.symbol);
+            //data[JsonParams::pair].get_string(event.pair);
             event.eventTime = dataObj[JsonParams::eventTime].get_int64();
+
+            event.depth.bid.clear();
+            if (simdjson::SUCCESS != dataObj[JsonParams::bids].get(array)) {
+                return false;
+            }
+            for (auto entry: array) {
+                auto& bid = event.depth.bid.emplace_back();
+                entry.get(bid.price);
+                entry.get(bid.quantity);
+            }
+
+            event.depth.ask.clear();
+            if (simdjson::SUCCESS != dataObj[JsonParams::asks].get(array)) {
+                return false;
+            }
+            for (auto entry: array) {
+                auto& ask = event.depth.ask.emplace_back();
+                entry.get(ask.price);
+                entry.get(ask.quantity);
+            }
         }
 
         return true;

@@ -17,6 +17,7 @@ Description : Engine.h
 #include "Exchange.h"
 #include "Types.h"
 #include "MarketData.h"
+#include "OrderBook.h"
 
 #include <boost/beast/core.hpp>
 #include <boost/container/flat_map.hpp>
@@ -28,14 +29,6 @@ namespace engine
     using common::FlatBuffer;
     using common::FlatBufferQueue;
 
-    struct OrderBook
-    {
-        // TODO: pair ?? symbol ??
-        Pair pair;
-
-        // TODO: Rename method
-        void processEvent(const market_data::Event& event) const;
-    };
 
     struct ExchangeBookKeeper
     {

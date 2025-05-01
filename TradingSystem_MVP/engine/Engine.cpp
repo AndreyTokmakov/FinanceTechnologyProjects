@@ -14,28 +14,16 @@ Description : Engine.cpp
 #include <iostream>
 #include <nlohmann/json.hpp>
 
-
 namespace
 {
     namespace asio = boost::asio;
     namespace beast = boost::beast;
 }
 
-
 namespace engine
 {
     using market_data::Ticker;
 
-    void OrderBook::processEvent(const market_data::Event& event) const
-    {
-        std::cout << "Book '" << pair << "' processing event: " <<  event.type << std::endl;
-        //std::cout << event.symbol << std::endl;
-        //std::cout << event.pair << std::endl;
-    }
-}
-
-namespace engine
-{
     ExchangeBookKeeper::ExchangeBookKeeper()
     {
         // TODO: Read Symbols from configuration
@@ -75,8 +63,6 @@ namespace engine
                         std::cout << event.type << " received\n";
                         continue;
                     }
-
-                    std::cout << std::quoted(event.symbol) << " " <<  std::quoted(event.pair) << std::endl;
 
                     // TODO: Check that OrderBook exists ???
                     const auto& book = orderBooksByTicker[event.symbol];

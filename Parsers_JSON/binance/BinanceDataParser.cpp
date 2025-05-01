@@ -311,8 +311,8 @@ namespace binance::parser2
     {
         struct PriceUpdate
         {
-            Number price { 0 };
-            Number quantity { 0 };
+            Price price { 0 };
+            Quantity quantity { 0 };
         };
 
         Number firstUpdateId { 0 };
@@ -407,10 +407,33 @@ namespace binance::parser2
             if (simdjson::SUCCESS != data[JsonParams::bids].get(array)) {
                 return false;
             }
-            for (auto entry: array) {
+
+            simdjson::ondemand::array BIDS = data[JsonParams::bids].get_array();
+            for (auto entry: BIDS) {
                 auto& bid = event.depth.bid.emplace_back();
-                entry.get(bid.price);
-                entry.get(bid.quantity);
+
+                std::cout << "===========================================================\n";
+
+                //bid.price = entry.at(0).get_double_in_string();
+                //bid.quantity = entry.at(1).get_double_in_string();
+
+                std::cout << entry.at(0) << " | " << entry.at(1) << std::endl;
+                //std::cout << entry.at(0) << " | " << entry.at(1) << std::endl;
+
+                /*
+                //entry.get(bid.price);
+                //entry.get(bid.quantity);
+                //bid.price = entry.at(0).get_double_in_string();
+                //bid.quantity = entry.at(1).get_double_in_string();
+                //std::cout << entry << " = [" << bid.price << ", " << bid.quantity << "]\n";
+
+
+                auto v = entry.at(0);
+                // std::cout << entry.at(0) << " | " << entry.at(1) << std::endl;
+                //std::cout << entry.at(0).is_string() << " | " << entry.at(1).get_string()<< std::endl;
+                std::cout << entry.at(0).g << std::endl;
+                std::cout << entry.at(0).get_double_in_string() << std::endl;
+                //std::cout << entry.at(0).is_integer() << std::endl;*/
             }
 
             event.depth.ask.clear();
@@ -425,9 +448,9 @@ namespace binance::parser2
         }
 
         // std::cout << data << std::endl;
-        std::cout << event.eventTime << std::endl;
-        std::cout << event.type << std::endl;
-        std::cout << event.symbol << std::endl;
+        // std::cout << event.eventTime << std::endl;
+        // std::cout << event.type << std::endl;
+        // std::cout << event.symbol << std::endl;
 
         return true;
     }
@@ -439,5 +462,5 @@ void binance::TestAll()
 
     // binance::parser2::parse(data::binanceTickerJson);
     binance::parser2::parse(data::depth, event);
-    binance::parser2::parse(data::depth, event);
+    // binance::parser2::parse(data::depth, event);
 }

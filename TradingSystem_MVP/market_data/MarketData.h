@@ -19,8 +19,8 @@ namespace market_data
 
     struct PriceLevel
     {
-        Number price { 0 };
-        Number quantity { 0 };
+        Price price { 0 };
+        Quantity quantity { 0 };
     };
 
     struct Result

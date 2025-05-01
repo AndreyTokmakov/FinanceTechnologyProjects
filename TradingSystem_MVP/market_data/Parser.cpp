@@ -60,6 +60,8 @@ namespace
     simdjson::ondemand::array array;
     simdjson::ondemand::document document;
     simdjson::padded_string jsonBuffer;
+
+    std::array<double, 2> values {};
 }
 
 namespace
@@ -164,18 +166,19 @@ namespace market_data
             //data[JsonParams::pair].get_string(event.pair);
             event.eventTime = dataObj[JsonParams::eventTime].get_int64();
 
+
             event.depth.bid.clear();
             if (simdjson::SUCCESS != dataObj[JsonParams::bids].get(array)) {
                 return false;
             }
             for (auto entry: array) {
                 auto& bid = event.depth.bid.emplace_back();
-                entry.get(bid.price);
-                entry.get(bid.quantity);
-                bid.price = entry.at(0).get<double>();
-                bid.quantity = entry.at(1).get<double>();
-                std::cout << entry << " = [" << bid.price << ", " << bid.quantity << "]\n";
+                for (int i = 0; auto v: entry.get_array()) {
+                    values[i++] = v.get_double_in_string();
+                }
+                std::tie(bid.price, bid.quantity) = values;
             }
+
 
             event.depth.ask.clear();
             if (simdjson::SUCCESS != dataObj[JsonParams::asks].get(array)) {
@@ -183,9 +186,10 @@ namespace market_data
             }
             for (auto entry: array) {
                 auto& ask = event.depth.ask.emplace_back();
-                entry.get(ask.price);
-                entry.get(ask.quantity);
-                std::cout << entry << std::endl;
+                for (int i = 0; auto v: entry.get_array()) {
+                    values[i++] = v.get_double_in_string();
+                }
+                std::tie(ask.price, ask.quantity) = values;
             }
         }
 

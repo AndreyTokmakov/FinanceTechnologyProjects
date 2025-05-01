@@ -106,6 +106,7 @@ namespace binance
     simdjson::ondemand::array array;
     simdjson::ondemand::document document;
     simdjson::padded_string jsonBuffer;
+    std::array<double, 2> values {};
 
 }
 
@@ -403,38 +404,19 @@ namespace binance::parser2
             //data[JsonParams::pair].get_string(event.pair);
             event.eventTime = data[JsonParams::eventTime].get_int64();
 
+
             event.depth.bid.clear();
             if (simdjson::SUCCESS != data[JsonParams::bids].get(array)) {
                 return false;
             }
-
-            simdjson::ondemand::array BIDS = data[JsonParams::bids].get_array();
-            for (auto entry: BIDS) {
+            for (auto entry: array) {
                 auto& bid = event.depth.bid.emplace_back();
-
-                std::cout << "===========================================================\n";
-
-                //bid.price = entry.at(0).get_double_in_string();
-                //bid.quantity = entry.at(1).get_double_in_string();
-
-                std::cout << entry.at(0) << " | " << entry.at(1) << std::endl;
-                //std::cout << entry.at(0) << " | " << entry.at(1) << std::endl;
-
-                /*
-                //entry.get(bid.price);
-                //entry.get(bid.quantity);
-                //bid.price = entry.at(0).get_double_in_string();
-                //bid.quantity = entry.at(1).get_double_in_string();
-                //std::cout << entry << " = [" << bid.price << ", " << bid.quantity << "]\n";
-
-
-                auto v = entry.at(0);
-                // std::cout << entry.at(0) << " | " << entry.at(1) << std::endl;
-                //std::cout << entry.at(0).is_string() << " | " << entry.at(1).get_string()<< std::endl;
-                std::cout << entry.at(0).g << std::endl;
-                std::cout << entry.at(0).get_double_in_string() << std::endl;
-                //std::cout << entry.at(0).is_integer() << std::endl;*/
+                for (int i = 0; auto v: entry.get_array()) {
+                    values[i++] = v.get_double_in_string();
+                }
+                std::tie(bid.price, bid.quantity) = values;
             }
+
 
             event.depth.ask.clear();
             if (simdjson::SUCCESS != data[JsonParams::asks].get(array)) {
@@ -442,10 +424,13 @@ namespace binance::parser2
             }
             for (auto entry: array) {
                 auto& ask = event.depth.ask.emplace_back();
-                entry.get(ask.price);
-                entry.get(ask.quantity);
+                for (int i = 0; auto v: entry.get_array()) {
+                    values[i++] = v.get_double_in_string();
+                }
+                std::tie(ask.price, ask.quantity) = values;
             }
         }
+
 
         // std::cout << data << std::endl;
         // std::cout << event.eventTime << std::endl;

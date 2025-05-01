@@ -404,7 +404,6 @@ namespace binance::parser2
             //data[JsonParams::pair].get_string(event.pair);
             event.eventTime = data[JsonParams::eventTime].get_int64();
 
-
             event.depth.bid.clear();
             if (simdjson::SUCCESS != data[JsonParams::bids].get(array)) {
                 return false;
@@ -416,7 +415,6 @@ namespace binance::parser2
                 }
                 std::tie(bid.price, bid.quantity) = values;
             }
-
 
             event.depth.ask.clear();
             if (simdjson::SUCCESS != data[JsonParams::asks].get(array)) {
@@ -430,7 +428,6 @@ namespace binance::parser2
                 std::tie(ask.price, ask.quantity) = values;
             }
         }
-
 
         // std::cout << data << std::endl;
         // std::cout << event.eventTime << std::endl;

@@ -31,18 +31,20 @@ namespace engine
 
     void OrderBook::handleDepthUpdate(const market_data::Depth& depthUpdate)
     {
-        // std::cout << "\t{ bids: " << depthUpdate.bid.size() << ", asks: " << depthUpdate.ask.size() << " }\n";
-
-        std::cout << "BIDS:" << std::endl;
-        for (const auto& [price, quantity] : depthUpdate.bid)
-        {
-            std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
+        for (const auto& [price, quantity] : depthUpdate.bid) {
+            if (0 == quantity)
+                bidPrices.erase(price);
+            else
+                bidPrices.insert_or_assign(price, quantity);
         }
 
-        std::cout << "ASKS:" << std::endl;
-        for (const auto& [price, quantity] : depthUpdate.ask)
-        {
-            std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
+        for (const auto& [price, quantity] : depthUpdate.ask) {
+            if (0 == quantity)
+                askPrices.erase(price);
+            else
+                askPrices.insert_or_assign(price, quantity);
         }
+
+        std::cout << pair <<  " [ " << bidPrices.size() << ", " << askPrices.size() << "] " << std::endl;
     }
 }

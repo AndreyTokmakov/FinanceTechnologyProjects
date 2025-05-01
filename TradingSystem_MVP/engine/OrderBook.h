@@ -19,15 +19,17 @@ namespace engine
 {
     using namespace common;
 
+    // TODO: Rename to Pricer ?? PriceEngine ??
     struct OrderBook
     {
-        using PriceLevel = boost::container::flat_map<Pair, Quantity>;
-
         // TODO: pair ?? symbol ??
         Pair pair;
 
-        PriceLevel buyOrders;
-        PriceLevel sellOrders;
+        /** BID's (BUY Orders) PriceLevels **/
+        boost::container::flat_map<Price, Quantity, std::greater<>> bidPrices;
+
+        /** ASK's (SELL Orders) PriceLevels **/
+        boost::container::flat_map<Price, Quantity, std::less<>> askPrices;
 
         // TODO: Rename method
         void processEvent(const market_data::Event& event);

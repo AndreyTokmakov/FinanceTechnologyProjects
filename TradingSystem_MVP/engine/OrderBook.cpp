@@ -45,6 +45,11 @@ namespace engine
                 askPrices.insert_or_assign(price, quantity);
         }
 
-        std::cout << pair <<  " [ " << bidPrices.size() << ", " << askPrices.size() << "] " << std::endl;
+        std::cout << pair <<  " [ " << bidPrices.size() << ", " << askPrices.size() << " ] ";
+        if (!bidPrices.empty())
+            std::cout << pair <<  " [ BIDS: " << bidPrices.begin()->first << ", " << std::prev(bidPrices.end())->first << " ] ";
+        if (!askPrices.empty())
+            std::cout << pair <<  " [ ASKS: " << askPrices.begin()->first << ", " << std::prev(askPrices.end())->first << " ] ";
+        std::cout << std::endl;
     }
 }

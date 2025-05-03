@@ -1,10 +1,10 @@
 /**============================================================================
-Name        : OrderBook.h
+Name        : PriceLevelBook.h
 Created on  : 01.05.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : OrderBook.h
+Description : PriceLevelBook.h
 ============================================================================**/
 
 #ifndef ORDERBOOK_H
@@ -19,7 +19,7 @@ namespace engine
 {
     using namespace common;
 
-    struct OrderBook
+    struct PriceLevelBook
     {
         using PriceLevel = boost::container::flat_map<Pair, Quantity>;
 

@@ -28,7 +28,7 @@ namespace engine
     {
         // TODO: Read Symbols from configuration
         for (const std::string& ticker: { "BTCUSDT"s, "XRPUSDT"s, "MEMEUSDT"s }){
-            orderBooksByTicker.emplace(ticker, std::make_unique<OrderBook>(ticker));
+            orderBooksByTicker.emplace(ticker, std::make_unique<PriceLevelBook>(ticker));
         }
     }
 

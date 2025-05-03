@@ -8,16 +8,15 @@ Description : OrderBook.cpp
 ============================================================================**/
 
 #include <iostream>
-#include "OrderBook.h"
+#include "PriceLevelBook.h"
 
 namespace engine
 {
     using market_data::EventType;
     using market_data::Depth;
 
-    void OrderBook::processEvent(const market_data::Event& event)
+    void PriceLevelBook::processEvent(const market_data::Event& event)
     {
-        // std::cout << "Book '" << pair << "' processing event: " <<  event.type << std::endl;
         switch (event.type)
         {
             case EventType::DepthUpdate:
@@ -29,19 +28,15 @@ namespace engine
         }
     }
 
-    void OrderBook::handleDepthUpdate(const market_data::Depth& depthUpdate)
+    void PriceLevelBook::handleDepthUpdate(const market_data::Depth& depthUpdate)
     {
-        // std::cout << "\t{ bids: " << depthUpdate.bid.size() << ", asks: " << depthUpdate.ask.size() << " }\n";
-
-        std::cout << "BIDS:" << std::endl;
-        for (const auto& [price, quantity] : depthUpdate.bid)
-        {
+        std::cout << "BIDS: [" << pair << "]\n";
+        for (const auto& [price, quantity] : depthUpdate.bid) {
             std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
         }
 
-        std::cout << "ASKS:" << std::endl;
-        for (const auto& [price, quantity] : depthUpdate.ask)
-        {
+        std::cout << "ASKS: [" << pair << "]\n";
+        for (const auto& [price, quantity] : depthUpdate.ask) {
             std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
         }
     }

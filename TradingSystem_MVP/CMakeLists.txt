@@ -40,7 +40,7 @@ include_directories(${ENGINE})
 add_executable(${PROJECT_NAME}
         main.cpp
         ${ENGINE}/Engine.cpp ${ENGINE}/Engine.h
-        ${ENGINE}/OrderBook.cpp ${ENGINE}/OrderBook.h
+        ${ENGINE}/PriceLevelBook.cpp ${ENGINE}/PriceLevelBook.h
         ${CONNECTORS}/BinanceConnector.cpp
         ${COMMON}/Utilities.cpp
         ${MARKET_DATA}/Parser.cpp ${MARKET_DATA}/Parser.h

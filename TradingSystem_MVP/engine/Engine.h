@@ -17,7 +17,7 @@ Description : Engine.h
 #include "Exchange.h"
 #include "Types.h"
 #include "MarketData.h"
-#include "OrderBook.h"
+#include "PriceLevelBook.h"
 
 #include <boost/beast/core.hpp>
 #include <boost/container/flat_map.hpp>
@@ -32,7 +32,7 @@ namespace engine
 
     struct ExchangeBookKeeper
     {
-        boost::container::flat_map<Pair, std::unique_ptr<OrderBook>> orderBooksByTicker;
+        boost::container::flat_map<Pair, std::unique_ptr<PriceLevelBook>> orderBooksByTicker;
         FlatBufferQueue queue;
         std::jthread worker;
 

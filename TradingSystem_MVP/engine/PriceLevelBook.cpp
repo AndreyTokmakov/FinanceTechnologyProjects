@@ -30,6 +30,7 @@ namespace engine
 
     void PriceLevelBook::handleDepthUpdate(const market_data::Depth& depthUpdate)
     {
+        /*
         std::cout << "BIDS: [" << pair << "]\n";
         for (const auto& [price, quantity] : depthUpdate.bid) {
             std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
@@ -38,6 +39,16 @@ namespace engine
         std::cout << "ASKS: [" << pair << "]\n";
         for (const auto& [price, quantity] : depthUpdate.ask) {
             std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
+        }
+        */
+
+        if (!depthUpdate.bid.empty()) {
+            std::cout << "[" << pair << "] BID { " << depthUpdate.bid.begin()->price << " - "
+                    << std::prev(depthUpdate.bid.end())->price << "}\n";
+        }
+        if (!depthUpdate.ask.empty()) {
+            std::cout << "[" << pair << "] ASK { " << depthUpdate.ask.begin()->price << " - "
+                      << std::prev(depthUpdate.ask.end())->price << "}\n";
         }
     }
 }

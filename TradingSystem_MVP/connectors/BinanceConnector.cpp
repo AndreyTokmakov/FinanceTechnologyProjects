@@ -63,8 +63,8 @@ namespace connectors
         {
             const auto threadId { std::this_thread::get_id() };
             if (!utilities::setThreadCore(coreId)) {
-                                       std::cerr << "Failed to set core " << coreId << " for " << threadId << std::endl;
-                                       return;
+                std::cerr << "Failed to set core " << coreId << " for " << threadId << std::endl;
+                return;
             }
 
             net::io_context ioCtx;
@@ -95,21 +95,21 @@ namespace connectors
             [[maybe_unused]]
             const size_t bytesSend = wsStream.write(net::buffer(subscriptionDepth));
             size_t bytesRead = 0;
-
             while (true)
-            {   // TODO: Rename push() ??
-                //  - Push only std::string to the Queue?
-                //  - beast::buffers_to_string(buffer.data()) ---> BAD: Create a copy
-                //  - Как то можно избежать копирований ???
-                //  - Memory / Object Pool ???? (For MarkerData Events)
-
-                // TODO: Handle Exception ????
-
-                beast::flat_buffer& buffer = buffers[fast_modulo(counter, bufferSize)];
-                buffer.clear();
-                ++counter;
-                bytesRead = wsStream.read(buffer);
-                pricingEngine.push(Exchange::Binance, &buffer);
+            {
+                // TODO: Memory / Object Pool ???? (For MarkerData Events)
+                try
+                {
+                    beast::flat_buffer& buffer = buffers[fast_modulo(counter, bufferSize)];
+                    buffer.clear();
+                    bytesRead = wsStream.read(buffer);
+                    pricingEngine.push(Exchange::Binance, &buffer);
+                    ++counter;
+                }
+                catch (const std::exception& exc) {
+                    // FIXME: Logging ???
+                    std::cerr << exc.what() << std::endl;
+                }
             }
         }};
         worker.detach();

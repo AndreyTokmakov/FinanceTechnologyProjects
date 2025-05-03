@@ -20,7 +20,9 @@ namespace connectors
 
     struct BinanceWsConnector
     {
-        static inline constexpr std::string_view host { "testnet.binance.vision" };
+        // static inline constexpr std::string_view host { "testnet.binance.vision" };
+        static inline constexpr std::string_view host { "stream.binance.com" };
+
         static inline constexpr uint16_t port { 443 };
         static inline constexpr uint32_t bufferSize { 1024 };
 
@@ -28,7 +30,7 @@ namespace connectors
         std::jthread worker;
         uint32_t coreId = 0;
 
-        uint32_t counter = 0;
+        int_fast32_t counter = 0;
         std::vector<FlatBuffer> buffers {};
 
         explicit BinanceWsConnector(engine::PricingEngine& engine, const uint32_t cpuId);

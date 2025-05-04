@@ -31,13 +31,17 @@ include_directories(${THIRD_PARTY_DIR}/openssl/include)
 # Nlohmann JSON
 include_directories(${THIRD_PARTY_DIR}/json/include)
 
-include_directories("Binance")
+include_directories("binance")
+include_directories("experiments")
 
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
-        Binance/BinanceWssStream.cpp
-        Binance/ApiClient.cpp
+        binance/WebSockerConnector.cpp
+        binance/WebSockerConnectorAsynch.cpp
+        binance/WSConnectorAsynch.cpp
+        binance/ApiClient.cpp
+        experiments/WSConnectorAsynchExperimental.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")
@@ -47,11 +51,8 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
         utils
         pthread
         Boost::json
-        Boost::any
-        Boost::url
         Boost::asio
         Boost::thread
-        Boost::uuid
         Boost::beast
         crypto
         ssl

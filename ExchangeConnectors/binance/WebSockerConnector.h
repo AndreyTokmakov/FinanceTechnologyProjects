@@ -1,18 +1,18 @@
 /**============================================================================
-Name        : BinanceWssStream.h
+Name        : WebSockerConnector.h
 Created on  : 15.01.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : BinanceWssStream.h
+Description : WebSockerConnector.h
 ============================================================================**/
 
-#ifndef FINANCETECHNOLOGYPROJECTS_BINANCEWSSSTREAM_H
-#define FINANCETECHNOLOGYPROJECTS_BINANCEWSSSTREAM_H
+#ifndef FINANCETECHNOLOGYPROJECTS_WEBSOCKERCONNECTOR_H
+#define FINANCETECHNOLOGYPROJECTS_WEBSOCKERCONNECTOR_H
 
-namespace BinanceWssStream
+namespace WebSockerConnector
 {
     void TestAll();
 };
 
-#endif //FINANCETECHNOLOGYPROJECTS_BINANCEWSSSTREAM_H
+#endif //FINANCETECHNOLOGYPROJECTS_WEBSOCKERCONNECTOR_H

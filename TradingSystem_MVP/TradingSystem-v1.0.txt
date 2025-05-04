@@ -67,3 +67,6 @@
 
     - Pair [usdtbtc] --> uint64_t  [так как длина 'usdtbtc' максимум 8 байт]
       Возможно использовать SIMD для корвертации в INT
+
+
+add_compile_options(-c -Wall -Werror -Wextra -O3 -std=c++2a)

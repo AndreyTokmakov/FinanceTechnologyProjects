@@ -202,14 +202,15 @@ void WSConnectorAsynch::TestAll()
     constexpr std::string_view host { "testnet.binance.vision" };
     constexpr uint16_t port { 443 };
     const std::vector<std::string> params {
-        R"({"method": "SUBSCRIBE","params": ["btcusdt@ticker", "btcusdt@trade", "btcusdt@depth"], "id": 1})",
-        R"({"method": "SUBSCRIBE","params": ["ethusdt@ticker", "ethusdt@trade", "ethusdt@depth"], "id": 2})",
-        R"({"method": "SUBSCRIBE","params": ["bnbusdt@ticker", "bnbusdt@trade", "bnbusdt@depth"], "id": 3})",
-        // R"({"method": "SUBSCRIBE","params": ["xrpusdt@ticker"], "id": 4})",
-        // R"({"method": "SUBSCRIBE","params": ["pepeusdt@ticker"], "id": 6})"
+        R"({"method": "SUBSCRIBE","params": ["btcusdt@ticker", "btcusdt@trade", "btcusdt@depth"], "id": 1})"
+        // R"({"method": "SUBSCRIBE","params": ["ethusdt@ticker", "ethusdt@trade", "ethusdt@depth"], "id": 2})",
+        // R"({"method": "SUBSCRIBE","params": ["bnbusdt@ticker", "bnbusdt@trade", "bnbusdt@depth"], "id": 3})",
+        // R"({"method": "SUBSCRIBE","params": ["xrpusdt@ticker", "xrpusdt@trade", "xrpusdt@depth"], "id": 4})",
+        // R"({"method": "SUBSCRIBE","params": ["ltcusdt@ticker", "ltcusdt@trade", "ltcusdt@depth"], "id": 5})",
+        // R"({"method": "SUBSCRIBE","params": ["pepeusdt@ticker", "pepeusdt@trade", "pepeusdt@depth"], "id": 5})"
     };
 
-    asio::io_context ioCtx;
+    asio::io_context ioCtx(1);
     ssl::context ctx{ssl::context::tlsv13_client};
     std::vector<std::shared_ptr<Session>> sessions;
     for (const auto& param: params) {

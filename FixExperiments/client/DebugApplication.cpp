@@ -43,13 +43,6 @@ Description : DebugApplication.h
 #include "quickfix/fix43/OrderCancelReplaceRequest.h"
 #include "quickfix/fix43/OrderCancelRequest.h"
 
-#include "quickfix/fix44/ExecutionReport.h"
-#include "quickfix/fix44/MarketDataRequest.h"
-#include "quickfix/fix44/NewOrderSingle.h"
-#include "quickfix/fix44/OrderCancelReject.h"
-#include "quickfix/fix44/OrderCancelReplaceRequest.h"
-#include "quickfix/fix44/OrderCancelRequest.h"
-
 #include "quickfix/fix50/ExecutionReport.h"
 #include "quickfix/fix50/MarketDataRequest.h"
 #include "quickfix/fix50/NewOrderSingle.h"
@@ -57,6 +50,37 @@ Description : DebugApplication.h
 #include "quickfix/fix50/OrderCancelReplaceRequest.h"
 #include "quickfix/fix50/OrderCancelRequest.h"
 */
+
+#include "quickfix/fix44/ExecutionReport.h"
+#include "quickfix/fix44/MarketDataRequest.h"
+#include "quickfix/fix44/NewOrderSingle.h"
+#include "quickfix/fix44/OrderCancelReject.h"
+#include "quickfix/fix44/OrderCancelReplaceRequest.h"
+#include "quickfix/fix44/OrderCancelRequest.h"
+
+namespace
+{
+    namespace Fix44
+    {
+        std::unique_ptr<FIX::Message> buildOrder(const std::string& orderId,
+                                                 const std::string& symbol,
+                                                 const double price,
+                                                 const int64_t quantity)
+        {
+            std::unique_ptr<FIX44::NewOrderSingle> order { std::make_unique<FIX44::NewOrderSingle>(
+                FIX::ClOrdID(orderId), FIX::Side(FIX::Side_BUY), FIX::TransactTime(), FIX::OrdType(FIX::OrdType_MARKET))
+            };
+
+            order->set(FIX::Symbol(symbol));
+            order->set( FIX::OrderQty(quantity));
+            order->set(FIX::TimeInForce(FIX::TimeInForce_DAY));
+            order->set(FIX::Price(price));
+
+            return order;
+        }
+    }
+
+}
 
 namespace FixTests::Client
 {
@@ -141,6 +165,14 @@ namespace FixTests::Client
     void DebugApplication::run()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds (250U));
+
+        std::unique_ptr<FIX::Message> order = Fix44::buildOrder("123345441", "APPL", 10, 10);
+
+        order->getHeader().setField(FIX::SenderCompID("1002"));
+        order->getHeader().setField(FIX::TargetCompID("1001"));
+
+        FIX::Session::sendToTarget(*order);
+
         return;
     }
 }

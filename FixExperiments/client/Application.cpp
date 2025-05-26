@@ -135,7 +135,6 @@ namespace FixTests::Client
 
     void Application::run()
     {
-        return;
 
         while (true)
         {

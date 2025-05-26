@@ -19,6 +19,8 @@ add_executable(${PROJECT_NAME}
         ${SERVER}/Application.cpp  ${SERVER}/Application.h
         ${CLIENT}/Client.cpp ${CLIENT}/Client.h
         ${CLIENT}/Application.cpp  ${CLIENT}/Application.h
+        ${CLIENT}/DebugApplication.cpp
+        ${CLIENT}/DebugApplication.h
 )
 
 target_link_directories(${PROJECT_NAME} PUBLIC ${QUICK_FIX_DIR}/lib)

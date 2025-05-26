@@ -8,7 +8,9 @@ Description : Client.h
 ============================================================================**/
 
 #include "Client.h"
+
 #include "Application.h"
+#include "DebugApplication.h"
 
 #include "quickfix/config.h"
 
@@ -39,10 +41,13 @@ namespace FixTests::Client
 {
     void runClient()
     {
-        try {
+        try
+        {
             FIX::SessionSettings settings(confFile);
 
-            Application application;
+            // Application application;
+            DebugApplication application;
+
             FIX::FileStoreFactory storeFactory(settings);
             FIX::ScreenLogFactory logFactory(settings);
 
@@ -52,8 +57,9 @@ namespace FixTests::Client
             initiator->start();
             application.run();
             initiator->stop();
-        } catch (std::exception &e) {
-            std::cout << e.what();
+        }
+        catch (const std::exception& exc) {
+            std::cerr << exc.what();
         }
     }
 }

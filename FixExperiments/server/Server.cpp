@@ -56,7 +56,6 @@ namespace FixTests::Server
             acceptor->start();
             wait();
             acceptor->stop();
-
         }
         catch (const std::exception& exc)
         {

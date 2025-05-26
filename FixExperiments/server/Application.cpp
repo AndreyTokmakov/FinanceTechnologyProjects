@@ -27,18 +27,28 @@ Description : Application.h
 namespace FixTests::Server
 {
     Application::Application() {
-    }
-
-    void Application::onCreate(const FIX::SessionID &) {
-            std::cout << __PRETTY_FUNCTION__ << std::endl;
-    }
-
-    void Application::onLogon(const FIX::SessionID &sessionID) {
         std::cout << __PRETTY_FUNCTION__ << std::endl;
     }
 
-    void Application::onLogout(const FIX::SessionID &sessionID) {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
+    void Application::onCreate(const FIX::SessionID & sessionId)
+    {
+        std::cout << std::string(120, '-') << std::endl;
+        std::cout << sessionId.toString() << std::endl;
+        std::cout << std::string(120, '-') << std::endl;
+    }
+
+    void Application::onLogon(const FIX::SessionID &sessionID)
+    {
+        std::cout << std::string(120, '-') << std::endl;
+        std::cout << "Application::onLogon: " << sessionID.toString() << std::endl;
+        std::cout << std::string(120, '-') << std::endl;
+    }
+
+    void Application::onLogout(const FIX::SessionID &sessionID)
+    {
+        std::cout << std::string(120, '-') << std::endl;
+        std::cout << "Application::onLogout: " << sessionID.toString() << std::endl;
+        std::cout << std::string(120, '-') << std::endl;
     }
 
     void Application::toAdmin(FIX::Message &message, const FIX::SessionID &sessionID)  {
@@ -58,13 +68,14 @@ namespace FixTests::Server
     void Application::fromApp(const FIX::Message &message, const FIX::SessionID &sessionID)
         EXCEPT(FIX::FieldNotFound, FIX::IncorrectDataFormat, FIX::IncorrectTagValue, FIX::UnsupportedMessageType)
     {
-        crack(message, sessionID);
         std::cout << __PRETTY_FUNCTION__ << std::endl;
+        crack(message, sessionID);
     }
 
     void Application::onMessage(const FIX40::NewOrderSingle &message,
                                 const FIX::SessionID &sessionID)
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         FIX::Symbol symbol;
         FIX::Side side;
         FIX::OrdType ordType;
@@ -112,6 +123,7 @@ namespace FixTests::Server
     void Application::onMessage(const FIX41::NewOrderSingle &message,
                                 const FIX::SessionID &sessionID)
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         FIX::Symbol symbol;
         FIX::Side side;
         FIX::OrdType ordType;
@@ -161,6 +173,7 @@ namespace FixTests::Server
     void Application::onMessage(const FIX42::NewOrderSingle &message,
                                 const FIX::SessionID &sessionID)
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         FIX::Symbol symbol;
         FIX::Side side;
         FIX::OrdType ordType;
@@ -210,6 +223,7 @@ namespace FixTests::Server
     void Application::onMessage(const FIX43::NewOrderSingle &message,
                                 const FIX::SessionID &sessionID)
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         FIX::Symbol symbol;
         FIX::Side side;
         FIX::OrdType ordType;
@@ -259,6 +273,7 @@ namespace FixTests::Server
     void Application::onMessage(const FIX44::NewOrderSingle &message,
                                 const FIX::SessionID &sessionID)
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         FIX::Symbol symbol;
         FIX::Side side;
         FIX::OrdType ordType;
@@ -307,6 +322,7 @@ namespace FixTests::Server
     void Application::onMessage(const FIX50::NewOrderSingle &message,
                                 const FIX::SessionID &sessionID)
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         FIX::Symbol symbol;
         FIX::Side side;
         FIX::OrdType ordType;

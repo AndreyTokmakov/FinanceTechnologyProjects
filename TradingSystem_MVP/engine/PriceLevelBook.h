@@ -35,7 +35,6 @@ namespace engine
     private:
 
         void handleDepthUpdate(const market_data::Depth& depthUpdate);
-
     };
 };
 

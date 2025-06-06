@@ -45,8 +45,11 @@ namespace engine
 
     struct PricingEngine
     {
+        /** For Exchange::Binance **/
         ExchangeBookKeeper binanceBookKeeper;
+        /** For Exchange::ByBit **/
         ExchangeBookKeeper byBitBookKeeper;
+
         std::array<ExchangeBookKeeper*, 2> books { &binanceBookKeeper, &byBitBookKeeper };
 
         void start();

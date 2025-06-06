@@ -14,8 +14,8 @@ Description : SpinLock.cpp
 #include "SpinLock.h"
 #include "PerfUtilities.h"
 
-#include "stdio.h"
-#include "stdlib.h"
+#include <cstdio>
+#include <cstdlib>
 
 
 namespace SpinLockMtx

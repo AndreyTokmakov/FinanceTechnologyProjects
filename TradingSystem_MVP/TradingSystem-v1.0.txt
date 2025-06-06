@@ -69,4 +69,4 @@
       Возможно использовать SIMD для корвертации в INT
 
 
-add_compile_options(-c -Wall -Werror -Wextra -O3 -std=c++2a)
+

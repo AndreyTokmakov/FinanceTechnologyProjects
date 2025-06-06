@@ -20,8 +20,12 @@ namespace common
     using FlatBuffer = boost::beast::flat_buffer;
     using FlatBufferQueue = common::BlockingQueuePtr<FlatBuffer>;
 
+    // TODO: Price -> pair<int, int> ?
     using Price     = double;
+
+    // TODO: Price -> pair<int, int> ?
     using Quantity  = double;
+
     using Timestamp = int64_t;
     using Number    = int64_t;
 

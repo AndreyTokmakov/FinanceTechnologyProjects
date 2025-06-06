@@ -21,13 +21,13 @@ namespace engine
 
     struct PriceLevelBook
     {
-        using PriceLevel = boost::container::flat_map<Pair, Quantity>;
+        using PriceLevel = boost::container::flat_map<Price, Quantity>;
 
         // TODO: pair ?? symbol ??
         Pair pair;
 
-        PriceLevel buyOrders;
-        PriceLevel sellOrders;
+        // PriceLevel buyOrders;
+        // PriceLevel sellOrders;
 
         // TODO: Rename method
         void processEvent(const market_data::Event& event);

@@ -30,25 +30,28 @@ namespace engine
 
     void PriceLevelBook::handleDepthUpdate(const market_data::Depth& depthUpdate)
     {
-        /*
-        std::cout << "BIDS: [" << pair << "]\n";
-        for (const auto& [price, quantity] : depthUpdate.bid) {
-            std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
+        for (const market_data::PriceLevel& lvl: depthUpdate.bid) {
+            if (0 == lvl.quantity ) {
+                buyOrders.erase(lvl.price);
+                continue;
+            }
+            buyOrders.emplace(lvl.price, lvl.quantity);
+        }
+        for (const market_data::PriceLevel& lvl: depthUpdate.ask) {
+            if (0 == lvl.quantity ) {
+                sellOrders.erase(lvl.price);
+                continue;
+            }
+            sellOrders.emplace(lvl.price, lvl.quantity);
         }
 
-        std::cout << "ASKS: [" << pair << "]\n";
-        for (const auto& [price, quantity] : depthUpdate.ask) {
-            std::cout << "\t{ price: " << price << ", quantity: " << quantity << " }\n";
+        if (!buyOrders.empty()) {
+            std::cout << "[" << pair << "] BID: (" << buyOrders.size() << ") [" << buyOrders.begin()->first
+                      << " - " << std::prev(buyOrders.end())->first << "]\n";
         }
-        */
-
-        if (!depthUpdate.bid.empty()) {
-            std::cout << "[" << pair << "] BID { " << depthUpdate.bid.begin()->price << " - "
-                    << std::prev(depthUpdate.bid.end())->price << "}\n";
-        }
-        if (!depthUpdate.ask.empty()) {
-            std::cout << "[" << pair << "] ASK { " << depthUpdate.ask.begin()->price << " - "
-                      << std::prev(depthUpdate.ask.end())->price << "}\n";
+        if (!sellOrders.empty()) {
+            std::cout << "[" << pair << "] ASK: (" << sellOrders.size() << ") [" << sellOrders.begin()->first
+                      << " - " << std::prev(sellOrders.end())->first << "]\n";
         }
     }
 }

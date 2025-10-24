@@ -54,9 +54,9 @@ namespace connectors
             "ethusdt@ticker@ticker", "btcusdt@ticker", "memeusdt@ticker"
         ], "id": 1})" };
 
-        const std::string subscriptionDepth { R"({"method": "SUBSCRIBE","params": [
-            "ethusdt@ticker@depth", "btcusdt@depth", "memeusdt@depth"
-        ], "id": 1})" };
+        const std::string subscriptionDepth {
+            R"({"method": "SUBSCRIBE","params": ["btcusdt@depth", "memeusdt@depth"], "id": 1})"
+        };
 
 
         worker = std::jthread{[this, subscriptionDepth]
@@ -82,15 +82,21 @@ namespace connectors
                 throw beast::system_error(beast::error_code(static_cast<int>(::ERR_get_error()),
                     net::error::get_ssl_category()), "Failed to set SNI Hostname");
 
+            std::cout << "---1---\n";
+
             // Perform the SSL handshake
             wsStream.next_layer().handshake(ssl::stream_base::client);
+
+            std::cout << "---2---\n";
 
             // Set a decorator to change the User-Agent of the handshake
             wsStream.set_option(websocket::stream_base::decorator([](websocket::request_type& req){
                 req.set(http::field::user_agent,std::string(BOOST_BEAST_VERSION_STRING) +" websocket-client-coro");
             }));
 
-            wsStream.handshake(host, "/stream");;
+            wsStream.handshake(host, "/stream");
+
+            std::cout << "---3---\n";
 
             [[maybe_unused]]
             const size_t bytesSend = wsStream.write(net::buffer(subscriptionDepth));

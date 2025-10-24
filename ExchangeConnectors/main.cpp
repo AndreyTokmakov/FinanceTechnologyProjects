@@ -23,9 +23,9 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    // WebSockerConnector::TestAll();
+    WebSockerConnector::TestAll();
     // WebSockerConnectorAsynch::TestAll();
-    WSConnectorAsynch::TestAll();
+    // WSConnectorAsynch::TestAll();
     // WSConnectorAsynchExperimental::TestAll();
     // ApiClient::TestAll();
 

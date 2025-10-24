@@ -21,13 +21,14 @@ namespace engine
 
     struct PriceLevelBook
     {
-        using PriceLevel = boost::container::flat_map<Price, Quantity>;
+        template<typename Comparator>
+        using PriceLevel = boost::container::flat_map<Price, Quantity, Comparator>;
 
         // TODO: pair ?? symbol ??
         Pair pair;
 
-        // PriceLevel buyOrders;
-        // PriceLevel sellOrders;
+        PriceLevel<std::greater<>> buyOrders;
+        PriceLevel<std::less<>> sellOrders;
 
         // TODO: Rename method
         void processEvent(const market_data::Event& event);

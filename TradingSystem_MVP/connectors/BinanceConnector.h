@@ -21,7 +21,7 @@ namespace connectors
     struct BinanceWsConnector
     {
         // static inline constexpr std::string_view host { "testnet.binance.vision" };
-        static inline constexpr std::string_view host { "stream.binance.com" };
+        static inline constexpr std::string_view host { "fstream.binance.com" };
 
         static inline constexpr uint16_t port { 443 };
         static inline constexpr uint32_t bufferSize { 1024 };

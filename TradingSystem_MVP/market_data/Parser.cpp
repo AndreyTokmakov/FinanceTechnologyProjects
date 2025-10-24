@@ -116,6 +116,8 @@ namespace market_data
                const size_t length,
                market_data::Event& event)
     {
+        // std::cout << std::string_view(data, length) << std::endl;
+
         simdjson::ondemand::object dataObj;
         parser.iterate(get_padded_string(data, length, jsonBuffer)).get(document);
         if (simdjson::SUCCESS != document[JsonParams::data].get(dataObj))

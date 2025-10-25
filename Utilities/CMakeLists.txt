@@ -13,6 +13,7 @@ add_library(utils
         StringUtilities.cpp StringUtilities.hpp
         HexConverter.cpp HexConverter.hpp
         PerfUtilities.cpp PerfUtilities.hpp
+        DateTimeUtilities.cpp DateTimeUtilities.hpp
         FinalAction.hpp
 )
 

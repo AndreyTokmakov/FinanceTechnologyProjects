@@ -22,6 +22,8 @@ Description : Common modules
 #include <cerrno>
 #include <netdb.h>
 
+#include "FinalAction.hpp"
+
 
 // TODO:
 //  -  Connector / Auth / Fetch data - Strategy
@@ -101,20 +103,53 @@ namespace data_feeder_demo
 
 namespace tcp_connector_test
 {
-    constexpr uint32_t RECV_BUFFER_SIZE { 2048 };
+    constexpr uint32_t RECV_BUFFER_SIZE { 512 };
     constexpr int32_t INVALID_SOCKET { -1 };
     constexpr int32_t SOCKET_ERROR { -1 };
-
     constexpr uint16_t port { 52525 };
-    const std::string_view host {"0.0.0.0"};
+    constexpr std::string_view host {"0.0.0.0"};
+
+    using Socket = int32_t;
 
 
     void test()
     {
-        int socket = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+        const Socket socket = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (INVALID_SOCKET == socket) {
             std::cout << "Failed to create socket. Error = " << errno << std::endl;
             return;
+        }
+
+        final_action::ScopeExit cleanup { [&] { ::close(socket); }};
+
+        const sockaddr_in server {PF_INET, htons(port), {.s_addr = inet_addr(host.data())}, {}};
+        std::cout << "Connecting to server..." << std::endl;
+        const int error = ::connect(socket, (sockaddr*)&server, sizeof(server));
+        if (error == SOCKET_ERROR) {
+            std::cout << "Connect function failed with error: " << errno << std::endl;
+            ::close(socket);
+            return;
+        }
+        else {
+            std::cout << "Connected.\n";
+        }
+
+        const std::string httpRequest = "Subscribe: BTC/USDT\n";
+        ssize_t bytes = ::send(socket, httpRequest.c_str(), httpRequest.length(), 0);
+        // std::cout << bytes << " bytes send\n";
+
+        bytes = RECV_BUFFER_SIZE;
+        std::string response;
+        std::array<char, RECV_BUFFER_SIZE> buffer {};
+        while (true)
+        {
+            while (bytes == RECV_BUFFER_SIZE) {
+                bytes = ::recv(socket, buffer.data(), buffer.size(), 0);
+                response.append(buffer.data(), bytes);
+            }
+            std::cout << response << std::endl;
+            bytes = RECV_BUFFER_SIZE;
+            response.clear();
         }
     }
 }

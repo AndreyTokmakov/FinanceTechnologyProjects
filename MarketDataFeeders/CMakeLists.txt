@@ -7,13 +7,13 @@ project(${PROJECT_NAME} VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
 add_compile_options(-c -Wall -Wextra -O3 -std=c++26)
 
-target_include_directories(common_modules PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")
-target_link_directories(common_modules PUBLIC "${CMAKE_BINARY_DIR}/Utilities")
-
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
 )
+
+target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")
+target_link_directories(${PROJECT_NAME} PUBLIC "${CMAKE_BINARY_DIR}/Utilities")
 
 target_link_libraries(${PROJECT_NAME}
         utils

@@ -7,8 +7,8 @@ Copyright   : Your copyright notice
 Description : Base64.h
 ============================================================================**/
 
-#ifndef CPPPROJECTS_BASE64_H
-#define CPPPROJECTS_BASE64_H
+#ifndef CPPPROJECTS_BASE64_HPP
+#define CPPPROJECTS_BASE64_HPP
 
 #include <string>
 
@@ -18,4 +18,4 @@ namespace Base64
     std::string base64Encode2(const std::string &str);
 };
 
-#endif //CPPPROJECTS_BASE64_H
+#endif //CPPPROJECTS_BASE64_HPP

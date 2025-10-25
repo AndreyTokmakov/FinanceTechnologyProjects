@@ -12,7 +12,7 @@ Description : Tests C++ project
 #include <string_view>
 #include <vector>
 
-#include "StringUtilities.h"
+#include "StringUtilities.hpp"
 
 
 int main([[maybe_unused]] const int argc,

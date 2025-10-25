@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : HexConverter
 ============================================================================**/
 
-#include "HexConverter.h"
+#include "HexConverter.hpp"
 
 #include <string_view>
 #include <vector>
@@ -47,6 +47,17 @@ namespace HexConverter
         return result;
     }
 
+    std::string bytesToHex(const std::string& bytesStr)
+    {
+        std::string result(bytesStr.size() * 2, '0');
+        for (size_t pos = 0; const uint8_t ch: bytesStr) {
+            result[pos++] = table[ch >> 4];
+            result[pos++] = table[ch & 0x0f];
+        }
+        return result;
+    }
+
+
     static constexpr uint8_t hexCode(unsigned char symbol) noexcept
     {
         if (symbol >= '0' && symbol <= '9')
@@ -80,6 +91,25 @@ namespace HexConverter
             bytesStr.push_back(static_cast<char>(hex2UChar(hexString.substr(i, 2))));
         return bytesStr;
     }
+
+    std::string intToHex(int value)
+    {
+        std::string result;
+        unsigned int num = static_cast<unsigned int>(value);
+
+        if (num == 0) {
+            result.push_back(table[0]);
+            return result;
+        }
+        while (num > 0) {
+            int remainder = num & 0xF;
+            result.push_back(table[remainder]);
+            num >>= 4;
+        }
+
+        std::reverse(result.begin(), result.end());
+        return result;
+    }
 };
 
 void HexConverter::TestAll()
@@ -108,6 +138,13 @@ void HexConverter::TestAll()
     {
         const std::string data {"some_test_data"};
         const std::string hexStr = bytesToHexStr(data.data(), data.size());
+        std::cout << hexStr << std::endl;
+    }
+
+
+    {
+        const std::string data {"some_test_data"};
+        const std::string hexStr = bytesToHex(data);
         std::cout << hexStr << std::endl;
     }
 

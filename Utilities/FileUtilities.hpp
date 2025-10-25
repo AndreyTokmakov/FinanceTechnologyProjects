@@ -7,8 +7,8 @@ Copyright   : Your copyright notice
 Description : FileUtilities.h
 ============================================================================**/
 
-#ifndef CPPPROJECTS_FILEUTILITIES_H
-#define CPPPROJECTS_FILEUTILITIES_H
+#ifndef CPPPROJECTS_FILEUTILITIES_HPP
+#define CPPPROJECTS_FILEUTILITIES_HPP
 
 #include <filesystem>
 
@@ -35,4 +35,4 @@ namespace FileUtilities
     std::size_t getFileSizeFS(const std::filesystem::path& filePath);
 };
 
-#endif //CPPPROJECTS_FILEUTILITIES_H
+#endif //CPPPROJECTS_FILEUTILITIES_HPP

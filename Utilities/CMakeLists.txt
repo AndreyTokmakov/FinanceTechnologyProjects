@@ -8,11 +8,12 @@ project(${PROJECT_NAME} VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 add_compile_options(-c -Wall -Wextra -O3 -std=c++2c)
 
 add_library(utils
-        Base64.cpp Base64.h
-        FileUtilities.cpp FileUtilities.h
-        StringUtilities.cpp StringUtilities.h
-        HexConverter.cpp HexConverter.h
-        PerfUtilities.cpp PerfUtilities.h
+        Base64.cpp Base64.hpp
+        FileUtilities.cpp FileUtilities.hpp
+        StringUtilities.cpp StringUtilities.hpp
+        HexConverter.cpp HexConverter.hpp
+        PerfUtilities.cpp PerfUtilities.hpp
+        FinalAction.hpp
 )
 
 # include all components

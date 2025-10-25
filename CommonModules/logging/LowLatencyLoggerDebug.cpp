@@ -23,7 +23,7 @@ Description : LowLatencyLoggerDebug.cpp
 #include <future>
 #include <utility>
 
-#include "PerfUtilities.h"
+#include "PerfUtilities.hpp"
 
 namespace
 {

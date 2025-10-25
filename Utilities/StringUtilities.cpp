@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : StringUtilities.cpp
 ============================================================================**/
 
-#include "StringUtilities.h"
+#include "StringUtilities.hpp"
 
 #include <array>
 #include <algorithm>
@@ -77,7 +77,7 @@ namespace StringUtilities
 
 namespace StringUtilities
 {
-    // Remove ' ', '\t', '\n', '\r', '\n' symbols from the END and BEGINING of the string
+    /** Remove ' ', '\t', '\n', '\r', '\n' symbols from the END and BEGINNING of the string **/
     void strip(std::string &str)
     {
         constexpr std::array<char, 5> symbols{' ', '\t', '\n', '\r', '\n'};
@@ -94,6 +94,34 @@ namespace StringUtilities
         })) { --end; }
         str.erase(end + 1, length - start - end);
 
+        str.shrink_to_fit();
+    }
+
+    constexpr std::array<char, 256> TBL = []() -> std::array<char, 256> {
+        std::array<char, 256> tmp{};
+        for (const char c: {'\t', '\n', '\r', ' '})
+            tmp[c] = 1;
+        return tmp;
+    }();
+
+    static_assert(TBL.size() == 256);
+    static_assert(TBL['\t'] == 1);
+    static_assert(TBL['\t' + 5] == 0);
+    static_assert(TBL['\n'] == 1);
+    static_assert(TBL['\n' + 5] == 0);
+    static_assert(TBL['\r'] == 1);
+    static_assert(TBL[' '] == 1);
+
+    void strip_fast(std::string &str)
+    {
+        uint32_t idx = 0, left = 0, right = str.size() - 1;
+        for (; left <= right && 1 == TBL[str[left]]; ++left) {}
+        for (; right >= left && 1 == TBL[str[right]]; --right) {}
+        for (; left <= right; ++left, ++idx) {
+            str[idx] = str[left];
+        }
+
+        str.resize(idx);
         str.shrink_to_fit();
     }
 }
@@ -118,6 +146,7 @@ namespace StringUtilities
         str.shrink_to_fit();
     }
 }
+
 
 
 namespace StringUtilities

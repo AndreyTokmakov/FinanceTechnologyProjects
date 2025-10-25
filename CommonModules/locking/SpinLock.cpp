@@ -12,7 +12,7 @@ Description : SpinLock.cpp
 #include <thread>
 
 #include "SpinLock.h"
-#include "PerfUtilities.h"
+#include "PerfUtilities.hpp"
 
 #include <cstdio>
 #include <cstdlib>

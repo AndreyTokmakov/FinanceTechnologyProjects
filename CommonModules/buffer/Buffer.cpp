@@ -10,6 +10,7 @@ Description : Buffer.cpp
 #include "Buffer.hpp"
 
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <utility>
@@ -28,14 +29,16 @@ namespace
 
         Buffer() = default;
 
-        explicit Buffer(const size_type initialSize)
-            : capacity { initialSize }, size { 0 }, data { std::make_unique_for_overwrite<array_type>(initialSize) }  {
+        explicit Buffer(const size_type initialCapacity):
+            capacity { initialCapacity },
+            size { 0 },
+            data { std::make_unique_for_overwrite<array_type>(initialCapacity) }  {
         }
 
         Buffer(const Buffer& other):
             capacity { other.capacity },
-            size { other.size },
-            data { std::make_unique_for_overwrite<array_type>(other.capacity) }
+            size     { other.size },
+            data  { std::make_unique_for_overwrite<array_type>(other.capacity) }
         {
             std::memcpy(data.get(), other.data.get(), other.size);
         }
@@ -43,16 +46,16 @@ namespace
         Buffer& operator=(const Buffer& other)
         {
             capacity = other.capacity;
-            size = other.size;
-            data = std::make_unique_for_overwrite<array_type>(capacity);
+            size     = other.size;
+            data  = std::make_unique_for_overwrite<array_type>(capacity);
             std::memcpy(data.get(), other.data.get(), size);
             return *this;
         }
 
         Buffer(Buffer&& other) noexcept:
             capacity { std::exchange(other.capacity, 0) },
-            size { std::exchange(other.size, 0) },
-            data { std::move(other.data) }
+            size     { std::exchange(other.size, 0) },
+            data  { std::move(other.data) }
         {
             other.size = 0;
         }
@@ -60,11 +63,12 @@ namespace
         Buffer& operator=(Buffer&& other) noexcept
         {
             capacity = std::exchange(other.capacity, 0);
-            size = std::exchange(other.size, 0);
-            data = std::move(other.data);
+            size     = std::exchange(other.size, 0);
+            data  = std::move(other.data);
             return *this;
         }
 
+        // TODO: Rename
         void push_back(const value_type c)
         {
             ensure_capacity(size + 1);
@@ -79,38 +83,66 @@ namespace
         }
 
         [[nodiscard]]
-        const_pointer Data() const noexcept {
+        pointer head() const noexcept {
             return data.get();
         }
 
         [[nodiscard]]
-        size_type Size() const noexcept {
+        pointer tail() const noexcept {
+            return data.get() + size;
+        }
+
+        [[nodiscard]]
+        pointer tail(const size_type n) noexcept {
+            validateCapacity(n);
+            std::cout << "n: " << n <<  ", size: " << size << ", capacity: " << capacity << std::endl;
+
+            return data.get() + size;
+        }
+
+        [[nodiscard]]
+        size_type length() const noexcept {
             return size;
         }
 
-        [[nodiscard]] size_type Capacity() const noexcept {
-            return capacity;
+        [[nodiscard]]
+        bool empty() const noexcept {
+            return 0 == size;
         }
+
+        /*[[nodiscard]]
+        size_type Capacity() const noexcept {
+            return capacity;
+        }*/
 
         void clear() noexcept {
             size = 0;
         }
 
+        void reset() noexcept {
+            size = 0;
+        }
+
+        void incrementLength(const size_type incrSize) noexcept {
+            size += incrSize;
+        }
+
+        void validateCapacity(const size_type n)
+        {
+            if ((capacity - size) >= n)
+                return;
+            ensure_capacity(capacity + n);
+        }
+
     private:
 
-        void ensure_capacity(size_type new_size)
+        void ensure_capacity(const size_type newCapacity)
         {
-            if (new_size <= capacity)
-                return;
-            size_type new_capacity = capacity ? capacity * 2 : 8;
-            while (new_capacity < new_size) new_capacity *= 2;
-
-
-            auto new_data = std::make_unique_for_overwrite<array_type>(new_capacity);
+            auto new_data = std::make_unique_for_overwrite<array_type>(newCapacity);
             if (data)
                 std::memcpy(new_data.get(), data.get(), size);
             data = std::move(new_data);
-            capacity = new_capacity;
+            capacity = newCapacity;
         }
 
         size_type capacity { 0 };
@@ -120,7 +152,64 @@ namespace
 }
 
 
-void buffer::TestAll()
+namespace buffer_tests
 {
 
+    void test_validateCapacity()
+    {
+        Buffer buffer;
+
+        std::cout << buffer.length() << std::endl;
+        buffer.incrementLength(1024);
+        buffer.validateCapacity(512);
+
+        std::cout << buffer.length() << std::endl;
+    }
+
+
+    void test_data()
+    {
+        Buffer buffer;
+
+        {
+            std::string message{"qwerty"};
+            std::copy_n(message.data(), message.size(), buffer.tail(message.size()));
+            buffer.incrementLength(message.length());
+            std::cout << std::quoted(std::string_view(buffer.head(), buffer.length())) << std::endl;
+        }
+
+        {
+            std::string message{"1111111111111"};
+            std::copy_n(message.data(), message.size(), buffer.tail(message.size()));
+            buffer.incrementLength(message.length());
+            std::cout << std::quoted(std::string_view(buffer.head(), buffer.length())) << std::endl;
+        }
+    }
+
+    /*
+    void server_like_test()
+    {
+        Buffer buffer;
+        std::string dataExpected;
+
+        for (int i = 'a'; i < 'z'; ++i)
+        {
+            std::string message(128, (char)i);
+            dataExpected += message;
+
+            buffer.validateCapacity(128);
+            std::copy_n(message.data(), message.size(), buffer.head());
+            buffer.incrementLength(message.length());
+        }
+
+        std::string result(buffer.data<char>(), buffer.size());
+        std::cout << std::boolalpha << (result == dataExpected) << std::endl;
+    }
+    */
+}
+
+void buffer::TestAll()
+{
+    // buffer_tests::test_validateCapacity();
+    buffer_tests::test_data();
 }

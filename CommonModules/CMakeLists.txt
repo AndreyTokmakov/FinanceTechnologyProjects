@@ -16,6 +16,7 @@ add_library(common_modules
     locking/SpinLock.cpp
     cryptography/Certificates.cpp
     consumers/UnixDomainSocketConsumer.cpp
+    buffer/Buffer.cpp buffer/Buffer.hpp
 )
 
 target_include_directories(common_modules PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

@@ -19,6 +19,8 @@ Description : Common modules
 #include "locking/SpinLock.h"
 #include "cryptography/Certificates.h"
 #include "consumers/UnixDomainSocketConsumer.h"
+#include "buffer/Buffer.hpp"
+
 
 
 // TODO:
@@ -37,13 +39,15 @@ int main([[maybe_unused]] int argc,
     // LowLatencyLoggerDebug::TestAll();
 
     // RingBuffer_SPSC::TestAll();
-    RingBufferEx::TestAll();
+    // RingBufferEx::TestAll();
 
     // SpinLock::TestAll();
 
     // Certificates::TestAll();
 
     // UnixDomainSocketConsumer::TestAll();
+
+    buffer::TestAll();
 
     return EXIT_SUCCESS;
 }

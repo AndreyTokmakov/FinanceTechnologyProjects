@@ -160,7 +160,21 @@ int main([[maybe_unused]] int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
     // data_feeder_demo::test();
-    tcp_connector_test::test();
+    // tcp_connector_test::test();
+
+    std::vector<int> v {1, 2, 3, 4, 5};
+    std::cout << sizeof(v) << std::endl;
+
+    struct data
+    {
+        int32_t size;
+        int32_t capacity;
+        int32_t* ptr { nullptr };
+    };
+
+    std::cout << sizeof(data) << std::endl;
+
+
 
     return EXIT_SUCCESS;
 }

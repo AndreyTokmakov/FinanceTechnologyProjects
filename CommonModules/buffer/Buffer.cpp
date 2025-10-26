@@ -142,14 +142,14 @@ namespace
             return 1u << (32 - std::countl_zero(value - 1));
         }
 
-        void ensure_capacity(const size_type newCapacity)
+        void ensure_capacity(size_type newCapacity)
         {
-            const uint32_t newCapacityPow2 = round_up_to_pow2(newCapacity);
-            auto new_data = std::make_unique_for_overwrite<array_type>(newCapacityPow2);
+            newCapacity = round_up_to_pow2(newCapacity);
+            auto new_data = std::make_unique_for_overwrite<array_type>(newCapacity);
             if (data)
                 std::memcpy(new_data.get(), data.get(), size);
             data = std::move(new_data);
-            capacity = newCapacityPow2;
+            capacity = newCapacity;
         }
 
         size_type capacity { 0 };

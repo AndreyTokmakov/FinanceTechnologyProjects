@@ -23,6 +23,7 @@ Description : Common modules
 #include <netdb.h>
 
 #include "FinalAction.hpp"
+#include "Buffer.hpp"
 
 
 // TODO:
@@ -103,7 +104,7 @@ namespace data_feeder_demo
 
 namespace tcp_connector_test
 {
-    constexpr uint32_t RECV_BUFFER_SIZE { 512 };
+    constexpr uint32_t RECV_BUFFER_SIZE { 12 };
     constexpr int32_t INVALID_SOCKET { -1 };
     constexpr int32_t SOCKET_ERROR { -1 };
     constexpr uint16_t port { 52525 };
@@ -136,8 +137,8 @@ namespace tcp_connector_test
 
         const std::string httpRequest = "Subscribe: BTC/USDT\n";
         ssize_t bytes = ::send(socket, httpRequest.c_str(), httpRequest.length(), 0);
-        // std::cout << bytes << " bytes send\n";
 
+        /*
         bytes = RECV_BUFFER_SIZE;
         std::string response;
         std::array<char, RECV_BUFFER_SIZE> buffer {};
@@ -151,6 +152,23 @@ namespace tcp_connector_test
             bytes = RECV_BUFFER_SIZE;
             response.clear();
         }
+        */
+
+        bytes = RECV_BUFFER_SIZE;
+        buffer::Buffer response;
+        while (true)
+        {
+            std::cout << std::string(120, '-') << std::endl;
+            while (bytes == RECV_BUFFER_SIZE) {
+                bytes = ::recv(socket, response.tail(RECV_BUFFER_SIZE), RECV_BUFFER_SIZE, 0);
+                response.incrementLength(bytes);
+
+                std::cout << "Bytes: " << bytes << std::endl;
+            }
+            std::cout << std::string_view(response.head(), response.length()) << std::endl;
+            bytes = RECV_BUFFER_SIZE;
+            response.clear();
+        }
     }
 }
 
@@ -160,20 +178,7 @@ int main([[maybe_unused]] int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
     // data_feeder_demo::test();
-    // tcp_connector_test::test();
-
-    std::vector<int> v {1, 2, 3, 4, 5};
-    std::cout << sizeof(v) << std::endl;
-
-    struct data
-    {
-        int32_t size;
-        int32_t capacity;
-        int32_t* ptr { nullptr };
-    };
-
-    std::cout << sizeof(data) << std::endl;
-
+    tcp_connector_test::test();
 
 
     return EXIT_SUCCESS;

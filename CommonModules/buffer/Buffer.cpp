@@ -37,8 +37,8 @@ namespace
 
         Buffer(const Buffer& other):
             capacity { other.capacity },
-            size     { other.size },
-            data  { std::make_unique_for_overwrite<array_type>(other.capacity) }
+            size { other.size },
+            data { std::make_unique_for_overwrite<array_type>(other.capacity) }
         {
             std::memcpy(data.get(), other.data.get(), other.size);
         }
@@ -46,16 +46,16 @@ namespace
         Buffer& operator=(const Buffer& other)
         {
             capacity = other.capacity;
-            size     = other.size;
-            data  = std::make_unique_for_overwrite<array_type>(capacity);
+            size = other.size;
+            data = std::make_unique_for_overwrite<array_type>(capacity);
             std::memcpy(data.get(), other.data.get(), size);
             return *this;
         }
 
         Buffer(Buffer&& other) noexcept:
             capacity { std::exchange(other.capacity, 0) },
-            size     { std::exchange(other.size, 0) },
-            data  { std::move(other.data) }
+            size { std::exchange(other.size, 0) },
+            data { std::move(other.data) }
         {
             other.size = 0;
         }
@@ -63,8 +63,8 @@ namespace
         Buffer& operator=(Buffer&& other) noexcept
         {
             capacity = std::exchange(other.capacity, 0);
-            size     = std::exchange(other.size, 0);
-            data  = std::move(other.data);
+            size = std::exchange(other.size, 0);
+            data = std::move(other.data);
             return *this;
         }
 
@@ -93,10 +93,9 @@ namespace
         }
 
         [[nodiscard]]
-        pointer tail(const size_type n) noexcept {
+        pointer tail(const size_type n) noexcept
+        {
             validateCapacity(n);
-            std::cout << "n: " << n <<  ", size: " << size << ", capacity: " << capacity << std::endl;
-
             return data.get() + size;
         }
 
@@ -110,17 +109,20 @@ namespace
             return 0 == size;
         }
 
-        /*[[nodiscard]]
-        size_type Capacity() const noexcept {
-            return capacity;
-        }*/
-
         void clear() noexcept {
             size = 0;
         }
 
         void reset() noexcept {
             size = 0;
+        }
+
+        reference operator[](const size_type idx) {
+            return data[idx];
+        }
+
+        const_reference operator[](const size_type idx) const {
+            return data[idx];
         }
 
         void incrementLength(const size_type incrSize) noexcept {
@@ -136,13 +138,18 @@ namespace
 
     private:
 
+        static constexpr uint32_t round_up_to_pow2(const uint32_t value) {
+            return 1u << (32 - std::countl_zero(value - 1));
+        }
+
         void ensure_capacity(const size_type newCapacity)
         {
-            auto new_data = std::make_unique_for_overwrite<array_type>(newCapacity);
+            const uint32_t newCapacityPow2 = round_up_to_pow2(newCapacity);
+            auto new_data = std::make_unique_for_overwrite<array_type>(newCapacityPow2);
             if (data)
                 std::memcpy(new_data.get(), data.get(), size);
             data = std::move(new_data);
-            capacity = newCapacity;
+            capacity = newCapacityPow2;
         }
 
         size_type capacity { 0 };
@@ -207,6 +214,7 @@ namespace buffer_tests
     }
     */
 }
+
 
 void buffer::TestAll()
 {

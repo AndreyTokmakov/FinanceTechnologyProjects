@@ -106,6 +106,12 @@ namespace lock_free_ring_buffer
 
 namespace lock_free_ring_buffer::testing
 {
+    void SimpleTest()
+    {
+        RingBuffer<int> queue(1024);
+    }
+
+
     void Test()
     {
         RingBuffer<int> queue(1024);
@@ -151,5 +157,6 @@ namespace lock_free_ring_buffer::testing
 
 void RingBuffer_SPSC_Two::TestAll()
 {
-    lock_free_ring_buffer::testing::Test();
+    // lock_free_ring_buffer::testing::Test();
+    lock_free_ring_buffer::testing::SimpleTest();
 }

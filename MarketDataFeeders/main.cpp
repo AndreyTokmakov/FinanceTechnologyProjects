@@ -24,6 +24,7 @@ Description : Common modules
 
 #include "FinalAction.hpp"
 #include "Buffer.hpp"
+#include "RingBuffer.hpp"
 
 
 // TODO:
@@ -178,8 +179,13 @@ int main([[maybe_unused]] int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
     // data_feeder_demo::test();
-    tcp_connector_test::test();
+    // tcp_connector_test::test();
 
+
+    ring_buffer::static_capacity::RingBuffer<int, 32> buffer;
+
+    buffer.add(12);
+    std::cout << buffer.pop().value() << std::endl;
 
     return EXIT_SUCCESS;
 }

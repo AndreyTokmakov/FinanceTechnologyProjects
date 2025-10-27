@@ -13,8 +13,10 @@ Description : RingBuffer.cpp
 #include <vector>
 #include <atomic>
 #include <cassert>
+#include <optional>
 
-namespace lock_free_ring_buffer
+
+namespace ring_buffer
 {
     constexpr uint32_t fast_modulo(const uint32_t n, const uint32_t d) noexcept {
         return n & (d - 1);
@@ -23,8 +25,11 @@ namespace lock_free_ring_buffer
     constexpr bool is_pow_of_2(const int value) noexcept {
         return (value && !(value & value - 1));
     }
+}
 
-    template<typename T>
+namespace ring_buffer::dynamic_capacity
+{
+    template<typename T, uint32_t Capacity>
     struct RingBuffer
     {
         using size_type  = uint32_t;
@@ -32,7 +37,6 @@ namespace lock_free_ring_buffer
         using collection_type = std::vector<value_type>;
 
         static_assert(!std::is_same_v<value_type, void>, "ERROR: Value type can not be void");
-        // static_assert(is_pow_of_2(Capacity),  "ERROR: Capacity must be a power of 2");
 
         explicit RingBuffer(const size_type capacity):
             capacity { capacity }, buffer(capacity), tail(0), head()
@@ -95,5 +99,76 @@ namespace lock_free_ring_buffer
         alignas(std::hardware_destructive_interference_size) std::atomic<size_type> head {0};
     };
 }
+
+namespace ring_buffer::static_capacity
+{
+    template<typename T, uint32_t Capacity>
+    struct RingBuffer
+    {
+        using size_type  = uint32_t;
+        using value_type = T;
+        using collection_type = std::vector<value_type>;
+
+        static_assert(!std::is_same_v<value_type, void>, "ERROR: Value type can not be void");
+        static_assert(is_pow_of_2(Capacity),  "ERROR: Capacity must be a power of 2");
+
+        RingBuffer(): buffer(Capacity) {
+        }
+
+        bool add(const value_type& value)
+        {
+            const size_type headLocal = head.load(std::memory_order::relaxed);
+            const size_type headNext = fast_modulo(headLocal + 1, Capacity);
+
+            if (headNext == tail.load(std::memory_order::acquire)) {
+                return false;
+            }
+
+            buffer[headLocal] = value;
+            head.store(headNext, std::memory_order::release);
+
+            return true;
+        }
+
+        [[nodiscard]]
+        std::optional<value_type> pop()
+        {
+            const size_type tailLocal = tail.load(std::memory_order::relaxed);
+            if (tailLocal == head.load(std::memory_order::acquire)) {
+                return std::nullopt;
+            }
+
+            const value_type item = buffer[tailLocal];
+            tail.store(fast_modulo(tailLocal + 1, Capacity), std::memory_order::release);
+            return item;
+        }
+
+        [[nodiscard]]
+        size_type size() const noexcept {
+            return head.load(std::memory_order::relaxed) - tail.load(std::memory_order::relaxed);
+        }
+
+        [[nodiscard]]
+        size_type empty() const noexcept
+        {
+            // TODO: can 'acquire' be replaced with 'relaxed' ?
+            return head.load(std::memory_order::acquire) == tail.load(std::memory_order::acquire);
+        }
+
+        [[nodiscard]]
+        size_type full() const noexcept
+        {
+            return size() == Capacity;
+        }
+
+    private:
+
+        std::vector<value_type> buffer;
+
+        alignas(std::hardware_destructive_interference_size) std::atomic<size_type> tail {0};
+        alignas(std::hardware_destructive_interference_size) std::atomic<size_type> head {0};
+    };
+}
+
 
 #endif //FINANCETECHNOLOGYPROJECTS_RINGBUFFER_SPSC_123434343_HPP

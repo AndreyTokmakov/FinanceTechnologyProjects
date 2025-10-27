@@ -14,13 +14,14 @@ Description : Common modules
 #include "queues/LockFreeQueue.h"
 #include "logging/LowLatencyLogger.h"
 #include "logging/LowLatencyLoggerDebug.h"
-#include "ring_buffer/RingBuffer_SPSC.h"
-#include "ring_buffer_ex/RingBufferEx.h"
 #include "locking/SpinLock.h"
 #include "cryptography/Certificates.h"
 #include "consumers/UnixDomainSocketConsumer.h"
-#include "buffer/Buffer.hpp"
 
+#include "buffer/Buffer.hpp"
+#include "ring_buffer/RingBuffer_SPSC.h"
+#include "ring_buffer_ex/RingBufferEx.h"
+#include "ring_buffer_two/RingBuffer_SPSC_Two.hpp"
 
 
 // TODO:
@@ -40,6 +41,7 @@ int main([[maybe_unused]] int argc,
 
     // RingBuffer_SPSC::TestAll();
     // RingBufferEx::TestAll();
+    RingBuffer_SPSC_Two::TestAll();
 
     // SpinLock::TestAll();
 
@@ -47,7 +49,7 @@ int main([[maybe_unused]] int argc,
 
     // UnixDomainSocketConsumer::TestAll();
 
-    buffer::TestAll();
+    // buffer::TestAll();
 
     return EXIT_SUCCESS;
 }

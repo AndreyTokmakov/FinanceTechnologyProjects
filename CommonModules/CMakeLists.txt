@@ -11,12 +11,13 @@ add_library(common_modules
     queues/LockFreeQueue.cpp
     logging/LowLatencyLogger.cpp
     logging/LowLatencyLoggerDebug.cpp
-    ring_buffer/RingBuffer_SPSC.cpp
-    ring_buffer_ex/RingBufferEx.cpp
     locking/SpinLock.cpp
     cryptography/Certificates.cpp
     consumers/UnixDomainSocketConsumer.cpp
     buffer/Buffer.cpp buffer/Buffer.hpp
+    ring_buffer/RingBuffer_SPSC.cpp
+    ring_buffer_ex/RingBufferEx.cpp
+    ring_buffer_two/RingBuffer_SPSC_Two.cpp
 )
 
 target_include_directories(common_modules PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

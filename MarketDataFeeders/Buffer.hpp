@@ -41,6 +41,7 @@ namespace buffer
 
         [[nodiscard]]
         pointer head() const noexcept;
+
         [[nodiscard]]
         pointer tail() const noexcept;
 

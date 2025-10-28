@@ -26,6 +26,7 @@ Description : Common modules
 #include "Buffer.hpp"
 #include "RingBuffer.hpp"
 
+#include "DateTimeUtilities.hpp"
 
 // TODO:
 //  -  Connector / Auth / Fetch data - Strategy
@@ -39,6 +40,10 @@ Description : Common modules
 //     - Holds Growing Buffers
 //     - (модифицировать при записи если буфер используется для парсинга)
 
+namespace
+{
+    using namespace DateTimeUtilities;
+}
 
 
 namespace data_feeder_demo
@@ -173,6 +178,49 @@ namespace tcp_connector_test
     }
 }
 
+
+namespace lock_free_queue_polling
+{
+    struct Queue
+    {
+        int counter { 0 };
+
+        bool get(int& result)
+        {
+            ++counter;
+            if (0 == counter % 10) {
+                result = counter;
+                return true;
+            }
+            return false;
+        }
+    };
+
+    void run()
+    {
+        Queue queue {};
+        int result;
+        uint32_t misses { 0 };
+        while (true)
+        {
+            if (queue.get(result))
+            {
+                std::cout << getCurrentTime() << "  Got: " << result << std::endl;
+                misses = 0;
+                continue;
+            }
+
+            std::cout << getCurrentTime()  << "  No data" << std::endl;
+
+            ++misses;
+            if (misses > 5) {
+                std::this_thread::sleep_for(std::chrono::milliseconds (500U));
+            }
+        }
+    }
+
+}
+
 int main([[maybe_unused]] int argc,
          [[maybe_unused]] char** argv)
 {
@@ -182,10 +230,7 @@ int main([[maybe_unused]] int argc,
     // tcp_connector_test::test();
 
 
-    ring_buffer::static_capacity::RingBuffer<int, 32> buffer;
-
-    buffer.add(12);
-    std::cout << buffer.pop().value() << std::endl;
+    lock_free_queue_polling::run();
 
     return EXIT_SUCCESS;
 }

@@ -340,8 +340,6 @@ namespace ring_buffer_polling_tcp
     void run()
     {
         /*
-        ring_buffer::static_capacity::RingBuffer<int, 1024> queue {};
-
         auto consume = [&queue]
         {
             uint32_t misses { 0 };
@@ -362,25 +360,11 @@ namespace ring_buffer_polling_tcp
             }
         };
 
-        auto produce = [&queue]
-        {
-            while (true)
-            {
-                int32_t value { 0 };
-                while (100 > value) {
-                    if (queue.add(value)) {
-                        ++value;
-                    }
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds (900U));
-            }
-        };
-
-        std::thread consumer { consume }, producer { produce };
+        std::thread consumer { consume };
         consumer.join();
-        producer.join();
         */
 
+        ring_buffer::static_capacity_with_commit::RingBuffer<buffer::Buffer, 1024> queue {};
 
         ConnectorImpl connector {};
         if (!connector.init()) {
@@ -392,11 +376,17 @@ namespace ring_buffer_polling_tcp
             return;
         }
 
-        while (true) {
+        auto produce = [&queue, &connector]
+        {
             buffer::Buffer response;
-            connector.getData(response);
-        }
+            while (true)
+            {
+                connector.getData(response);
+            }
+        };
 
+        std::thread producer { produce };
+        producer.join();
     }
 }
 

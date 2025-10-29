@@ -21,6 +21,7 @@ Description : Common modules
 #include <netinet/in.h>
 #include <cerrno>
 #include <netdb.h>
+#include <queue>
 
 #include "FinalAction.hpp"
 #include "Buffer.hpp"
@@ -218,7 +219,53 @@ namespace lock_free_queue_polling
             }
         }
     }
+}
 
+namespace ring_buffer_polling
+{
+    void run()
+    {
+        ring_buffer::static_capacity::RingBuffer<int, 1024> queue {};
+
+        auto consume = [&queue]
+        {
+            uint32_t misses { 0 };
+            int32_t result { 0 };
+            while (true)
+            {
+                if (queue.pop(result)) {
+                    std::cout << getCurrentTime() << "  Got: " << result << std::endl;
+                    misses = 0;
+                    continue;
+                }
+
+                ++misses;
+                if (misses > 5) {
+                    std::cout << getCurrentTime() << "  No data - Sleeping\n";
+                    std::this_thread::sleep_for(std::chrono::milliseconds (100U));
+                }
+            }
+        };
+
+        auto produce = [&queue]
+        {
+            while (true)
+            {
+                int32_t value { 0 };
+                while (100 > value) {
+                    if (queue.add(value)) {
+                        ++value;
+                    }
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds (300U));
+            }
+        };
+
+        std::thread t1 {consume};
+        std::thread t2 {produce};
+        t1.join();
+        t2.join();
+    }
 }
 
 int main([[maybe_unused]] int argc,
@@ -228,9 +275,8 @@ int main([[maybe_unused]] int argc,
 
     // data_feeder_demo::test();
     // tcp_connector_test::test();
-
-
-    lock_free_queue_polling::run();
+    // lock_free_queue_polling::run();
+    ring_buffer_polling::run();
 
     return EXIT_SUCCESS;
 }

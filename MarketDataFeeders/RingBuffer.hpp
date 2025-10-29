@@ -131,16 +131,17 @@ namespace ring_buffer::static_capacity
         }
 
         [[nodiscard]]
-        std::optional<value_type> pop()
+        bool pop(value_type& item)
         {
             const size_type tailLocal = tail.load(std::memory_order::relaxed);
             if (tailLocal == head.load(std::memory_order::acquire)) {
-                return std::nullopt;
+                return false;
             }
 
-            const value_type item = buffer[tailLocal];
+            item = buffer[tailLocal];
             tail.store(fast_modulo(tailLocal + 1, Capacity), std::memory_order::release);
-            return item;
+
+            return true;
         }
 
         [[nodiscard]]

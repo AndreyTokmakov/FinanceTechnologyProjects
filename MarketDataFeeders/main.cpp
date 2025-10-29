@@ -221,7 +221,7 @@ namespace lock_free_queue_polling
     }
 }
 
-namespace ring_buffer_polling
+namespace ring_buffer_polling_demo
 {
     void run()
     {
@@ -257,16 +257,149 @@ namespace ring_buffer_polling
                         ++value;
                     }
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds (300U));
+                std::this_thread::sleep_for(std::chrono::milliseconds (900U));
             }
         };
 
-        std::thread t1 {consume};
-        std::thread t2 {produce};
-        t1.join();
-        t2.join();
+        std::thread consumer { consume }, producer { produce };
+        consumer.join();
+        producer.join();
     }
 }
+
+namespace ring_buffer_polling_tcp
+{
+    struct ConnectorImpl
+    {
+        constexpr static uint32_t RECV_BUFFER_SIZE { 12 };
+        constexpr static int32_t INVALID_SOCKET { -1 };
+        constexpr static int32_t SOCKET_ERROR { -1 };
+        using Socket = int32_t;
+
+        Socket socket { INVALID_SOCKET };
+        ssize_t bytes { 0 };
+
+        [[nodiscard]]
+        bool init()
+        {
+            socket = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (INVALID_SOCKET == socket) {
+                std::cout << "Failed to create socket. Error = " << errno << std::endl;
+                return false;
+            }
+            return true;
+        }
+
+        void close()
+        {
+            if (INVALID_SOCKET != socket) {
+                ::close(socket);
+                socket = INVALID_SOCKET;
+            }
+        }
+
+        [[nodiscard]]
+        bool connectAndSubscribe(const std::string_view host, const uint16_t port)
+        {
+            const sockaddr_in server {PF_INET, htons(port), {.s_addr = inet_addr(host.data())}, {}};
+            std::cout << "Connecting to server..." << std::endl;
+            const int error = ::connect(socket, reinterpret_cast<const sockaddr*>(&server), sizeof(server));
+            if (error == SOCKET_ERROR) {
+                std::cout << "Connect function failed with error: " << errno << std::endl;
+                return false;
+            }
+
+            std::cout << "Connected.\n";
+
+            // FIXME:
+            const std::string httpRequest = "Subscribe: BTC/USDT\n";
+            bytes = ::send(socket, httpRequest.c_str(), httpRequest.length(), 0);
+
+            return true;
+        }
+
+        void getData(buffer::Buffer& response)
+        {
+            bytes = RECV_BUFFER_SIZE;
+            while (true)
+            {
+                while (bytes == RECV_BUFFER_SIZE) {
+                    bytes = ::recv(socket, response.tail(RECV_BUFFER_SIZE), RECV_BUFFER_SIZE, 0);
+                    response.incrementLength(bytes);
+                }
+                std::cout << std::string_view(response.head(), response.length()) << std::endl;
+                bytes = RECV_BUFFER_SIZE;
+                response.clear();
+            }
+        }
+    };
+
+    constexpr static uint16_t port { 52525 };
+    constexpr static std::string_view host {"0.0.0.0"};
+
+    void run()
+    {
+        /*
+        ring_buffer::static_capacity::RingBuffer<int, 1024> queue {};
+
+        auto consume = [&queue]
+        {
+            uint32_t misses { 0 };
+            int32_t result { 0 };
+            while (true)
+            {
+                if (queue.pop(result)) {
+                    std::cout << getCurrentTime() << "  Got: " << result << std::endl;
+                    misses = 0;
+                    continue;
+                }
+
+                ++misses;
+                if (misses > 5) {
+                    std::cout << getCurrentTime() << "  No data - Sleeping\n";
+                    std::this_thread::sleep_for(std::chrono::milliseconds (100U));
+                }
+            }
+        };
+
+        auto produce = [&queue]
+        {
+            while (true)
+            {
+                int32_t value { 0 };
+                while (100 > value) {
+                    if (queue.add(value)) {
+                        ++value;
+                    }
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds (900U));
+            }
+        };
+
+        std::thread consumer { consume }, producer { produce };
+        consumer.join();
+        producer.join();
+        */
+
+
+        ConnectorImpl connector {};
+        if (!connector.init()) {
+            std::cerr << "Failed to init connector" << std::endl;
+            return;
+        }
+        if (!connector.connectAndSubscribe(host, port)) {
+            std::cerr << "Failed to connect and subscribe" << std::endl;
+            return;
+        }
+
+        while (true) {
+            buffer::Buffer response;
+            connector.getData(response);
+        }
+
+    }
+}
+
 
 int main([[maybe_unused]] int argc,
          [[maybe_unused]] char** argv)
@@ -276,7 +409,9 @@ int main([[maybe_unused]] int argc,
     // data_feeder_demo::test();
     // tcp_connector_test::test();
     // lock_free_queue_polling::run();
-    ring_buffer_polling::run();
+
+    // ring_buffer_polling_demo::run();
+    ring_buffer_polling_tcp::run();
 
     return EXIT_SUCCESS;
 }

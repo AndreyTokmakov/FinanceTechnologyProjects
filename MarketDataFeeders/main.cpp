@@ -364,7 +364,7 @@ namespace ring_buffer_polling_tcp
         consumer.join();
         */
 
-        ring_buffer::static_capacity_with_commit::RingBuffer<buffer::Buffer, 1024> queue {};
+        ring_buffer::static_capacity_with_commit_buffer::RingBuffer<1024> queue {};
 
         ConnectorImpl connector {};
         if (!connector.init()) {
@@ -378,10 +378,19 @@ namespace ring_buffer_polling_tcp
 
         auto produce = [&queue, &connector]
         {
-            buffer::Buffer response;
-            while (true)
+            buffer::Buffer* response { nullptr };
+
+            std::cout << "response: " << response << std::endl;
+            while (queue.getItem(response))
             {
-                connector.getData(response);
+                std::cout << "response: " << response << std::endl;
+
+                if (nullptr == response) {
+                    std::cout << "Failed to get item" << std::endl;
+                }
+
+                connector.getData(*response);
+                queue.commit();
             }
         };
 
@@ -390,6 +399,35 @@ namespace ring_buffer_polling_tcp
     }
 }
 
+
+namespace pointer_test
+{
+
+    struct Buffer {};
+
+    template<typename T>
+    struct Wrapper
+    {
+        T* ptr { nullptr };
+    };
+
+    void init(Wrapper<Buffer>& wPtr)
+    {
+        std::cout << wPtr.ptr << std::endl;
+        wPtr.ptr = new Buffer;
+        std::cout << wPtr.ptr << std::endl;
+    }
+
+    void test()
+    {
+        Wrapper<Buffer> wrapper {};
+        std::cout << wrapper.ptr << std::endl;
+
+        init(wrapper);
+        std::cout << wrapper.ptr << std::endl;
+
+    }
+}
 
 int main([[maybe_unused]] int argc,
          [[maybe_unused]] char** argv)
@@ -401,7 +439,9 @@ int main([[maybe_unused]] int argc,
     // lock_free_queue_polling::run();
 
     // ring_buffer_polling_demo::run();
-    ring_buffer_polling_tcp::run();
+    // ring_buffer_polling_tcp::run();
+
+    pointer_test::test();
 
     return EXIT_SUCCESS;
 }

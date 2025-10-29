@@ -13,6 +13,7 @@ Description : Buffer.hpp
 #include <cstdint>
 #include <memory>
 
+
 namespace buffer
 {
     struct Buffer

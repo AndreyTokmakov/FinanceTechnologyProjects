@@ -390,7 +390,7 @@ namespace data_feeder_demo_ex
 {
     template<typename T>
     concept ConnectorType = requires(T& connector, buffer::Buffer& buffer) {
-        { connector.getData(buffer) };
+        { connector.getData(buffer) } -> std::same_as<void>;
     };
 
     template<typename T>

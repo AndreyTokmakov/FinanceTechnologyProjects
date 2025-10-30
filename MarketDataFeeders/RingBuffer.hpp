@@ -257,7 +257,7 @@ namespace ring_buffer::static_capacity_with_commit_buffer
     {
         using size_type  = uint32_t;
         using value_type = buffer::Buffer;
-        using pointer = value_type*;
+        using pointer    = value_type*;
         using collection_type = std::vector<value_type>;
 
         static_assert(!std::is_same_v<value_type, void>, "ERROR: Value type can not be void");
@@ -270,19 +270,15 @@ namespace ring_buffer::static_capacity_with_commit_buffer
         }
 
         [[nodiscard]]
-        bool getItem(pointer item)
+        pointer getItem()
         {
             headCached = head.load(std::memory_order::relaxed);
             headNext = fast_modulo(headCached + 1, Capacity);
             if (headNext == tail.load(std::memory_order::acquire)) {
-                return false;
+                return nullptr;
             }
 
-            std::cout << "item = " << item << std::endl;
-            item = &buffer[headCached];
-            std::cout << "item = " << item << std::endl;
-
-            return true;
+            return &buffer[headCached];
         }
 
         void commit()
@@ -291,17 +287,17 @@ namespace ring_buffer::static_capacity_with_commit_buffer
         }
 
         [[nodiscard]]
-        bool pop(pointer item)
+        pointer pop()
         {
             const size_type tailLocal = tail.load(std::memory_order::relaxed);
             if (tailLocal == head.load(std::memory_order::acquire)) {
-                return false;
+                return nullptr;
             }
 
-            item = &buffer[tailLocal];
+            pointer item = &buffer[tailLocal];
             tail.store(fast_modulo(tailLocal + 1, Capacity), std::memory_order::release);
 
-            return true;
+            return item;
         }
 
         [[nodiscard]]

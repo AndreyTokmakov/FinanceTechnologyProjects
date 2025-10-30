@@ -321,16 +321,11 @@ namespace ring_buffer_polling_tcp
         void getData(buffer::Buffer& response)
         {
             bytes = RECV_BUFFER_SIZE;
-            while (true)
-            {
-                while (bytes == RECV_BUFFER_SIZE) {
-                    bytes = ::recv(socket, response.tail(RECV_BUFFER_SIZE), RECV_BUFFER_SIZE, 0);
-                    response.incrementLength(bytes);
-                }
-                std::cout << std::string_view(response.head(), response.length()) << std::endl;
-                bytes = RECV_BUFFER_SIZE;
-                response.clear();
+            while (bytes == RECV_BUFFER_SIZE) {
+                bytes = ::recv(socket, response.tail(RECV_BUFFER_SIZE), RECV_BUFFER_SIZE, 0);
+                response.incrementLength(bytes);
             }
+            bytes = RECV_BUFFER_SIZE;
         }
     };
 
@@ -339,31 +334,6 @@ namespace ring_buffer_polling_tcp
 
     void run()
     {
-        /*
-        auto consume = [&queue]
-        {
-            uint32_t misses { 0 };
-            int32_t result { 0 };
-            while (true)
-            {
-                if (queue.pop(result)) {
-                    std::cout << getCurrentTime() << "  Got: " << result << std::endl;
-                    misses = 0;
-                    continue;
-                }
-
-                ++misses;
-                if (misses > 5) {
-                    std::cout << getCurrentTime() << "  No data - Sleeping\n";
-                    std::this_thread::sleep_for(std::chrono::milliseconds (100U));
-                }
-            }
-        };
-
-        std::thread consumer { consume };
-        consumer.join();
-        */
-
         ring_buffer::static_capacity_with_commit_buffer::RingBuffer<1024> queue {};
 
         ConnectorImpl connector {};
@@ -379,55 +349,33 @@ namespace ring_buffer_polling_tcp
         auto produce = [&queue, &connector]
         {
             buffer::Buffer* response { nullptr };
-
-            std::cout << "response: " << response << std::endl;
-            while (queue.getItem(response))
-            {
-                std::cout << "response: " << response << std::endl;
-
-                if (nullptr == response) {
-                    std::cout << "Failed to get item" << std::endl;
-                }
-
+            while ((response = queue.getItem())) {
                 connector.getData(*response);
                 queue.commit();
             }
         };
 
-        std::thread producer { produce };
-        producer.join();
+        auto consume = [&queue]
+        {
+            uint64_t counter { 0 };
+            buffer::Buffer* item { nullptr };
+            while (true)
+            {
+                if ((item = queue.pop())) {
+                    std::cout << ++counter << " (" << item->length() << ")" << std::endl;
+                    item->clear();
+                }
+                else {
+                    std::this_thread::sleep_for(std::chrono::milliseconds (1U));
+                }
+            }
+        };
+
+
+        std::jthread producer { produce }, consumer { consume };
     }
 }
 
-
-namespace pointer_test
-{
-
-    struct Buffer {};
-
-    template<typename T>
-    struct Wrapper
-    {
-        T* ptr { nullptr };
-    };
-
-    void init(Wrapper<Buffer>& wPtr)
-    {
-        std::cout << wPtr.ptr << std::endl;
-        wPtr.ptr = new Buffer;
-        std::cout << wPtr.ptr << std::endl;
-    }
-
-    void test()
-    {
-        Wrapper<Buffer> wrapper {};
-        std::cout << wrapper.ptr << std::endl;
-
-        init(wrapper);
-        std::cout << wrapper.ptr << std::endl;
-
-    }
-}
 
 int main([[maybe_unused]] int argc,
          [[maybe_unused]] char** argv)
@@ -439,9 +387,8 @@ int main([[maybe_unused]] int argc,
     // lock_free_queue_polling::run();
 
     // ring_buffer_polling_demo::run();
-    // ring_buffer_polling_tcp::run();
+    ring_buffer_polling_tcp::run();
 
-    pointer_test::test();
 
     return EXIT_SUCCESS;
 }

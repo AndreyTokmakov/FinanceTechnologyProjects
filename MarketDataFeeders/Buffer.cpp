@@ -139,7 +139,7 @@ namespace buffer
             std::memcpy(new_data.get(), data.get(), size);
         data = std::move(new_data);
         capacity = newCapacity;
-        // std::cout << "Buffer capacity increased to " << capacity << std::endl; /** DEBUG: **/
+        std::cout << "Buffer capacity increased to " << capacity << std::endl; /** DEBUG: **/
     }
 
 }

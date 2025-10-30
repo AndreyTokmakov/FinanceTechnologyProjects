@@ -44,8 +44,20 @@ Description : Common modules
 namespace
 {
     using namespace DateTimeUtilities;
-}
 
+    bool setThreadCore(const uint32_t coreId) noexcept
+    {
+        cpu_set_t cpuSet {};
+        CPU_ZERO(&cpuSet);
+        CPU_SET(coreId, &cpuSet);
+        return 0 == pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuSet);
+    }
+
+    int32_t getCpu() noexcept
+    {
+        return sched_getcpu();
+    }
+}
 
 namespace data_feeder_demo
 {
@@ -119,7 +131,6 @@ namespace tcp_connector_test
 
     using Socket = int32_t;
 
-
     void test()
     {
         const Socket socket = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -178,7 +189,6 @@ namespace tcp_connector_test
         }
     }
 }
-
 
 namespace lock_free_queue_polling
 {
@@ -366,7 +376,7 @@ namespace ring_buffer_polling_tcp
                     item->clear();
                 }
                 else {
-                    std::this_thread::sleep_for(std::chrono::milliseconds (1U));
+                    std::this_thread::sleep_for(std::chrono::microseconds (10U));
                 }
             }
         };
@@ -375,6 +385,179 @@ namespace ring_buffer_polling_tcp
         std::jthread producer { produce }, consumer { consume };
     }
 }
+
+namespace data_feeder_demo_ex
+{
+    struct ConnectorImpl
+    {
+        constexpr static uint32_t RECV_BUFFER_SIZE { 128 };
+        constexpr static int32_t INVALID_SOCKET { -1 };
+        constexpr static int32_t SOCKET_ERROR { -1 };
+        using Socket = int32_t;
+
+        Socket socket { INVALID_SOCKET };
+        ssize_t bytes { 0 };
+
+        [[nodiscard]]
+        bool init()
+        {
+            socket = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (INVALID_SOCKET == socket) {
+                std::cout << "Failed to create socket. Error = " << errno << std::endl;
+                return false;
+            }
+            return true;
+        }
+
+        void close()
+        {
+            if (INVALID_SOCKET != socket) {
+                ::close(socket);
+                socket = INVALID_SOCKET;
+            }
+        }
+
+        [[nodiscard]]
+        bool connectAndSubscribe(const std::string_view host, const uint16_t port)
+        {
+            const sockaddr_in server {PF_INET, htons(port), {.s_addr = inet_addr(host.data())}, {}};
+            std::cout << "Connecting to server..." << std::endl;
+            const int error = ::connect(socket, reinterpret_cast<const sockaddr*>(&server), sizeof(server));
+            if (error == SOCKET_ERROR) {
+                std::cout << "Connect function failed with error: " << errno << std::endl;
+                return false;
+            }
+
+            std::cout << "Connected.\n";
+
+            // FIXME:
+            const std::string httpRequest = "Subscribe: BTC/USDT\n";
+            bytes = ::send(socket, httpRequest.c_str(), httpRequest.length(), 0);
+
+            return true;
+        }
+
+        void getData(buffer::Buffer& response)
+        {
+            bytes = RECV_BUFFER_SIZE;
+            while (bytes == RECV_BUFFER_SIZE) {
+                bytes = ::recv(socket, response.tail(RECV_BUFFER_SIZE), RECV_BUFFER_SIZE, 0);
+                response.incrementLength(bytes);
+            }
+            bytes = RECV_BUFFER_SIZE;
+        }
+    };
+
+    /*
+
+    struct DataFeeder
+    {
+        template <typename Self>
+        void run(this Self&& self)
+        {
+            while (true)
+            {
+                auto data = self.getData();
+                auto parsed = self.parse(data);
+                std::cout << parsed << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds (250U));
+            }
+        }
+    };
+*/
+
+    // TODO: use concepts ??
+    template<typename Connector, typename Parser>
+    struct DataFeederImpl
+    {
+        Connector& connector;
+        Parser& parser;
+
+        ring_buffer::static_capacity_with_commit_buffer::RingBuffer<1024> queue {};
+
+        std::jthread connectorThread {};
+        std::jthread parserThread {};
+
+        DataFeederImpl(Connector& connector, Parser& parser)
+            : connector(connector), parser(parser) {
+        }
+
+        void run()
+        {
+            connectorThread = std::jthread { [&] { runConnector(); } };
+            parserThread = std::jthread { [&] { runParser(); } };
+        }
+
+    private:
+
+        void runConnector()
+        {
+            std::cout << "Connector started" << std::endl;
+            if (!setThreadCore(1)) {
+                std::cerr << "Failed to pin Connector thread to  CPU " << 1  << std::endl;
+                return;
+            }
+
+            while (true) {
+                std::cout << "Connector loop (CPU: " << getCpu() << ") : " << connector.getData() << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds (1U));
+            }
+
+            /*
+            buffer::Buffer* response { nullptr };
+            while ((response = queue.getItem())) {
+                connector.getData(*response);
+                queue.commit();
+            }*/
+        }
+
+        void runParser()
+        {
+            std::cout << "Parser started" << std::endl;
+            if (!setThreadCore(2)) {
+                std::cerr << "Failed to pin Parser thread to  CPU " << 2  << std::endl;
+                return;
+            }
+
+            while (true) {
+                std::cout << "Parser loop (CPU: " << getCpu() << ") : " << parser.parse("Market Data") << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds (1U));
+            }
+            /*
+            buffer::Buffer* response { nullptr };
+            while ((response = queue.getItem())) {
+                connector.getData(*response);
+                queue.commit();
+            }*/
+        }
+
+    };
+
+    struct DummyConnectorImpl
+    {
+        static std::string getData() {
+            return "Feeder2-Data";
+        }
+    };
+
+    struct DummyParserImpl
+    {
+        static std::string parse(const std::string& str) {
+            return "{" + str + "}";
+        }
+    };
+
+
+    void run()
+    {
+        DummyConnectorImpl connector {};
+        DummyParserImpl parser {};
+
+        DataFeederImpl feeder {connector, parser};
+        feeder.run();
+    }
+}
+
 
 
 int main([[maybe_unused]] int argc,
@@ -387,8 +570,9 @@ int main([[maybe_unused]] int argc,
     // lock_free_queue_polling::run();
 
     // ring_buffer_polling_demo::run();
-    ring_buffer_polling_tcp::run();
+    // ring_buffer_polling_tcp::run();
 
+    data_feeder_demo_ex::run();
 
     return EXIT_SUCCESS;
 }

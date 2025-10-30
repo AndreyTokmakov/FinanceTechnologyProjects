@@ -388,7 +388,17 @@ namespace ring_buffer_polling_tcp
 
 namespace data_feeder_demo_ex
 {
-    struct ConnectorImpl
+    template<typename T>
+    concept ConnectorType = requires(T& connector, buffer::Buffer& buffer) {
+        { connector.getData(buffer) };
+    };
+
+    template<typename T>
+    concept ParserType = requires(T& parser, const buffer::Buffer& buffer) {
+        { parser.parse(buffer) } -> std::same_as<std::string>;
+    };
+
+    struct TcpTestConnector
     {
         constexpr static uint32_t RECV_BUFFER_SIZE { 128 };
         constexpr static int32_t INVALID_SOCKET { -1 };
@@ -449,7 +459,6 @@ namespace data_feeder_demo_ex
     };
 
     /*
-
     struct DataFeeder
     {
         template <typename Self>
@@ -464,10 +473,12 @@ namespace data_feeder_demo_ex
             }
         }
     };
-*/
+    */
 
-    // TODO: use concepts ??
-    template<typename Connector, typename Parser>
+    // TODO: use concepts
+    //  -  Connector: connector.getData( buffer::Buffer* )
+    //  -  Parser:
+    template<ConnectorType Connector, ParserType Parser>
     struct DataFeederImpl
     {
         Connector& connector;
@@ -492,66 +503,65 @@ namespace data_feeder_demo_ex
 
         void runConnector()
         {
-            std::cout << "Connector started" << std::endl;
             if (!setThreadCore(1)) {
                 std::cerr << "Failed to pin Connector thread to  CPU " << 1  << std::endl;
                 return;
             }
 
-            while (true) {
-                std::cout << "Connector loop (CPU: " << getCpu() << ") : " << connector.getData() << std::endl;
-                std::this_thread::sleep_for(std::chrono::seconds (1U));
-            }
-
-            /*
             buffer::Buffer* response { nullptr };
             while ((response = queue.getItem())) {
                 connector.getData(*response);
+                std::cout << "Connector [CPU: " << getCpu() << ") : " << response->length() << std::endl;
                 queue.commit();
-            }*/
+            }
         }
 
         void runParser()
         {
-            std::cout << "Parser started" << std::endl;
             if (!setThreadCore(2)) {
                 std::cerr << "Failed to pin Parser thread to  CPU " << 2  << std::endl;
                 return;
             }
 
-            while (true) {
-                std::cout << "Parser loop (CPU: " << getCpu() << ") : " << parser.parse("Market Data") << std::endl;
-                std::this_thread::sleep_for(std::chrono::seconds (1U));
+            buffer::Buffer* item { nullptr };
+            while (true)
+            {
+                if ((item = queue.pop())) {
+                    parser.parse(*item);
+                    item->clear();
+                }
+                else {
+                    // FIXME:
+                    std::this_thread::sleep_for(std::chrono::microseconds (10U));
+                }
             }
-            /*
-            buffer::Buffer* response { nullptr };
-            while ((response = queue.getItem())) {
-                connector.getData(*response);
-                queue.commit();
-            }*/
         }
-
     };
 
-    struct DummyConnectorImpl
+    struct DummyParser
     {
-        static std::string getData() {
-            return "Feeder2-Data";
+        static std::string parse(const buffer::Buffer& buffer) {
+            std::cout << "Parser [CPU: " << getCpu() << ") : " << buffer.length() << std::endl;
+            return "";
         }
     };
-
-    struct DummyParserImpl
-    {
-        static std::string parse(const std::string& str) {
-            return "{" + str + "}";
-        }
-    };
-
 
     void run()
     {
-        DummyConnectorImpl connector {};
-        DummyParserImpl parser {};
+        constexpr static uint16_t port { 52525 };
+        constexpr static std::string_view host {"0.0.0.0"};
+
+        DummyParser parser {};
+
+        TcpTestConnector connector {};
+        if (!connector.init()) {
+            std::cerr << "Failed to init connector" << std::endl;
+            return;
+        }
+        if (!connector.connectAndSubscribe(host, port)) {
+            std::cerr << "Failed to connect and subscribe" << std::endl;
+            return;
+        }
 
         DataFeederImpl feeder {connector, parser};
         feeder.run();

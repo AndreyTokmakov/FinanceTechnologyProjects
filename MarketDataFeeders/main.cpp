@@ -458,22 +458,6 @@ namespace data_feeder_demo_ex
         }
     };
 
-    /*
-    struct DataFeeder
-    {
-        template <typename Self>
-        void run(this Self&& self)
-        {
-            while (true)
-            {
-                auto data = self.getData();
-                auto parsed = self.parse(data);
-                std::cout << parsed << std::endl;
-                std::this_thread::sleep_for(std::chrono::milliseconds (250U));
-            }
-        }
-    };
-    */
 
     // TODO: use concepts
     //  -  Connector: connector.getData( buffer::Buffer* )
@@ -488,6 +472,8 @@ namespace data_feeder_demo_ex
 
         std::jthread connectorThread {};
         std::jthread parserThread {};
+
+        constexpr static uint32_t maxSessionBeforeSleep { 10'000 };
 
         DataFeederImpl(Connector& connector, Parser& parser)
             : connector(connector), parser(parser) {
@@ -523,15 +509,18 @@ namespace data_feeder_demo_ex
                 return;
             }
 
+            uint32_t misses { 0 };
             buffer::Buffer* item { nullptr };
             while (true)
             {
                 if ((item = queue.pop())) {
                     parser.parse(*item);
                     item->clear();
+                    misses = 0;
+                    continue;
                 }
-                else {
-                    // FIXME:
+
+                if (misses++ > maxSessionBeforeSleep) {
                     std::this_thread::sleep_for(std::chrono::microseconds (10U));
                 }
             }

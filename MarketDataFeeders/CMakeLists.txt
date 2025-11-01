@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}
         common/Buffer.hpp common/Buffer.cpp
         common/RingBuffer.hpp
         working_example.cpp
+        data_feeder.cpp
         tests.cpp
         main.cpp
 )

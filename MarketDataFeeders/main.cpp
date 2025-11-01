@@ -8,26 +8,8 @@ Description : Common modules
 ============================================================================**/
 
 #include <vector>
-#include <iostream>
 #include <string_view>
 #include <print>
-#include <thread>
-
-#include <unistd.h>
-#include <cstdlib>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <cerrno>
-#include <netdb.h>
-#include <queue>
-
-#include "common/Buffer.hpp"
-#include "common/RingBuffer.hpp"
-
-#include "FinalAction.hpp"
-#include "DateTimeUtilities.hpp"
 
 // TODO:
 //  -  Connector / Auth / Fetch data - Strategy
@@ -45,6 +27,7 @@ Description : Common modules
 
 void tests();
 void working_example();
+void data_feeder();
 
 
 int main([[maybe_unused]] int argc,
@@ -52,8 +35,9 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    tests();
+    // tests();
     // working_example();
+    data_feeder();
 
     return EXIT_SUCCESS;
 }

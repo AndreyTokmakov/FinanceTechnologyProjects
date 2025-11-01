@@ -11,11 +11,8 @@ Description : Tests C++ project
 #include <iostream>
 #include <string_view>
 
-#include "WebSockerConnector.h"
-#include "WebSockerConnectorAsynch.h"
-#include "WSConnectorAsynch.h"
 #include "WSConnectorAsynchExperimental.h"
-#include "ApiClient.h"
+#include "Binance.hpp"
 
 
 int main([[maybe_unused]] int argc,
@@ -23,8 +20,8 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    WebSockerConnector::TestAll();
-    // WebSockerConnectorAsynch::TestAll();
+    // WebSockerConnector::TestAll();
+    WebSockerConnectorAsynch::TestAll();
     // WSConnectorAsynch::TestAll();
     // WSConnectorAsynchExperimental::TestAll();
     // ApiClient::TestAll();

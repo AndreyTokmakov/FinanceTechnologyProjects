@@ -37,6 +37,7 @@ include_directories("experiments")
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
+        binance/Binance.hpp
         binance/WebSockerConnector.cpp
         binance/WebSockerConnectorAsynch.cpp
         binance/WSConnectorAsynch.cpp

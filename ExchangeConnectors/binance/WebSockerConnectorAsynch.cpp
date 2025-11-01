@@ -7,7 +7,8 @@ Copyright   : Your copyright notice
 Description : WebSockerConnectorAsynch.cpp
 ============================================================================**/
 
-#include "WebSockerConnectorAsynch.h"
+#include "Binance.hpp"
+
 
 #include <iostream>
 #include <string_view>
@@ -175,7 +176,8 @@ namespace
 
 void WebSockerConnectorAsynch::TestAll()
 {
-    constexpr std::string_view host { "testnet.binance.vision" };
+    constexpr std::string_view testnet { "testnet.binance.vision" };
+    constexpr std::string_view binanceReal { "stream.binance.com" };
     constexpr uint16_t port { 443 };
     const std::string message { R"({"method": "SUBSCRIBE","params": ["btcusdt@ticker"], "id": 1})" };
 
@@ -183,7 +185,7 @@ void WebSockerConnectorAsynch::TestAll()
     ssl::context ctx{ssl::context::tlsv13_client};
     std::shared_ptr<Session> session { std::make_shared<Session>(ioCtx, ctx)};
 
-    session->run(host, port, message);
+    session->run(binanceReal, port, message);
     ioCtx.run();
 
     while (session->is_socket_open()) {

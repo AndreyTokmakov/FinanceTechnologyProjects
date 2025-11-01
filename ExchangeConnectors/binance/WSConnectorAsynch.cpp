@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : WSConnectorAsynch.cpp
 ============================================================================**/
 
-#include "WSConnectorAsynch.h"
+#include "Binance.hpp"
 
 #include <iostream>
 #include <string_view>

@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : WebSockerConnector.cpp
 ============================================================================**/
 
-#include "WebSockerConnector.h"
+#include "Binance.hpp"
 
 #include <iostream>
 #include <string_view>
@@ -39,59 +39,68 @@ namespace
 
 namespace WebSockerConnector
 {
-    const std::string host { "testnet.binance.vision" };
+    constexpr std::string_view testnet { "testnet.binance.vision" };
+    constexpr std::string_view binanceReal { "stream.binance.com" };
+
+    const std::string host { binanceReal };
     constexpr uint16_t port { 443 };
 
     void test()
     {
-        net::io_context ioCtx;
-        ssl::context sslCtx { ssl::context::tlsv13_client };
+        try {
+            net::io_context ioCtx;
+            ssl::context sslCtx { ssl::context::tlsv13_client };
 
-        // This holds the root certificate used for verification load_root_certificates(sslCtx);
-        tcp::resolver resolver { ioCtx };
-        websocket::stream<ssl::stream<tcp::socket>> wsStream { ioCtx, sslCtx };
+            // This holds the root certificate used for verification load_root_certificates(sslCtx);
+            tcp::resolver resolver { ioCtx };
+            websocket::stream<ssl::stream<tcp::socket>> wsStream { ioCtx, sslCtx };
 
-        const tcp::resolver::results_type results = resolver.resolve(host, std::to_string(port));
-        const asio::ip::basic_endpoint<tcp> endpoint = net::connect(beast::get_lowest_layer(wsStream), results);
-        std::cout << "endpoint: " << endpoint.address() << std::endl;
+            const tcp::resolver::results_type results = resolver.resolve(host, std::to_string(port));
+            const asio::ip::basic_endpoint<tcp> endpoint = net::connect(beast::get_lowest_layer(wsStream), results);
+            std::cout << "Endpoint: " << endpoint.address() << std::endl;
 
+            // Set SNI Hostname (many hosts need this to handshake successfully)
+            if(! SSL_set_tlsext_host_name(wsStream.next_layer().native_handle(), host.c_str()))
+                throw beast::system_error(beast::error_code(static_cast<int>(::ERR_get_error()),
+                                                            net::error::get_ssl_category()), "Failed to set SNI Hostname");
 
-        // Set SNI Hostname (many hosts need this to handshake successfully)
-        if(! SSL_set_tlsext_host_name(wsStream.next_layer().native_handle(), host.c_str()))
-            throw beast::system_error(beast::error_code(static_cast<int>(::ERR_get_error()),
-                                                        net::error::get_ssl_category()), "Failed to set SNI Hostname");
+            std::cout << "Performing the SSL handshake ... "<< std::endl;
+            wsStream.next_layer().handshake(ssl::stream_base::client);
 
-        // Perform the SSL handshake
-        wsStream.next_layer().handshake(ssl::stream_base::client);
+            std::cout << "Set a decorator to change the User-Agent of the handshake "<< std::endl;
+            wsStream.set_option(websocket::stream_base::decorator([](websocket::request_type& req){
+                req.set(http::field::user_agent,std::string(BOOST_BEAST_VERSION_STRING) +" websocket-client-coro");
+            }));
 
-        // Set a decorator to change the User-Agent of the handshake
-        wsStream.set_option(websocket::stream_base::decorator([](websocket::request_type& req){
-            req.set(http::field::user_agent,std::string(BOOST_BEAST_VERSION_STRING) +" websocket-client-coro");
-        }));
+            std::cout << "Performing the WS handshake ... "<< std::endl;
+            wsStream.handshake(host, "/stream");
+            constexpr std::string_view subscriptionTicker { R"({"method": "SUBSCRIBE","params": ["btcusdt@ticker"], "id": 1})" };
+            constexpr std::string_view subscriptionDepth { R"({"method": "SUBSCRIBE","params": ["btcusdt@depth"], "id": 1})" };
 
-        wsStream.handshake(host, "/stream");
-        constexpr std::string_view subscription { R"({"method": "SUBSCRIBE","params": ["btcusdt@ticker"], "id": 1})" };
-
-        [[maybe_unused]]
-        const size_t bytesSend = wsStream.write(net::buffer(subscription));
-        // std::cout << "Bytes send: " << bytesSend << std::endl;
-
-        beast::flat_buffer buffer;
-        while (true)
-        {
             [[maybe_unused]]
-            size_t bytesRead = wsStream.read(buffer);
+            const size_t bytesSend = wsStream.write(net::buffer(subscriptionDepth));
+            // std::cout << "Bytes send: " << bytesSend << std::endl;
 
-            // std::cout << "Bytes read: " << bytesRead << std::endl;
-            // std::cout << beast::make_printable(buffer.data()) << std::endl;
+            beast::flat_buffer buffer;
+            while (true)
+            {
+                [[maybe_unused]]
+                size_t bytesRead = wsStream.read(buffer);
 
-            nlohmann::json data = nlohmann::json::parse(beast::buffers_to_string(buffer.data()));
-            std::cout << data << std::endl;
+                // std::cout << "Bytes read: " << bytesRead << std::endl;
+                // std::cout << beast::make_printable(buffer.data()) << std::endl;
 
-            buffer.clear();
+                nlohmann::json data = nlohmann::json::parse(beast::buffers_to_string(buffer.data()));
+                std::cout << data << std::endl;
+
+                buffer.clear();
+            }
+
+            wsStream.close(websocket::close_code::normal);
         }
-
-        wsStream.close(websocket::close_code::normal);
+        catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+        }
     }
 }
 

@@ -7,7 +7,7 @@ Copyright   : Your copyright notice
 Description : WebSockerConnectorAsynch.cpp
 ============================================================================**/
 
-#include "WSConnectorAsynchExperimental.h"
+#include "Experiments.hpp"
 
 #include <iostream>
 #include <string_view>
@@ -172,7 +172,7 @@ namespace
 }
 
 
-void WSConnectorAsynchExperimental::TestAll()
+void experiments::WSConnectorAsynchExperimental::TestAll()
 {
     constexpr std::string_view host { "testnet.binance.vision" };
     constexpr uint16_t port { 443 };

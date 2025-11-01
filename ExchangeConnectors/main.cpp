@@ -11,7 +11,7 @@ Description : Tests C++ project
 #include <iostream>
 #include <string_view>
 
-#include "WSConnectorAsynchExperimental.h"
+#include "Experiments.hpp"
 #include "Binance.hpp"
 
 
@@ -21,10 +21,13 @@ int main([[maybe_unused]] int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
     // WebSockerConnector::TestAll();
-    WebSockerConnectorAsynch::TestAll();
+    // WebSockerConnectorAsynch::TestAll();
     // WSConnectorAsynch::TestAll();
-    // WSConnectorAsynchExperimental::TestAll();
     // ApiClient::TestAll();
+
+    // experiments::WSConnectorAsynchExperimental::TestAll();
+    experiments::MinimalSynchronousClient::TestAll();
+
 
     return EXIT_SUCCESS;
 }

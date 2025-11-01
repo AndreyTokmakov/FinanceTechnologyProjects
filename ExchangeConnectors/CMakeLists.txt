@@ -43,6 +43,7 @@ add_executable(${PROJECT_NAME}
         binance/WSConnectorAsynch.cpp
         binance/ApiClient.cpp
         experiments/WSConnectorAsynchExperimental.cpp
+        experiments/MinimalSynchronousClient.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

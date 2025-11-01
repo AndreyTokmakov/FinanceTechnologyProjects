@@ -26,7 +26,8 @@ int main([[maybe_unused]] int argc,
     // ApiClient::TestAll();
 
     // experiments::WSConnectorAsynchExperimental::TestAll();
-    experiments::MinimalSynchronousClient::TestAll();
+    // experiments::MinimalSynchronousClient::TestAll();
+    experiments::WsBusAsynch::TestAll();
 
 
     return EXIT_SUCCESS;

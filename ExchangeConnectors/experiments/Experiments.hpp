@@ -14,6 +14,7 @@ namespace experiments
 {
     namespace WSConnectorAsynchExperimental { void TestAll(); }
     namespace MinimalSynchronousClient { void TestAll(); }
+    namespace WsBusAsynch { void TestAll(); }
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_EXPERIMENTS_HPP

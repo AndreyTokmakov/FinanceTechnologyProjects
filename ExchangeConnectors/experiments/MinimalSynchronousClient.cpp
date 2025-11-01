@@ -46,16 +46,14 @@ void experiments::MinimalSynchronousClient::TestAll()
     ctx.set_default_verify_paths();
 
     tcp::resolver resolver{ioc};
-    auto results = resolver.resolve(host, std::to_string(port));
+    const tcp::resolver::results_type results = resolver.resolve(host, std::to_string(port));
 
     websocket::stream<beast::ssl_stream<tcp::socket>> ws{ioc, ctx};
 
     // Connect and SSL handshake
     net::connect(ws.next_layer().next_layer(), results.begin(), results.end());
     ws.next_layer().handshake(net::ssl::stream_base::client);
-
-    // WebSocket handshake
-    ws.handshake(host, target);
+    ws.handshake(host, target); // WS handshake
 
     beast::flat_buffer buffer;
     while (true) {

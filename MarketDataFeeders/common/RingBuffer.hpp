@@ -15,17 +15,13 @@ Description : RingBuffer.cpp
 #include <cassert>
 #include <optional>
 
+#include "Common.hpp"
 #include "Buffer.hpp"
+
 
 namespace ring_buffer
 {
-    constexpr uint32_t fast_modulo(const uint32_t n, const uint32_t d) noexcept {
-        return n & (d - 1);
-    }
-
-    constexpr bool is_pow_of_2(const int value) noexcept {
-        return (value && !(value & value - 1));
-    }
+    using namespace common;
 }
 
 namespace ring_buffer::dynamic_capacity

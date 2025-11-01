@@ -9,9 +9,11 @@ add_compile_options(-c -Wall -Wextra -Wno-interference-size -O3 -std=c++26)
 
 # include all components
 add_executable(${PROJECT_NAME}
+        common/Buffer.hpp common/Buffer.cpp
+        common/RingBuffer.hpp
+        working_example.cpp
+        tests.cpp
         main.cpp
-        Buffer.hpp Buffer.cpp
-        RingBuffer.hpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

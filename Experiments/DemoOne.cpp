@@ -11,11 +11,9 @@ Description :
 #include <thread>
 #include <mutex>
 #include <queue>
-#include <map>
 #include <memory>
 #include <chrono>
 
-#include <nlohmann/json.hpp>
 
 #if 0
 #include <boost/beast/core.hpp>
@@ -33,12 +31,12 @@ Description :
 #include <boost/asio/ip/tcp.hpp>
 #endif
 
-
+#include <nlohmann/json.hpp>
 #include <ixwebsocket/IXWebSocket.h>
 
+using json = nlohmann::json;
 
 #if 0
-using json = nlohmann::json;
 
 struct MarketEvent
 {
@@ -82,8 +80,7 @@ static std::shared_ptr<boost::asio::ssl::context> on_tls_init()
 
 #endif
 
-#if 0
-void test()
+void demoOne()
 {
      ix::WebSocket ws;
 
@@ -144,4 +141,3 @@ void test()
         std::this_thread::sleep_for(std::chrono::seconds(1u));
     }
 }
-#endif

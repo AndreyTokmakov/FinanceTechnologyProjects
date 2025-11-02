@@ -13,12 +13,15 @@ Description : Various Experiments
 
 
 void wsTest();
+void demoOne();
 
 int main([[maybe_unused]] int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
-    wsTest();
+
+    // wsTest();
+    demoOne();
 
     return EXIT_SUCCESS;
 }

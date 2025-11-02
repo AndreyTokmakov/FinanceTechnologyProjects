@@ -1,6 +1,7 @@
 
-
-------------------------------------------- IXWebSocket -------------------------------------------
+------------------------------------------------------ IXWebSocket --------------------------------------------------------
+            https://machinezone.github.io/IXWebSocket/usage/#tls-support-and-configuration
+---------------------------------------------------------------------------------------------------------------------------
 
 git clone https://github.com/machinezone/IXWebSocket.git
 
@@ -17,3 +18,5 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
         ixwebsocket
         -lz
 )
+
+

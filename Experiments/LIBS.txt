@@ -1,0 +1,19 @@
+
+
+------------------------------------------- IXWebSocket -------------------------------------------
+
+git clone https://github.com/machinezone/IXWebSocket.git
+
+cmake -DCMAKE_BUILD_TYPE=Release -B./build
+cd build/
+make
+
+
+include_directories(${THIRD_PARTY_DIR}/IXWebSocket)
+link_directories(${THIRD_PARTY_DIR}/IXWebSocket/build)
+
+
+TARGET_LINK_LIBRARIES(${PROJECT_NAME}
+        ixwebsocket
+        -lz
+)

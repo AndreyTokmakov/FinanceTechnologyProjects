@@ -39,6 +39,7 @@ link_directories(${THIRD_PARTY_DIR}/IXWebSocket/build)
 add_executable(${PROJECT_NAME}
         main.cpp
         DemoOne.cpp
+        DemoTwo.cpp
         IXWebSocketTests.cpp
 )
 

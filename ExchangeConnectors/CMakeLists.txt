@@ -31,6 +31,10 @@ include_directories(${THIRD_PARTY_DIR}/openssl/include)
 # Nlohmann JSON
 include_directories(${THIRD_PARTY_DIR}/json/include)
 
+# IXWebSocket
+include_directories(${THIRD_PARTY_DIR}/IXWebSocket)
+link_directories(${THIRD_PARTY_DIR}/IXWebSocket/build)
+
 include_directories("binance")
 include_directories("experiments")
 
@@ -41,6 +45,7 @@ add_executable(${PROJECT_NAME}
         binance/WebSockerConnector.cpp
         binance/WebSockerConnectorAsynch.cpp
         binance/WSConnectorAsynch.cpp
+        binance/IxWsBinanceConnectorSimple.cpp
         binance/ApiClient.cpp
         experiments/WSConnectorAsynchExperimental.cpp
         experiments/MinimalSynchronousClient.cpp
@@ -59,5 +64,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
         Boost::beast
         crypto
         ssl
+        ixwebsocket
+        -lz
         ${EXTRA_LIBS}
 )

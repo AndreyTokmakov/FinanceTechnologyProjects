@@ -23,11 +23,12 @@ int main([[maybe_unused]] int argc,
     // WebSockerConnector::TestAll();
     // WebSockerConnectorAsynch::TestAll();
     // WSConnectorAsynch::TestAll();
+    IxWsBinanceConnectorSimple::TestAll();
     // ApiClient::TestAll();
 
     // experiments::WSConnectorAsynchExperimental::TestAll();
     // experiments::MinimalSynchronousClient::TestAll();
-    experiments::WsBusAsynch::TestAll();
+    // experiments::WsBusAsynch::TestAll();
 
 
     return EXIT_SUCCESS;

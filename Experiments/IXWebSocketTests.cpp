@@ -12,15 +12,24 @@ Description :
 
 void wsTest()
 {
-
     // Our websocket object
     ix::WebSocket webSocket;
 
     // Connect to a server with encryption
     // See https://machinezone.github.io/IXWebSocket/usage/#tls-support-and-configuration
     //     https://github.com/machinezone/IXWebSocket/issues/386#issuecomment-1105235227 (self signed certificates)
-    std::string url("wss://echo.websocket.org");
+    const std::string url("wss://echo.websocket.org");
     webSocket.setUrl(url);
+
+    // ix::SocketTLSOptions::disable_hostname_validation = true;
+
+    ix::SocketTLSOptions tlsOptions;
+    // tlsOptions.disable_hostname_validation = true;
+
+    tlsOptions.caFile = "/etc/ssl/certs/ca-certificates.crt"; // Debian/Ubuntu
+    // tlsOptions.c = "/etc/ssl/certs";
+
+    webSocket.setTLSOptions(tlsOptions);
 
     std::cout << "Connecting to " << url << "..." << std::endl;
 
@@ -47,11 +56,8 @@ void wsTest()
         }
     );
 
-    // Now that our callback is setup, we can start our background thread and receive messages
-    webSocket.start();
-
-    // Send a message to the server (default to TEXT mode)
-    webSocket.send("hello world");
+    webSocket.start();                     // Now that our callback is setup, we can start our background thread and receive messages
+    webSocket.send("hello world"); // Send a message to the server (default to TEXT mode)
 
     // Display a prompt
     std::cout << "> " << std::flush;

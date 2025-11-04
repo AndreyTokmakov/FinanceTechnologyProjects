@@ -14,5 +14,6 @@ namespace ApiClient { void TestAll(); };
 namespace WebSockerConnectorAsynch { void TestAll(); }
 namespace WebSockerConnector { void TestAll(); }
 namespace WSConnectorAsynch { void TestAll(); }
+namespace IxWsBinanceConnectorSimple { void TestAll(); }
 
 #endif //FINANCETECHNOLOGYPROJECTS_BINANCE_HPP

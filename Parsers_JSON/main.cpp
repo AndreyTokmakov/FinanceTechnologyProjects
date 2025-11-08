@@ -9,9 +9,9 @@ Description : Parsers_JSON
 
 #include <vector>
 #include <string_view>
-#include <iostream>
+#include <cstdlib>
 
-#include "binance/BinanceDataParser.h"
+#include "binance/Parsers.hpp"
 
 
 
@@ -20,8 +20,8 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    binance::TestAll();
-
+    binance::Experiments::TestAll();
+    // binance::SimdJson::TestAll();
 
     return EXIT_SUCCESS;
 }

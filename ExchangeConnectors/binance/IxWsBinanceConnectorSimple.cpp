@@ -17,18 +17,44 @@ Description : IxWsBinanceConnectorSimple.cpp
 #include <nlohmann/json.hpp>
 #include <ixwebsocket/IXWebSocket.h>
 
+#include "FileUtilities.hpp"
+
 using json = nlohmann::json;
 
 
 namespace
 {
+    std::filesystem::path dataFile {
+        R"(/home/andtokm/DiskS/ProjectsUbuntu/FinanceTechnologyProjects/Parsers_JSON/data/binance/allData.json)" };
+
     void run()
     {
-        ix::WebSocket webSocket;
+        std::string buffer;
+        buffer.reserve(10 * 1024 * 1024);
 
-        // Binance spot trade stream (BTC/USDT)
-        std::string url = "wss://stream.binance.com:9443/ws/btcusdt@trade";
-        webSocket.setUrl(url);
+        ix::WebSocket webSocket;
+        const std::string binanceWsUrl = "wss://stream.binance.com:9443/";
+
+        std::string url1 = binanceWsUrl + "ws/btcusdt@trade";
+
+        /*
+        std::string url2 = binanceWsUrl + "stream?streams="
+                                          "btcusdt@trade/"
+                                          "ethusdt@bookTicker/"
+                                          "ethusdt@depth@100ms/"
+                                          "bnbusdt@ticker/bnbusdt@aggTrade";*/
+        std::string url2 = binanceWsUrl + "stream?streams="
+                                          "btcusdt@trade/"
+                                          "btcusdt@aggTrade/"
+                                          "btcusdt@ticker/"
+                                          "btcusdt@bookTicker/"
+                                          "btcusdt@depth@100ms/"
+                                          "btcusdt@depth20@100ms/"
+                                          "btcusdt@kline_1m/"
+                                          "btcusdt@miniTicker";
+
+        // webSocket.setUrl(url1);
+        webSocket.setUrl(url2);
 
         ix::SocketTLSOptions tlsOptions;
         tlsOptions.caFile = "/etc/ssl/certs/ca-certificates.crt"; // Debian/Ubuntu
@@ -36,17 +62,16 @@ namespace
 
         webSocket.setTLSOptions(tlsOptions);
 
-        webSocket.setOnMessageCallback([](const ix::WebSocketMessagePtr& msg) {
-            if (msg->type == ix::WebSocketMessageType::Open)
-            {
+        webSocket.setOnMessageCallback([&buffer](const ix::WebSocketMessagePtr& msg) {
+            if (msg->type == ix::WebSocketMessageType::Open) {
                 std::cout << "✅ Connected to Binance WebSocket\n";
             }
             else if (msg->type == ix::WebSocketMessageType::Message)
             {
-                try {
+                try
+                {
+                    /*
                     const auto jsonData = json::parse(msg->str);
-
-                    // Example payload: {"e":"trade","E":1699925934404,"s":"BTCUSDT","p":"67321.12","q":"0.001","T":...}
                     if (jsonData["e"] == "trade")
                     {
                         const std::string symbol = jsonData["s"];
@@ -58,10 +83,20 @@ namespace
                         const std::time_t tt = std::chrono::system_clock::to_time_t(tp);
 
                         std::cout << std::put_time(std::gmtime(&tt), "%H:%M:%S")
-                                  << "  " << symbol
-                                  << "  price=" << price
-                                  << "  qty=" << qty << std::endl;
+                                  << "  " << symbol << "  price=" << price << "  qty=" << qty << std::endl;
                     }
+                    else {
+                        std::cout << jsonData << std::endl;
+                    }*/
+
+                    // FileUtilities::AppendToFile()
+                    if (buffer.size() > 128 * 1024) {
+                        FileUtilities::AppendToFile(dataFile, buffer);
+                        std::cout << "File size: " << buffer.size() << std::endl;
+                        buffer.clear();
+                    }
+                    buffer.append(msg->str).append(1, '\n');
+
                 }
                 catch (const std::exception& exc) {
                     std::cerr << "Parse error: " << exc.what() << std::endl;

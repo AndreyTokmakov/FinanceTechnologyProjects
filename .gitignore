@@ -39,3 +39,5 @@
 /cmake-build-release*
 .idea/
 
+
+/Parsers_JSON/data/binance/allData.json

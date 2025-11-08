@@ -7,7 +7,8 @@ Copyright   : Your copyright notice
 Description : BinanceDataParser.cpp
 ============================================================================**/
 
-#include "BinanceDataParser.h"
+#include "MarketData.hpp"
+#include "Parsers.hpp"
 
 #include <vector>
 #include <iostream>
@@ -107,60 +108,6 @@ namespace binance
     simdjson::ondemand::document document;
     simdjson::padded_string jsonBuffer;
     std::array<double, 2> values {};
-
-}
-
-namespace binance::market_data
-{
-    using Price     = double;
-    using Quantity  = double;
-    using Timestamp = int64_t;
-    using Number    = int64_t;
-
-    // TODO: ---> implement StaticString (stack only)
-    using String = std::string;
-
-    struct Result
-    {
-        int id { 0 };
-    };
-
-    struct JsonParams
-    {
-        static inline constexpr std::string_view data { "data" };
-        static inline constexpr std::string_view pair { "ps" };
-        static inline constexpr std::string_view symbol { "s" };
-        static inline constexpr std::string_view eventType { "e" };
-        static inline constexpr std::string_view eventTime { "E" };
-        static inline constexpr std::string_view priceChange { "p" };
-        static inline constexpr std::string_view priceChangePercent { "P" };
-        static inline constexpr std::string_view lastPrice { "c" };
-        static inline constexpr std::string_view lastQuantity { "Q" };
-        static inline constexpr std::string_view openPrice { "o" };
-        static inline constexpr std::string_view highPrice { "h" };
-        static inline constexpr std::string_view lowPrice { "l" };
-        static inline constexpr std::string_view totalTradedVolume { "v" };
-        static inline constexpr std::string_view totalTradedBaseAssetVolume{ "q" };
-        static inline constexpr std::string_view firstTradeId { "F" };
-        static inline constexpr std::string_view lastTradeId { "L" };
-        static inline constexpr std::string_view totalTradesNumber { "n" };
-
-        /** Depth **/
-        static inline constexpr std::string_view firstUpdateId { "U" };
-        static inline constexpr std::string_view finalUpdateId { "u" };
-        static inline constexpr std::string_view bids { "b" };
-        static inline constexpr std::string_view asks { "a" };
-    };
-
-
-    struct EventTypeNames
-    {
-        static inline constexpr std::string_view depthUpdate { "depthUpdate" };
-        static inline constexpr std::string_view ticker { "24hrTicker" };
-        static inline constexpr std::string_view miniTicker { "24hrMiniTicker" };
-        static inline constexpr std::string_view aggTrade { "aggTrade" };
-        static inline constexpr std::string_view trade { "trade" };
-    };
 
 }
 
@@ -438,7 +385,7 @@ namespace binance::parser2
     }
 }
 
-void binance::TestAll()
+void binance::SimdJson::TestAll()
 {
     parser2::Event event;
 

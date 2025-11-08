@@ -1,10 +1,10 @@
 /**============================================================================
-Name        : BinanceDataParser.h
-Created on  : 30.04.2025
+Name        : Parsers.hpp
+Created on  :
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : BinanceDataParser.h
+Description :
 ============================================================================**/
 
 #ifndef FINANCETECHNOLOGYPROJECTS_BINANCEDATAPARSER_H
@@ -12,7 +12,8 @@ Description : BinanceDataParser.h
 
 namespace binance
 {
-    void TestAll();
+    namespace SimdJson { void TestAll(); }
+    namespace Experiments { void TestAll(); }
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_BINANCEDATAPARSER_H

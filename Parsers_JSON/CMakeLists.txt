@@ -14,6 +14,10 @@ add_executable(${PROJECT_NAME}
         binance/Parse_Experiments.cpp
 )
 
+# Nlohmann JSON
+include_directories(${THIRD_PARTY_DIR}/json/include)
+
+# Nlohmann JSON
 include_directories(${THIRD_PARTY_DIR}/simdjson/include)
 target_link_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/simdjson/build)
 

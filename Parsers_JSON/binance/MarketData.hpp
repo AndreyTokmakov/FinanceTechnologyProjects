@@ -33,10 +33,15 @@ namespace binance::market_data
     struct JsonParams
     {
         static constexpr std::string_view data { "data" };
-        static constexpr std::string_view pair { "ps" };
+        static constexpr std::string_view stream { "stream" };
+
         static constexpr std::string_view symbol { "s" };
+        static constexpr std::string_view quantity{ "q" };
         static constexpr std::string_view eventType { "e" };
         static constexpr std::string_view eventTime { "E" };
+
+        static constexpr std::string_view pair { "ps" };
+
         static constexpr std::string_view priceChange { "p" };
         static constexpr std::string_view priceChangePercent { "P" };
         static constexpr std::string_view lastPrice { "c" };
@@ -55,6 +60,15 @@ namespace binance::market_data
         static constexpr std::string_view finalUpdateId { "u" };
         static constexpr std::string_view bids { "b" };
         static constexpr std::string_view asks { "a" };
+
+        struct BookTicker
+        {
+            static constexpr std::string_view bestBuyPrice { "b" };
+            static constexpr std::string_view bestBuyQuantity { "B" };
+            static constexpr std::string_view bestAskPrice { "a" };
+            static constexpr std::string_view bestAskQuantity { "A" };
+            static constexpr std::string_view orderBookUpdateId { "u" };
+        };
     };
 
 
@@ -96,7 +110,7 @@ namespace binance::market_data
 
     struct MiniTicker
     {
-        std::string symbol {};
+        std::string symbol {}; //               <---------- REMOVE
         uint64_t timestamp { 0 };
         Price    close { 0.0 };
         Price    open { 0.0 };
@@ -117,7 +131,7 @@ namespace binance::market_data
 
     struct BookTicker
     {
-        std::string symbol;
+        std::string symbol {}; //               <---------- REMOVE
         Price    bidPrice { 0.0 };
         Quantity bidQuantity { 0.0 };
         Price    askPrice { 0.0 };

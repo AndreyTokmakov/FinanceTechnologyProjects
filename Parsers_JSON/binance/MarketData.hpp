@@ -55,9 +55,6 @@ namespace binance::market_data
         static constexpr std::string_view lastTradeId { "L" };
         static constexpr std::string_view totalTradesNumber { "n" };
 
-        /** Depth **/
-
-
         struct BookTicker
         {
             static constexpr std::string_view bestBuyPrice { "b" };
@@ -75,7 +72,6 @@ namespace binance::market_data
             static constexpr std::string_view asks { "a" };
         };
     };
-
 
     struct EventTypeNames
     {
@@ -182,8 +178,8 @@ struct std::formatter<binance::market_data::MiniTicker>
 
     static auto format(const binance::market_data::MiniTicker& miniTicker, std::format_context& ctx) -> decltype(auto)
     {
-        return std::format_to(ctx.out(),
-            "MiniTicker(""\n\tsymbol: {},\n\ttimestamp: {}, \n\tclose: {},\n\topen: {},\n\thigh: {},\n\tlow: {},\n\tvolume: {},\n\tquantity: {}\n)",
+        return std::format_to(ctx.out(), "MiniTicker(""\n\tsymbol: {},\n\ttimestamp: {}, \n\tclose: {},"
+            "\n\topen: {},\n\thigh: {},\n\tlow: {},\n\tvolume: {},\n\tquantity: {}\n)",
             miniTicker.symbol,
             miniTicker.timestamp,
             miniTicker.close,
@@ -204,8 +200,8 @@ struct std::formatter<binance::market_data::BookTicker>
 
     static auto format(const binance::market_data::BookTicker& bookTicker, std::format_context& ctx) -> decltype(auto)
     {
-        return std::format_to(ctx.out(),
-            "BookTicker(\n\tsymbol: {},\n\tbidPrice: {}, \n\tbidQuantity: {},\n\taskPrice: {},\n\taskQuantity: {},\n\tupdateId: {}\n)",
+        return std::format_to(ctx.out(),"BookTicker(\n\tsymbol: {},\n\tbidPrice: {}, \n\tbidQuantity: {},"
+            "\n\taskPrice: {},\n\taskQuantity: {},\n\tupdateId: {}\n)",
             bookTicker.symbol,
             bookTicker.bidPrice,
             bookTicker.bidQuantity,
@@ -236,15 +232,23 @@ struct std::formatter<binance::market_data::DepthUpdate>
 
     static auto format(const binance::market_data::DepthUpdate& update, std::format_context& ctx) -> decltype(auto)
     {
-        return std::format_to(ctx.out(),
-            "DepthUpdate(\n\tsymbol: {},\n\tfirstUpdateId: {}, \n\tfinalUpdateId: {},\n\teventTime: {},\n\tbids: [],\n\tasks: []\n)",
+        std::string strAsks;
+        for (const auto&[price, quantity]: update.asks) {
+            strAsks += std::format("({}, {})", price,quantity) + " ";
+        }
+        std::string strBids;
+        for (const auto&[price, quantity]: update.bids) {
+            strBids += std::format("({}, {})", price,quantity) + " ";
+        }
+
+        return std::format_to(ctx.out(),"DepthUpdate(\n\tsymbol: {},\n\tfirstUpdateId: {}, "
+            "\n\tfinalUpdateId: {},\n\teventTime: {},\n\tbids: [ {}],\n\tasks: [ {}]\n)",
             update.symbol,
             update.firstUpdateId,
             update.finalUpdateId,
-            update.eventTime
-            //update.bids,
-            //update.asks
-            );
+            update.eventTime,
+            strAsks,
+            strBids);
     }
 };
 

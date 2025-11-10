@@ -138,7 +138,20 @@ namespace parsing::book_depth_updates
         data.at(JsonParams::DepthUpdate::firstUpdateId).get_to(update.firstUpdateId);
         data.at(JsonParams::DepthUpdate::finalUpdateId).get_to(update.finalUpdateId);
 
-        // data.at(JsonParams::BookTicker::orderBookUpdateId).get_to(ticker.updateId);
+        const nlohmann::json& bids = data[JsonParams::DepthUpdate::bids];
+        update.bids.reserve(bids.size());
+        for (const auto& lvl: bids) {
+            update.bids.emplace_back(std::stod(lvl[0].get_ref<const std::string&>()),
+                    std::stod(lvl[1].get_ref<const std::string&>()));
+        }
+
+        const nlohmann::json& asks = data[JsonParams::DepthUpdate::asks];
+        update.asks.reserve(asks.size());
+        for (const auto& lvl: asks) {
+            update.asks.emplace_back(std::stod(lvl[0].get_ref<const std::string&>()),
+                    std::stod(lvl[1].get_ref<const std::string&>()));
+        }
+
         return update;
     }
 

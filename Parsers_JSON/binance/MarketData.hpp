@@ -12,6 +12,7 @@ Description :
 
 #include <string_view>
 #include <format>
+#include <vector>
 #include <ostream>
 #include <cstdint>
 
@@ -19,8 +20,8 @@ namespace binance::market_data
 {
     using Price     = double;
     using Quantity  = double;
-    using Timestamp = int64_t;
-    using Number    = int64_t;
+    using Timestamp = uint64_t;
+    using Number    = uint64_t;
 
     // TODO: ---> implement StaticString (stack only)
     using String = std::string;
@@ -138,6 +139,34 @@ namespace binance::market_data
         Quantity askQuantity { 0.0 };
         uint64_t updateId { 0 };
     };
+
+    /**
+    {
+      "e": "depthUpdate",   // Event type
+      "E": 1700000000123,   // Event time
+      "s": "BTCUSDT",       // Symbol
+      "U": 400900200,       // First update ID in event
+      "u": 400900210,       // Final update ID in event
+      "b": [ ["67320.10","0.002"], ["67319.80","0.500"] ],  // Bids
+      "a": [ ["67321.00","0.100"], ["67321.10","0.000"] ]   // Asks
+    }
+    **/
+
+    struct PriceLevel
+    {
+        Price price { 0.0 };
+        Quantity quantity { 0.0 };
+    };
+
+    struct DepthUpdate
+    {
+        std::string symbol;
+        Timestamp firstUpdateId { 0 };
+        Timestamp finalUpdateId { 0 };
+        Timestamp eventTime { 0 };
+        std::vector<PriceLevel> bids;
+        std::vector<PriceLevel> asks;
+    };
 }
 
 template<>
@@ -182,6 +211,39 @@ struct std::formatter<binance::market_data::BookTicker>
     }
 };
 
+template<>
+struct std::formatter<binance::market_data::PriceLevel>
+{
+    static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
+        return ctx.begin();
+    }
+
+    static auto format(const binance::market_data::PriceLevel& lvl, std::format_context& ctx) -> decltype(auto) {
+        return std::format_to(ctx.out(),"({}, {})", lvl.price,lvl.quantity);
+    }
+};
+
+template<>
+struct std::formatter<binance::market_data::DepthUpdate>
+{
+    static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
+        return ctx.begin();
+    }
+
+    static auto format(const binance::market_data::DepthUpdate& update, std::format_context& ctx) -> decltype(auto)
+    {
+        return std::format_to(ctx.out(),
+            "DepthUpdate(\n\tsymbol: {},\n\tfirstUpdateId: {}, \n\tfinalUpdateId: {},\n\teventTime: {},\n\tbids: [],\n\tasks: []\n)",
+            update.symbol,
+            update.firstUpdateId,
+            update.finalUpdateId,
+            update.eventTime
+            //update.bids,
+            //update.asks
+            );
+    }
+};
+
 inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::BookTicker& ticker) {
     return stream << std::format("{}", ticker);
 }
@@ -191,3 +253,13 @@ inline std::ostream& operator<<(std::ostream& stream, const binance::market_data
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_MARKETDATA_HPP
+
+
+/**
+
+Timestamp firstUpdateId { 0 };
+Timestamp finalUpdateId { 0 };
+Timestamp eventTime { 0 };
+std::vector<PriceLevel> bids;
+std::vector<PriceLevel> asks;
+**/

@@ -175,7 +175,7 @@ namespace binance::SymbolTicker
     Ticker parseTicker1(simdjson::ondemand::object& data)
     {
         Ticker ticker {
-                .eventTime = data[JsonParams::eventTime].get_int64(),
+                .eventTime = data[JsonParams::eventTime].get_uint64(),
                 .priceChange = data[JsonParams::priceChange].get_double_in_string(),
                 .priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string(),
                 .lastPrice = data[JsonParams::lastPrice].get_double_in_string(),
@@ -185,9 +185,9 @@ namespace binance::SymbolTicker
                 .lowPrice = data[JsonParams::lowPrice].get_double_in_string(),
                 .totalTradedVolume = data[JsonParams::totalTradedVolume].get_double_in_string(),
                 .totalTradedBaseAssetVolume = data[JsonParams::totalTradedBaseAssetVolume].get_double_in_string(),
-                .firstTradeId = data[JsonParams::firstTradeId].get_int64(),
-                .lastTradeId = data[JsonParams::lastTradeId].get_int64(),
-                .totalTradesNumber = data[JsonParams::totalTradesNumber].get_int64(),
+                .firstTradeId = data[JsonParams::firstTradeId].get_uint64(),
+                .lastTradeId = data[JsonParams::lastTradeId].get_uint64(),
+                .totalTradesNumber = data[JsonParams::totalTradesNumber].get_uint64(),
         };
         data[JsonParams::symbol].get_string(ticker.symbol);
         return ticker;

@@ -125,6 +125,25 @@ namespace parsing::book_ticker
     }
 }
 
+namespace parsing::book_depth_updates
+{
+    using binance::market_data::JsonParams;
+    using binance::market_data::BookTicker;
+
+    void test()
+    {
+        const std::string content = FileUtilities::ReadFile(getDataDir() / "depthUpdate.json");
+        try {
+            const nlohmann::json jsonData = nlohmann::json::parse(content);
+            const nlohmann::json& data = jsonData[JsonParams::data];
+            std::cout << data << std::endl;
+        }
+        catch (const std::exception& exc) {
+            std::cout << exc.what() << std::endl;
+        }
+    }
+}
+
 namespace binance::all_streams
 {
     using market_data::JsonParams;
@@ -203,5 +222,6 @@ void binance::Experiments::TestAll()
     // all_streams::allStreams();
 
     // parsing::mini_ticker::test();
-    parsing::book_ticker::test();
+    // parsing::book_ticker::test();
+    parsing::book_depth_updates::test();
 }

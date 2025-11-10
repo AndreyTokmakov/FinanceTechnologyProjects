@@ -42,7 +42,6 @@ namespace binance::market_data
         static constexpr std::string_view eventTime { "E" };
 
         static constexpr std::string_view pair { "ps" };
-
         static constexpr std::string_view priceChange { "p" };
         static constexpr std::string_view priceChangePercent { "P" };
         static constexpr std::string_view lastPrice { "c" };
@@ -57,10 +56,7 @@ namespace binance::market_data
         static constexpr std::string_view totalTradesNumber { "n" };
 
         /** Depth **/
-        static constexpr std::string_view firstUpdateId { "U" };
-        static constexpr std::string_view finalUpdateId { "u" };
-        static constexpr std::string_view bids { "b" };
-        static constexpr std::string_view asks { "a" };
+
 
         struct BookTicker
         {
@@ -69,6 +65,14 @@ namespace binance::market_data
             static constexpr std::string_view bestAskPrice { "a" };
             static constexpr std::string_view bestAskQuantity { "A" };
             static constexpr std::string_view orderBookUpdateId { "u" };
+        };
+
+        struct DepthUpdate
+        {
+            static constexpr std::string_view firstUpdateId { "U" };
+            static constexpr std::string_view finalUpdateId { "u" };
+            static constexpr std::string_view bids { "b" };
+            static constexpr std::string_view asks { "a" };
         };
     };
 
@@ -252,14 +256,8 @@ inline std::ostream& operator<<(std::ostream& stream, const binance::market_data
     return stream << std::format("{}", ticker);
 }
 
+inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::DepthUpdate& update) {
+    return stream << std::format("{}", update);
+}
+
 #endif //FINANCETECHNOLOGYPROJECTS_MARKETDATA_HPP
-
-
-/**
-
-Timestamp firstUpdateId { 0 };
-Timestamp finalUpdateId { 0 };
-Timestamp eventTime { 0 };
-std::vector<PriceLevel> bids;
-std::vector<PriceLevel> asks;
-**/

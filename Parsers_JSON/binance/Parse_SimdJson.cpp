@@ -352,7 +352,7 @@ namespace binance::parser2
             event.eventTime = data[JsonParams::eventTime].get_int64();
 
             event.depth.bid.clear();
-            if (simdjson::SUCCESS != data[JsonParams::bids].get(array)) {
+            if (simdjson::SUCCESS != data[JsonParams::DepthUpdate::bids].get(array)) {
                 return false;
             }
             for (auto entry: array) {
@@ -364,7 +364,7 @@ namespace binance::parser2
             }
 
             event.depth.ask.clear();
-            if (simdjson::SUCCESS != data[JsonParams::asks].get(array)) {
+            if (simdjson::SUCCESS != data[JsonParams::DepthUpdate::asks].get(array)) {
                 return false;
             }
             for (auto entry: array) {

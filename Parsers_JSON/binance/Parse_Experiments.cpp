@@ -128,7 +128,19 @@ namespace parsing::book_ticker
 namespace parsing::book_depth_updates
 {
     using binance::market_data::JsonParams;
-    using binance::market_data::BookTicker;
+    using binance::market_data::DepthUpdate;
+
+    DepthUpdate parseDepthUpdate(const nlohmann::json& data)
+    {
+        DepthUpdate update;
+        data.at(JsonParams::symbol).get_to(update.symbol);
+        data.at(JsonParams::eventTime).get_to(update.eventTime);
+        data.at(JsonParams::DepthUpdate::firstUpdateId).get_to(update.firstUpdateId);
+        data.at(JsonParams::DepthUpdate::finalUpdateId).get_to(update.finalUpdateId);
+
+        // data.at(JsonParams::BookTicker::orderBookUpdateId).get_to(ticker.updateId);
+        return update;
+    }
 
     void test()
     {
@@ -137,6 +149,9 @@ namespace parsing::book_depth_updates
             const nlohmann::json jsonData = nlohmann::json::parse(content);
             const nlohmann::json& data = jsonData[JsonParams::data];
             std::cout << data << std::endl;
+
+            const DepthUpdate update = parseDepthUpdate(data);
+            std::cout << update << std::endl;
         }
         catch (const std::exception& exc) {
             std::cout << exc.what() << std::endl;

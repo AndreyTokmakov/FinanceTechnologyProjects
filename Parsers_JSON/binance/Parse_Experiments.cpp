@@ -161,7 +161,7 @@ namespace parsing::book_depth_updates
         try {
             const nlohmann::json jsonData = nlohmann::json::parse(content);
             const nlohmann::json& data = jsonData[JsonParams::data];
-            std::cout << data << std::endl;
+            // std::cout << data << std::endl;
 
             const DepthUpdate update = parseDepthUpdate(data);
             std::cout << update << std::endl;

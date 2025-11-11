@@ -310,7 +310,7 @@ void binance::Experiments::TestAll()
     // all_streams::allStreams();
 
     // parsing::mini_ticker::test();
-    // parsing::book_ticker::test();
+    parsing::book_ticker::test();
     // parsing::book_depth_updates::test();
-    parsing::ticker::test();
+    // parsing::ticker::test();
 }

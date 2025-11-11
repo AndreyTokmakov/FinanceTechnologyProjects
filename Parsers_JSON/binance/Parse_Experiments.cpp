@@ -188,35 +188,27 @@ namespace parsing::ticker
 
         data.at(JsonParams::symbol).get_to(ticker.symbol);
         data.at(JsonParams::eventTime).get_to(ticker.eventTime);
-
-        /*
-        t.event_time = j["E"].get<uint64_t>();
-
-        auto asDouble = [](const json& v) -> double {
-            return std::stod(v.get_ref<const std::string&>());
-        };
-
-        t.price_change         = asDouble(j["p"]);
-        t.price_change_percent = asDouble(j["P"]);
-        t.weighted_avg_price   = asDouble(j["w"]);
-        t.prev_close_price     = asDouble(j["x"]);
-        t.last_price           = asDouble(j["c"]);
-        t.last_qty             = asDouble(j["Q"]);
-        t.best_bid             = asDouble(j["b"]);
-        t.best_bid_qty         = asDouble(j["B"]);
-        t.best_ask             = asDouble(j["a"]);
-        t.best_ask_qty         = asDouble(j["A"]);
-        t.open_price           = asDouble(j["o"]);
-        t.high_price           = asDouble(j["h"]);
-        t.low_price            = asDouble(j["l"]);
-        t.volume               = asDouble(j["v"]);
-        t.quote_volume         = asDouble(j["q"]);
-
-        t.open_time       = j["O"].get<uint64_t>();
-        t.close_time      = j["C"].get<uint64_t>();
-        t.first_trade_id  = j["F"].get<uint64_t>();
-        t.last_trade_id   = j["L"].get<uint64_t>();
-        t.num_trades      = j["n"].get<uint64_t>();*/
+        data.at(JsonParams::Ticker::eventType).get_to(ticker.eventType);
+        ticker.priceChange = asDouble(data.at(JsonParams::Ticker::priceChange));
+        ticker.priceChangePercent = asDouble(data.at(JsonParams::Ticker::priceChangePercent));
+        ticker.weightedAvgPrice = asDouble(data.at(JsonParams::Ticker::weightedAveragePrice));
+        ticker.prevClosePrice = asDouble(data.at(JsonParams::Ticker::previousClose));
+        ticker.lastPrice = asDouble(data.at(JsonParams::Ticker::lastPrice));
+        ticker.lastQuantity = asDouble(data.at(JsonParams::Ticker::lastQuantity));
+        ticker.bestBid = asDouble(data.at(JsonParams::Ticker::bestBuyPrice));
+        ticker.bestBidQuantity = asDouble(data.at(JsonParams::Ticker::bestBuyQuantity));
+        ticker.bestAsk = asDouble(data.at(JsonParams::Ticker::bestAskPrice));
+        ticker.bestAskQuantity = asDouble(data.at(JsonParams::Ticker::bestAskQuantity));
+        ticker.openPrice = asDouble(data.at(JsonParams::Ticker::openPrice));
+        ticker.highPrice = asDouble(data.at(JsonParams::Ticker::highPrice));
+        ticker.lowPrice = asDouble(data.at(JsonParams::Ticker::lowPrice));
+        ticker.volume = asDouble(data.at(JsonParams::Ticker::totalTradedVolume));
+        ticker.quoteVolume = asDouble(data.at(JsonParams::Ticker::totalTradedBaseAssetVolume));
+        data.at(JsonParams::Ticker::statisticsOpenTime).get_to(ticker.openTime);
+        data.at(JsonParams::Ticker::statisticsCloseTime).get_to(ticker.closeTime);
+        data.at(JsonParams::Ticker::firstTradeId).get_to(ticker.firstTradeId);
+        data.at(JsonParams::Ticker::lastTradeId).get_to(ticker.lastTradeId);
+        data.at(JsonParams::Ticker::totalTradesNumber).get_to(ticker.numTrades);
 
         return ticker;
     }

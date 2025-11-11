@@ -209,6 +209,7 @@ namespace binance::market_data
     struct Ticker
     {
         std::string symbol;
+        std::string eventType;
         Timestamp eventTime { 0 };
         Price priceChange   { 0.0 };
         Price priceChangePercent { 0.0 };
@@ -325,13 +326,15 @@ struct std::formatter<binance::market_data::Ticker>
 
     static auto format(const binance::market_data::Ticker& ticker, std::format_context& ctx) -> decltype(auto)
     {
-        return std::format_to(ctx.out(), "Ticker(\n\tsymbol: {},\n\teventTime: {},\n\tpriceChange: {},"
+        return std::format_to(ctx.out(), "Ticker("
+             "\n\tsymbol: {},\n\teventType: {},\n\teventTime: {},\n\tpriceChange: {},"
             "\n\tpriceChangePercent: {},\n\tweightedAvgPrice: {},\n\tprevClosePrice: {},"
             "\n\tlastPrice: {},\n\tlastQuantity: {},\n\tbestBid: {},\n\tbestBidQuantity: {},"
             "\n\tbestAskQuantity: {},\n\topenPrice: {},\n\thighPrice: {},\n\tlowPrice: {},"
             "\n\tvolume: {},\n\tquoteVolume: {},\n\topenTime: {},\n\tcloseTime: {},\n\tfirstTradeId: {},"
             "\n\tlastTradeId: {},\n\tnumTrades: {}\n)",
             ticker.symbol,
+            ticker.eventType,
             ticker.eventTime,
             ticker.priceChange,
             ticker.priceChangePercent,

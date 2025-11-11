@@ -35,6 +35,11 @@ namespace
         lines.pop_back();
         return lines;
     }
+
+    // TODO: Replace 'stod' to std::from_str | Check performance
+    constexpr inline double asDouble(const nlohmann::json& data){
+        return std::stod(data.get_ref<const std::string&>());
+    };
 }
 
 
@@ -172,6 +177,69 @@ namespace parsing::book_depth_updates
     }
 }
 
+namespace parsing::ticker
+{
+    using binance::market_data::JsonParams;
+    using binance::market_data::Ticker;
+
+    Ticker parseTicker(const nlohmann::json& data)
+    {
+        Ticker ticker;
+
+        data.at(JsonParams::symbol).get_to(ticker.symbol);
+        data.at(JsonParams::eventTime).get_to(ticker.eventTime);
+
+        /*
+        t.event_time = j["E"].get<uint64_t>();
+
+        auto asDouble = [](const json& v) -> double {
+            return std::stod(v.get_ref<const std::string&>());
+        };
+
+        t.price_change         = asDouble(j["p"]);
+        t.price_change_percent = asDouble(j["P"]);
+        t.weighted_avg_price   = asDouble(j["w"]);
+        t.prev_close_price     = asDouble(j["x"]);
+        t.last_price           = asDouble(j["c"]);
+        t.last_qty             = asDouble(j["Q"]);
+        t.best_bid             = asDouble(j["b"]);
+        t.best_bid_qty         = asDouble(j["B"]);
+        t.best_ask             = asDouble(j["a"]);
+        t.best_ask_qty         = asDouble(j["A"]);
+        t.open_price           = asDouble(j["o"]);
+        t.high_price           = asDouble(j["h"]);
+        t.low_price            = asDouble(j["l"]);
+        t.volume               = asDouble(j["v"]);
+        t.quote_volume         = asDouble(j["q"]);
+
+        t.open_time       = j["O"].get<uint64_t>();
+        t.close_time      = j["C"].get<uint64_t>();
+        t.first_trade_id  = j["F"].get<uint64_t>();
+        t.last_trade_id   = j["L"].get<uint64_t>();
+        t.num_trades      = j["n"].get<uint64_t>();*/
+
+        return ticker;
+    }
+
+
+    void test()
+    {
+        const std::string content = FileUtilities::ReadFile(getDataDir() / "ticker.json");
+        try {
+            const nlohmann::json jsonData = nlohmann::json::parse(content);
+            const nlohmann::json& data = jsonData[JsonParams::data];
+            std::cout << data << std::endl;
+
+            const Ticker ticker = parseTicker(data);
+            std::cout << ticker << std::endl;
+        }
+        catch (const std::exception& exc) {
+            std::cout << exc.what() << std::endl;
+        }
+    }
+}
+
+
 namespace binance::all_streams
 {
     using market_data::JsonParams;
@@ -251,5 +319,6 @@ void binance::Experiments::TestAll()
 
     // parsing::mini_ticker::test();
     // parsing::book_ticker::test();
-    parsing::book_depth_updates::test();
+    // parsing::book_depth_updates::test();
+    parsing::ticker::test();
 }

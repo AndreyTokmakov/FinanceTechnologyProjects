@@ -156,18 +156,18 @@ namespace binance::SymbolTicker
         {
             ticker.eventTime = data[JsonParams::eventTime].get_int64();
             data[JsonParams::symbol].get_string(ticker.symbol);
-            ticker.priceChange = data[JsonParams::priceChange].get_double_in_string();
-            ticker.priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string();
-            ticker.lastPrice = data[JsonParams::lastPrice].get_double_in_string();
-            ticker.lastQuantity = data[JsonParams::lastQuantity].get_double_in_string();
-            ticker.openPrice = data[JsonParams::openPrice].get_double_in_string();
-            ticker.highPrice = data[JsonParams::highPrice].get_double_in_string();
-            ticker.lowPrice = data[JsonParams::lowPrice].get_double_in_string();
-            ticker.totalTradedVolume = data[JsonParams::totalTradedVolume].get_double_in_string();
-            ticker.totalTradedBaseAssetVolume = data[JsonParams::totalTradedBaseAssetVolume].get_double_in_string();
-            ticker.firstTradeId = data[JsonParams::firstTradeId].get_int64();
-            ticker.lastTradeId = data[JsonParams::lastTradeId].get_int64();
-            ticker.totalTradesNumber = data[JsonParams::totalTradesNumber].get_int64();
+            ticker.priceChange = data[JsonParams::Ticker::priceChange].get_double_in_string();
+            ticker.priceChangePercent = data[JsonParams::Ticker::priceChangePercent].get_double_in_string();
+            ticker.lastPrice = data[JsonParams::Ticker::lastPrice].get_double_in_string();
+            ticker.lastQuantity = data[JsonParams::Ticker::lastQuantity].get_double_in_string();
+            ticker.openPrice = data[JsonParams::Ticker::openPrice].get_double_in_string();
+            ticker.highPrice = data[JsonParams::Ticker::highPrice].get_double_in_string();
+            ticker.lowPrice = data[JsonParams::Ticker::lowPrice].get_double_in_string();
+            ticker.totalTradedVolume = data[JsonParams::Ticker::totalTradedVolume].get_double_in_string();
+            ticker.totalTradedBaseAssetVolume = data[JsonParams::Ticker::totalTradedBaseAssetVolume].get_double_in_string();
+            ticker.firstTradeId = data[JsonParams::Ticker::firstTradeId].get_int64();
+            ticker.lastTradeId = data[JsonParams::Ticker::lastTradeId].get_int64();
+            ticker.totalTradesNumber = data[JsonParams::Ticker::totalTradesNumber].get_int64();
         }
         return ticker;
     }
@@ -176,18 +176,18 @@ namespace binance::SymbolTicker
     {
         Ticker ticker {
                 .eventTime = data[JsonParams::eventTime].get_uint64(),
-                .priceChange = data[JsonParams::priceChange].get_double_in_string(),
-                .priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string(),
-                .lastPrice = data[JsonParams::lastPrice].get_double_in_string(),
-                .lastQuantity = data[JsonParams::lastQuantity].get_double_in_string(),
-                .openPrice = data[JsonParams::openPrice].get_double_in_string(),
-                .highPrice = data[JsonParams::highPrice].get_double_in_string(),
-                .lowPrice = data[JsonParams::lowPrice].get_double_in_string(),
-                .totalTradedVolume = data[JsonParams::totalTradedVolume].get_double_in_string(),
-                .totalTradedBaseAssetVolume = data[JsonParams::totalTradedBaseAssetVolume].get_double_in_string(),
-                .firstTradeId = data[JsonParams::firstTradeId].get_uint64(),
-                .lastTradeId = data[JsonParams::lastTradeId].get_uint64(),
-                .totalTradesNumber = data[JsonParams::totalTradesNumber].get_uint64(),
+                .priceChange = data[JsonParams::Ticker::priceChange].get_double_in_string(),
+                .priceChangePercent = data[JsonParams::Ticker::priceChangePercent].get_double_in_string(),
+                .lastPrice = data[JsonParams::Ticker::lastPrice].get_double_in_string(),
+                .lastQuantity = data[JsonParams::Ticker::lastQuantity].get_double_in_string(),
+                .openPrice = data[JsonParams::Ticker::openPrice].get_double_in_string(),
+                .highPrice = data[JsonParams::Ticker::highPrice].get_double_in_string(),
+                .lowPrice = data[JsonParams::Ticker::lowPrice].get_double_in_string(),
+                .totalTradedVolume = data[JsonParams::Ticker::totalTradedVolume].get_double_in_string(),
+                .totalTradedBaseAssetVolume = data[JsonParams::Ticker::totalTradedBaseAssetVolume].get_double_in_string(),
+                .firstTradeId = data[JsonParams::Ticker::firstTradeId].get_uint64(),
+                .lastTradeId = data[JsonParams::Ticker::lastTradeId].get_uint64(),
+                .totalTradesNumber = data[JsonParams::Ticker::totalTradesNumber].get_uint64(),
         };
         data[JsonParams::symbol].get_string(ticker.symbol);
         return ticker;
@@ -318,18 +318,18 @@ namespace binance::parser2
             data[JsonParams::pair].get_string(event.pair);
             event.eventTime = data[JsonParams::eventTime].get_int64();
 
-            event.ticker.priceChange = data[JsonParams::priceChange].get_double_in_string();
-            event.ticker.priceChangePercent = data[JsonParams::priceChangePercent].get_double_in_string();
-            event.ticker.lastPrice = data[JsonParams::lastPrice].get_double_in_string();
-            event.ticker.lastQuantity = data[JsonParams::lastQuantity].get_double_in_string();
-            event.ticker.openPrice = data[JsonParams::openPrice].get_double_in_string();
-            event.ticker.highPrice = data[JsonParams::highPrice].get_double_in_string();
-            event.ticker.lowPrice = data[JsonParams::lowPrice].get_double_in_string();
-            event.ticker.totalTradedVolume = data[JsonParams::totalTradedVolume].get_double_in_string();
-            event.ticker.totalTradedBaseAssetVolume = data[JsonParams::totalTradedBaseAssetVolume].get_double_in_string();
-            event.ticker.firstTradeId = data[JsonParams::firstTradeId].get_int64();
-            event.ticker.lastTradeId = data[JsonParams::lastTradeId].get_int64();
-            event.ticker.totalTradesNumber = data[JsonParams::totalTradesNumber].get_int64();
+            event.ticker.priceChange = data[JsonParams::Ticker::priceChange].get_double_in_string();
+            event.ticker.priceChangePercent = data[JsonParams::Ticker::priceChangePercent].get_double_in_string();
+            event.ticker.lastPrice = data[JsonParams::Ticker::lastPrice].get_double_in_string();
+            event.ticker.lastQuantity = data[JsonParams::Ticker::lastQuantity].get_double_in_string();
+            event.ticker.openPrice = data[JsonParams::Ticker::openPrice].get_double_in_string();
+            event.ticker.highPrice = data[JsonParams::Ticker::highPrice].get_double_in_string();
+            event.ticker.lowPrice = data[JsonParams::Ticker::lowPrice].get_double_in_string();
+            event.ticker.totalTradedVolume = data[JsonParams::Ticker::totalTradedVolume].get_double_in_string();
+            event.ticker.totalTradedBaseAssetVolume = data[JsonParams::Ticker::totalTradedBaseAssetVolume].get_double_in_string();
+            event.ticker.firstTradeId = data[JsonParams::Ticker::firstTradeId].get_int64();
+            event.ticker.lastTradeId = data[JsonParams::Ticker::lastTradeId].get_int64();
+            event.ticker.totalTradesNumber = data[JsonParams::Ticker::totalTradesNumber].get_int64();
         }
         else if (EventTypeNames::miniTicker == eventTypeSv)
         {

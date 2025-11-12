@@ -106,10 +106,10 @@ namespace parsing::book_ticker
     {
         BookTicker ticker;
         data.at(JsonParams::symbol).get_to(ticker.symbol);
-        ticker.bidPrice    = std::stod(data.at(JsonParams::BookTicker::bestBuyPrice).get_ref<const std::string&>());
-        ticker.bidQuantity = std::stod(data.at(JsonParams::BookTicker::bestBuyQuantity).get_ref<const std::string&>());
-        ticker.askPrice    = std::stod(data.at(JsonParams::BookTicker::bestAskPrice).get_ref<const std::string&>());
-        ticker.askQuantity = std::stod(data.at(JsonParams::BookTicker::bestBuyQuantity).get_ref<const std::string&>());
+        ticker.bidPrice    = asDouble(data.at(JsonParams::BookTicker::bestBuyPrice));
+        ticker.bidQuantity = asDouble(data.at(JsonParams::BookTicker::bestBuyQuantity));
+        ticker.askPrice    = asDouble(data.at(JsonParams::BookTicker::bestAskPrice));
+        ticker.askQuantity = asDouble(data.at(JsonParams::BookTicker::bestAskQuantity));
         data.at(JsonParams::BookTicker::orderBookUpdateId).get_to(ticker.updateId);
         return ticker;
     }
@@ -146,15 +146,13 @@ namespace parsing::book_depth_updates
         const nlohmann::json& bids = data[JsonParams::DepthUpdate::bids];
         update.bids.reserve(bids.size());
         for (const auto& lvl: bids) {
-            update.bids.emplace_back(std::stod(lvl[0].get_ref<const std::string&>()),
-                    std::stod(lvl[1].get_ref<const std::string&>()));
+            update.bids.emplace_back(asDouble(lvl[0]), asDouble(lvl[1]));
         }
 
         const nlohmann::json& asks = data[JsonParams::DepthUpdate::asks];
         update.asks.reserve(asks.size());
         for (const auto& lvl: asks) {
-            update.asks.emplace_back(std::stod(lvl[0].get_ref<const std::string&>()),
-                    std::stod(lvl[1].get_ref<const std::string&>()));
+            update.asks.emplace_back(asDouble(lvl[0]), asDouble(lvl[1]));
         }
 
         return update;

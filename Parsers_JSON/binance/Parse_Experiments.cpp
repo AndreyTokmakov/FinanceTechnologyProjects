@@ -42,6 +42,41 @@ namespace
     };
 }
 
+namespace parsing::trade
+{
+    using binance::market_data::JsonParams;
+    using binance::market_data::Trade;
+
+    Trade parseTrade(const nlohmann::json& data)
+    {
+        Trade trade;
+        data.at(JsonParams::symbol).get_to(trade.symbol);
+        data.at(JsonParams::eventTime).get_to(trade.eventTime);
+        data.at(JsonParams::Trade::tradeId).get_to(trade.tradeId);
+        // data.at(JsonParams::Trade::buyerOrderID).get_to(trade.buyerOrderId);
+        // data.at(JsonParams::Trade::sellerOrderId).get_to(trade.sellerOrderId);
+        data.at(JsonParams::Trade::tradeTime).get_to(trade.tradeTime);
+        data.at(JsonParams::Trade::isMarketMaker).get_to(trade.isBuyerMaker);
+        trade.price    = asDouble(data.at(JsonParams::Trade::price));
+        trade.quantity = asDouble(data.at(JsonParams::Trade::quantity));
+        return trade;
+    }
+
+    void test()
+    {
+        const std::string content = FileUtilities::ReadFile(getDataDir() / "trade.json");
+        try {
+            const nlohmann::json jsonData = nlohmann::json::parse(content);
+            const nlohmann::json& data = jsonData[JsonParams::data];
+            // std::cout << data << std::endl;
+            const Trade trade = parseTrade(data);
+            std::cout << trade << std::endl;
+        }
+        catch (const std::exception& exc) {
+            std::cout << exc.what() << std::endl;
+        }
+    }
+}
 
 namespace parsing::mini_ticker
 {
@@ -296,7 +331,8 @@ void binance::Experiments::TestAll()
 
     // all_streams::allStreams();
 
-    parsing::mini_ticker::test();
+    parsing::trade::test();
+    // parsing::mini_ticker::test();
     // parsing::book_ticker::test();
     // parsing::book_depth_updates::test();
     // parsing::ticker::test();

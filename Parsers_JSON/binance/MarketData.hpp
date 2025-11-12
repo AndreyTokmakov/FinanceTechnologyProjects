@@ -86,6 +86,19 @@ namespace binance::market_data
             static constexpr std::string_view bids { "b" };
             static constexpr std::string_view asks { "a" };
         };
+
+        struct Trade
+        {
+            static constexpr std::string_view eventType { "e" };
+            static constexpr std::string_view eventTime { "E" };
+            static constexpr std::string_view price { "p" };
+            static constexpr std::string_view quantity { "q" };
+            static constexpr std::string_view tradeTime { "T" };
+            static constexpr std::string_view tradeId { "t" };
+            static constexpr std::string_view buyerOrderID { "b" };
+            static constexpr std::string_view sellerOrderId { "a" };
+            static constexpr std::string_view isMarketMaker { "m" };
+        };
     };
 
     struct EventTypeNames

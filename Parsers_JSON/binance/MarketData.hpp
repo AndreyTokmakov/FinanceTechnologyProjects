@@ -249,17 +249,41 @@ namespace binance::market_data
     struct Trade
     {
         std::string symbol;
-        uint64_t event_time = 0;
-        uint64_t trade_id = 0;
-        double price = 0.0;
-        double qty = 0.0;
-        uint64_t buyer_order_id = 0;
-        uint64_t seller_order_id = 0;
-        uint64_t trade_time = 0;
-        bool is_buyer_maker = false;
+        Timestamp eventTime { 0 };
+        Number tradeId { 0 };
+        Price price { 0.0 };
+        Quantity quantity { 0.0 };
+        Number buyerOrderId { 0 };
+        Number sellerOrderId { 0 };
+        Timestamp tradeTime { 0 };
+        bool isBuyerMaker { false };
     };
 
 }
+
+template<>
+struct std::formatter<binance::market_data::Trade>
+{
+    static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
+        return ctx.begin();
+    }
+
+    static auto format(const binance::market_data::Trade& trade, std::format_context& ctx) -> decltype(auto)
+    {
+        return std::format_to(ctx.out(), "Trade(\n\tsymbol: {},\n\teventTime: {}, \n\ttradeId: {},"
+        "\n\tprice: {},\n\tquantity: {},\n\tbuyerOrderId: {},\n\tsellerOrderId: {},"
+        "\n\ttradeTime: {},\n\tisBuyerMaker: {}\n)",
+            trade.symbol,
+            trade.eventTime,
+            trade.tradeId,
+            trade.price,
+            trade.quantity,
+            trade.buyerOrderId,
+            trade.sellerOrderId,
+            trade.tradeTime,
+            trade.isBuyerMaker);
+    }
+};
 
 template<>
 struct std::formatter<binance::market_data::MiniTicker>
@@ -401,5 +425,8 @@ inline std::ostream& operator<<(std::ostream& stream, const binance::market_data
     return stream << std::format("{}", item);
 }
 
+inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::Trade& item) {
+    return stream << std::format("{}", item);
+}
 
 #endif //FINANCETECHNOLOGYPROJECTS_MARKETDATA_HPP

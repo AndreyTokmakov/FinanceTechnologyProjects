@@ -286,6 +286,14 @@ namespace binance::all_streams
 
 void binance::Experiments::TestAll()
 {
+    // - aggTrade.json
+    // - bookDepthSnapshot.json
+    // - trade.json
+    // + bookTicker.json
+    // + depthUpdate.json
+    // + miniTicker.json
+    // + ticker.json
+
     // all_streams::allStreams();
 
     parsing::mini_ticker::test();

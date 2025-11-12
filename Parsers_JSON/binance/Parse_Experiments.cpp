@@ -51,28 +51,14 @@ namespace parsing::mini_ticker
     MiniTicker parseMiniTicker(const nlohmann::json& data)
     {
         MiniTicker ticker;
-        data.at("E").get_to(ticker.timestamp);
-        ticker.symbol   = data.value(JsonParams::symbol, "");
-        ticker.close    = std::stod(data.value("c", "0"));
-        ticker.open     = std::stod(data.value("o", "0"));
-        ticker.high     = std::stod(data.value("h", "0"));
-        ticker.low      = std::stod(data.value("l", "0"));
-        ticker.volume   = std::stod(data.value("v", "0"));
-        ticker.quantity = std::stod(data.value(JsonParams::quantity, "0"));
-        return ticker;
-    }
-
-    MiniTicker parseMiniTicker2(const nlohmann::json& data)
-    {
-        MiniTicker ticker;
         data.at(JsonParams::eventTime).get_to(ticker.timestamp);
         data.at(JsonParams::symbol).get_to(ticker.symbol);
-        ticker.close    = std::stod(data.at("c").get_ref<const std::string&>());
-        ticker.open     = std::stod(data.at("o").get_ref<const std::string&>());
-        ticker.high     = std::stod(data.at("h").get_ref<const std::string&>());
-        ticker.low      = std::stod(data.at("l").get_ref<const std::string&>());
-        ticker.volume   = std::stod(data.at("v").get_ref<const std::string&>());
-        ticker.quantity = std::stod(data.at("q").get_ref<const std::string&>());
+        ticker.close    = asDouble(data.at("c"));
+        ticker.open     = asDouble(data.at("o"));
+        ticker.high     = asDouble(data.at("h"));
+        ticker.low      = asDouble(data.at("l"));
+        ticker.volume   = asDouble(data.at("v"));
+        ticker.quantity = asDouble(data.at("q"));
         return ticker;
     }
 
@@ -82,14 +68,9 @@ namespace parsing::mini_ticker
         try {
             const nlohmann::json jsonData = nlohmann::json::parse(content);
             const nlohmann::json& data = jsonData[JsonParams::data];
-            {
-                MiniTicker ticker = parseMiniTicker(data);
-                std::cout << ticker << std::endl;
-            }
-            {
-                MiniTicker ticker = parseMiniTicker2(data);
-                std::cout << ticker << std::endl;
-            }
+
+            MiniTicker ticker = parseMiniTicker(data);
+            std::cout << ticker << std::endl;
         }
         catch (const std::exception& exc) {
             std::cout << exc.what() << std::endl;
@@ -279,7 +260,7 @@ namespace binance::all_streams
 
         const nlohmann::json& data = jsonData[JsonParams::data];
         if (stream.starts_with(StreamNames::miniTicker))
-            return parsing::mini_ticker::parseMiniTicker2(data);
+            return parsing::mini_ticker::parseMiniTicker(data);
         if (stream.starts_with(StreamNames::bookTicker))
             return BookTicker{};
 
@@ -307,8 +288,8 @@ void binance::Experiments::TestAll()
 {
     // all_streams::allStreams();
 
-    // parsing::mini_ticker::test();
-    parsing::book_ticker::test();
+    parsing::mini_ticker::test();
+    // parsing::book_ticker::test();
     // parsing::book_depth_updates::test();
     // parsing::ticker::test();
 }

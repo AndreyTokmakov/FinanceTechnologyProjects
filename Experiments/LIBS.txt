@@ -9,7 +9,7 @@ cmake -DCMAKE_BUILD_TYPE=Release -B./build
 cmake -DCMAKE_BUILD_TYPE=Release -DUSE_TLS=True -B./build
 
 cd build/
-make
+make all -j$(nproc)
 
 
 include_directories(${THIRD_PARTY_DIR}/IXWebSocket)

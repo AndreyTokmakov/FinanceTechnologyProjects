@@ -19,7 +19,7 @@ namespace
     }
 
     constexpr bool is_pow_of_2(const int value) noexcept {
-        return (value && !(value & value - 1));
+        return (value && !(value & (value - 1)));
     }
 }
 

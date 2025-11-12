@@ -34,10 +34,11 @@
 # Executables
 *callgrind.out.*
 
-
+/build/*
 /cmake-build-debug*
 /cmake-build-release*
 .idea/
+.vscode/
 
 
 /Parsers_JSON/data/binance/allData.json

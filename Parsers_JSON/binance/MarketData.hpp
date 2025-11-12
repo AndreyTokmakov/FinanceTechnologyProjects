@@ -232,6 +232,33 @@ namespace binance::market_data
         Number lastTradeId  { 0 };
         Number numTrades    { 0 };
     };
+
+    /** {
+          "e": "trade",            // Event type
+          "E": 1700000000123,      // Event time (ms)
+          "s": "BTCUSDT",          // Symbol
+          "t": 123456789,          // Trade ID
+          "p": "67520.10",         // Price
+          "q": "0.002",            // Quantity
+          "b": 88,                 // Buyer order ID
+          "a": 50,                 // Seller order ID
+          "T": 1700000000122,      // Trade time
+          "m": true,               // Is the buyer the market maker?
+          "M": true                // Ignore (always true)
+    }**/
+    struct Trade
+    {
+        std::string symbol;
+        uint64_t event_time = 0;
+        uint64_t trade_id = 0;
+        double price = 0.0;
+        double qty = 0.0;
+        uint64_t buyer_order_id = 0;
+        uint64_t seller_order_id = 0;
+        uint64_t trade_time = 0;
+        bool is_buyer_maker = false;
+    };
+
 }
 
 template<>
@@ -356,54 +383,6 @@ struct std::formatter<binance::market_data::Ticker>
             ticker.lastTradeId,
             ticker.numTrades);
     }
-
-    /*
-    static auto format(const binance::market_data::Ticker& ticker, std::format_context& ctx) -> decltype(auto)
-    {
-        return std::format_to(ctx.out(), "Ticker("
-            "\n\tsymbol: {}",
-            "\n\teventTime: {}",
-            "\n\tpriceChange: {}",
-            "\n\tpriceChangePercent: {}",
-            "\n\tweightedAvgPrice: {}",
-            "\n\tprevClosePrice: {}",
-            "\n\tlastPrice: {}",
-            "\n\tlastQuantity: {}",
-            "\n\tbestBid: {}",
-            "\n\tbestBidQuantity: {}",
-            "\n\tbestAskQuantity: {}",
-            "\n\topenPrice: {}",
-            "\n\thighPrice: {}",
-            "\n\tlowPrice: {}",
-            "\n\tvolume: {}",
-            "\n\tquoteVolume: {}",
-            "\n\topenTime: {}",
-            "\n\tcloseTime: {}",
-            "\n\tfirstTradeId: {}",
-            "\n\tlastTradeId: {}",
-            "\n\tnumTrades: {}\n)",
-            ticker.symbol,
-            ticker.eventTime,
-            ticker.priceChange,
-            ticker.priceChangePercent,
-            ticker.weightedAvgPrice,
-            ticker.prevClosePrice,
-            ticker.lastPrice,
-            ticker.lastQuantity,
-            ticker.bestBid,
-            ticker.bestBidQuantity,
-            ticker.bestAskQuantity,
-            ticker.openPrice,
-            ticker.highPrice,
-            ticker.lowPrice,
-            ticker.volume,
-            ticker.quoteVolume,
-            ticker.openTime,
-            ticker.closeTime,
-            ticker.firstTradeId,
-            ticker.lastTradeId,
-            ticker.numTrades);
-    }*/
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::BookTicker& item) {

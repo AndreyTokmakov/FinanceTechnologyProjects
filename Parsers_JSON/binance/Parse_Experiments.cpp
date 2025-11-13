@@ -227,6 +227,48 @@ namespace parsing::book_depth_updates
     }
 }
 
+namespace parsing::book_depth_snapshot
+{
+    using binance::market_data::JsonParams;
+    using binance::market_data::BookSnapshot;
+
+    BookSnapshot parseBookSnapshot(const nlohmann::json& data)
+    {
+        BookSnapshot bookSnapshot;
+        data.at(JsonParams::BookSnapshot::lastUpdateId).get_to(bookSnapshot.lastUpdateId);
+
+        const nlohmann::json& bids = data[JsonParams::BookSnapshot::bids];
+        bookSnapshot.bids.reserve(bids.size());
+        for (const auto& lvl: bids) {
+            bookSnapshot.bids.emplace_back(asDouble(lvl[0]), asDouble(lvl[1]));
+        }
+
+        const nlohmann::json& asks = data[JsonParams::BookSnapshot::asks];
+        bookSnapshot.asks.reserve(asks.size());
+        for (const auto& lvl: asks) {
+            bookSnapshot.asks.emplace_back(asDouble(lvl[0]), asDouble(lvl[1]));
+        }
+
+        return bookSnapshot;
+    }
+
+    void test()
+    {
+        const std::string content = FileUtilities::ReadFile(getDataDir() / "bookDepthSnapshot.json");
+        try {
+            const nlohmann::json jsonData = nlohmann::json::parse(content);
+            const nlohmann::json& data = jsonData[JsonParams::data];
+            // std::cout << data << std::endl;
+
+            const BookSnapshot bookSnapshot = parseBookSnapshot(data);
+            std::cout << bookSnapshot << std::endl;
+        }
+        catch (const std::exception& exc) {
+            std::cout << exc.what() << std::endl;
+        }
+    }
+}
+
 namespace parsing::ticker
 {
     using binance::market_data::JsonParams;
@@ -357,7 +399,7 @@ namespace binance::all_streams
 
 void binance::Experiments::TestAll()
 {
-    // - aggTrade.json
+    // + aggTrade.json
     // - bookDepthSnapshot.json
     // + trade.json
     // + bookTicker.json
@@ -368,9 +410,13 @@ void binance::Experiments::TestAll()
     // all_streams::allStreams();
 
     // parsing::trade::test();
-    parsing::agg_trade::test();
+    // parsing::agg_trade::test();
     // parsing::mini_ticker::test();
     // parsing::book_ticker::test();
     // parsing::book_depth_updates::test();
+    parsing::book_depth_snapshot::test();
     // parsing::ticker::test();
+
+
+    // TODO: ----------> Move to Phase-1 (Connector -> ScSpQueue --> Parser (normalizer) --> ScSpQueue)
 }

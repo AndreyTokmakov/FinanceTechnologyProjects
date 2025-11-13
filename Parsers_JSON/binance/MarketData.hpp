@@ -112,6 +112,13 @@ namespace binance::market_data
             static constexpr std::string_view lastTradeId { "l" };
             static constexpr std::string_view isMarketMaker { "m" };
         };
+
+        struct BookSnapshot
+        {
+            static constexpr std::string_view lastUpdateId { "lastUpdateId" };
+            static constexpr std::string_view bids { "bids" };
+            static constexpr std::string_view asks { "asks" };
+        };
     };
 
     struct EventTypeNames
@@ -206,6 +213,23 @@ namespace binance::market_data
         std::vector<PriceLevel> bids;
         std::vector<PriceLevel> asks;
     };
+
+    /** {
+        "lastUpdateId": 80089389252,
+        "bids": [
+            [ "102571.17000000", "0.38980000" ],
+        ],
+        "asks": [
+            ["102571.18000000", "5.54123000" ], .....
+        ]
+    **/
+    struct BookSnapshot
+    {
+        Timestamp lastUpdateId { 0 };
+        std::vector<PriceLevel> bids;
+        std::vector<PriceLevel> asks;
+    };
+
 
     /** {
       "e": "24hrTicker",     // Event type
@@ -445,6 +469,32 @@ struct std::formatter<binance::market_data::DepthUpdate>
 };
 
 template<>
+struct std::formatter<binance::market_data::BookSnapshot>
+{
+    static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
+        return ctx.begin();
+    }
+
+    static auto format(const binance::market_data::BookSnapshot& bookSnapshot, std::format_context& ctx) -> decltype(auto)
+    {
+        std::string strAsks;
+        for (const auto&[price, quantity]: bookSnapshot.asks) {
+            strAsks += std::format("({}, {})", price,quantity) + " ";
+        }
+        std::string strBids;
+        for (const auto&[price, quantity]: bookSnapshot.bids) {
+            strBids += std::format("({}, {})", price,quantity) + " ";
+        }
+
+        return std::format_to(ctx.out(),"BookSnapshot(\n\tlastUpdateId: {},""\n\tbids: [ {}],\n\tasks: [ {}]\n)",
+             bookSnapshot.lastUpdateId,
+             strBids,
+             strAsks);
+    }
+};
+
+
+template<>
 struct std::formatter<binance::market_data::Ticker>
 {
     static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
@@ -494,6 +544,10 @@ inline std::ostream& operator<<(std::ostream& stream, const binance::market_data
 }
 
 inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::DepthUpdate& item) {
+    return stream << std::format("{}", item);
+}
+
+inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::BookSnapshot& item) {
     return stream << std::format("{}", item);
 }
 

@@ -46,7 +46,7 @@ namespace binance::market_data
 
         struct Ticker
         {
-            static constexpr std::string_view eventType { "e" };
+            // static constexpr std::string_view eventType { "e" };
             static constexpr std::string_view weightedAveragePrice { "w" };
             static constexpr std::string_view previousClose { "x" };
             static constexpr std::string_view statisticsOpenTime { "O" };
@@ -89,14 +89,27 @@ namespace binance::market_data
 
         struct Trade
         {
-            static constexpr std::string_view eventType { "e" };
-            static constexpr std::string_view eventTime { "E" };
+            // static constexpr std::string_view eventType { "e" };
+            // static constexpr std::string_view eventTime { "E" };
             static constexpr std::string_view price { "p" };
             static constexpr std::string_view quantity { "q" };
             static constexpr std::string_view tradeTime { "T" };
             static constexpr std::string_view tradeId { "t" };
             static constexpr std::string_view buyerOrderID { "b" };
             static constexpr std::string_view sellerOrderId { "a" };
+            static constexpr std::string_view isMarketMaker { "m" };
+        };
+
+        struct AggTrade
+        {
+            // static constexpr std::string_view eventType { "e" };
+            // static constexpr std::string_view eventTime { "E" };
+            static constexpr std::string_view price { "p" };
+            static constexpr std::string_view quantity { "q" };
+            static constexpr std::string_view tradeTime { "T" };
+            static constexpr std::string_view aggregateTradeId { "a" };
+            static constexpr std::string_view firstTradeId { "f" };
+            static constexpr std::string_view lastTradeId { "l" };
             static constexpr std::string_view isMarketMaker { "m" };
         };
     };
@@ -246,7 +259,7 @@ namespace binance::market_data
         Number numTrades    { 0 };
     };
 
-    /** {
+    /**{
           "e": "trade",            // Event type
           "E": 1700000000123,      // Event time (ms)
           "s": "BTCUSDT",          // Symbol
@@ -272,6 +285,32 @@ namespace binance::market_data
         bool isBuyerMaker { false };
     };
 
+    /**{
+    {
+      "e": "aggTrade",       // Event type
+      "E": 1700000000123,    // Event time
+      "s": "BTCUSDT",        // Symbol
+      "a": 123456789,        // Aggregate trade ID
+      "p": "67520.10",       // Price
+      "q": "0.002",          // Quantity
+      "f": 100,              // First trade ID
+      "l": 105,              // Last trade ID
+      "T": 1700000000120,    // Trade time
+      "m": true,             // Was the buyer the maker?
+      "M": true              // Ignore
+    }**/
+    struct AggTrade
+    {
+        std::string symbol;
+        Timestamp eventTime { 0 };
+        Number aggregateTradeId { 0 };
+        Price price { 0.0 };
+        Quantity quantity { 0.0 };
+        Number firstTradeId { 0 };
+        Number lastTradeId { 0 };
+        Timestamp tradeTime { 0 };
+        bool isBuyerMaker { false };
+    };
 }
 
 template<>
@@ -297,6 +336,30 @@ struct std::formatter<binance::market_data::Trade>
             trade.isBuyerMaker);
     }
 };
+template<>
+struct std::formatter<binance::market_data::AggTrade>
+{
+    static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
+        return ctx.begin();
+    }
+
+    static auto format(const binance::market_data::AggTrade& aggTrade, std::format_context& ctx) -> decltype(auto)
+    {
+        return std::format_to(ctx.out(), "Trade(\n\tsymbol: {},\n\teventTime: {}, \n\taggregateTradeId: {},"
+        "\n\tprice: {},\n\tquantity: {},\n\tfirstTradeId: {},\n\tlastTradeId: {},"
+        "\n\ttradeTime: {},\n\tisBuyerMaker: {}\n)",
+            aggTrade.symbol,
+            aggTrade.eventTime,
+            aggTrade.aggregateTradeId,
+            aggTrade.price,
+            aggTrade.quantity,
+            aggTrade.firstTradeId,
+            aggTrade.lastTradeId,
+            aggTrade.tradeTime,
+            aggTrade.isBuyerMaker);
+    }
+};
+
 
 template<>
 struct std::formatter<binance::market_data::MiniTicker>
@@ -439,6 +502,10 @@ inline std::ostream& operator<<(std::ostream& stream, const binance::market_data
 }
 
 inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::Trade& item) {
+    return stream << std::format("{}", item);
+}
+
+inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::AggTrade& item) {
     return stream << std::format("{}", item);
 }
 

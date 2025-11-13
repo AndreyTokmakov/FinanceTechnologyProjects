@@ -78,6 +78,42 @@ namespace parsing::trade
     }
 }
 
+namespace parsing::agg_trade
+{
+    using binance::market_data::JsonParams;
+    using binance::market_data::AggTrade;
+
+    AggTrade parseTrade(const nlohmann::json& data)
+    {
+        AggTrade aggTrade;
+        data.at(JsonParams::symbol).get_to(aggTrade.symbol);
+        data.at(JsonParams::eventTime).get_to(aggTrade.eventTime);
+        data.at(JsonParams::AggTrade::aggregateTradeId).get_to(aggTrade.aggregateTradeId);
+        data.at(JsonParams::AggTrade::firstTradeId).get_to(aggTrade.firstTradeId);
+        data.at(JsonParams::AggTrade::lastTradeId).get_to(aggTrade.lastTradeId);
+        data.at(JsonParams::AggTrade::tradeTime).get_to(aggTrade.tradeTime);
+        data.at(JsonParams::AggTrade::isMarketMaker).get_to(aggTrade.isBuyerMaker);
+        aggTrade.price    = asDouble(data.at(JsonParams::AggTrade::price));
+        aggTrade.quantity = asDouble(data.at(JsonParams::AggTrade::quantity));
+        return aggTrade;
+    }
+
+    void test()
+    {
+        const std::string content = FileUtilities::ReadFile(getDataDir() / "aggTrade.json");
+        try {
+            const nlohmann::json jsonData = nlohmann::json::parse(content);
+            const nlohmann::json& data = jsonData[JsonParams::data];
+            // std::cout << data << std::endl;
+            const AggTrade aggTrade = parseTrade(data);
+            std::cout << aggTrade << std::endl;
+        }
+        catch (const std::exception& exc) {
+            std::cout << exc.what() << std::endl;
+        }
+    }
+}
+
 namespace parsing::mini_ticker
 {
     using binance::market_data::JsonParams;
@@ -202,7 +238,7 @@ namespace parsing::ticker
 
         data.at(JsonParams::symbol).get_to(ticker.symbol);
         data.at(JsonParams::eventTime).get_to(ticker.eventTime);
-        data.at(JsonParams::Ticker::eventType).get_to(ticker.eventType);
+        data.at(JsonParams::eventType).get_to(ticker.eventType);
         ticker.priceChange = asDouble(data.at(JsonParams::Ticker::priceChange));
         ticker.priceChangePercent = asDouble(data.at(JsonParams::Ticker::priceChangePercent));
         ticker.weightedAvgPrice = asDouble(data.at(JsonParams::Ticker::weightedAveragePrice));
@@ -323,7 +359,7 @@ void binance::Experiments::TestAll()
 {
     // - aggTrade.json
     // - bookDepthSnapshot.json
-    // - trade.json
+    // + trade.json
     // + bookTicker.json
     // + depthUpdate.json
     // + miniTicker.json
@@ -331,7 +367,8 @@ void binance::Experiments::TestAll()
 
     // all_streams::allStreams();
 
-    parsing::trade::test();
+    // parsing::trade::test();
+    parsing::agg_trade::test();
     // parsing::mini_ticker::test();
     // parsing::book_ticker::test();
     // parsing::book_depth_updates::test();

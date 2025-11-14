@@ -49,7 +49,7 @@ namespace
                                           "btcusdt@ticker/"
                                           "btcusdt@bookTicker/"
                                           "btcusdt@depth@100ms/"
-                                          "btcusdt@depth20@100ms/"
+                                          // "btcusdt@depth20@100ms/"  <--- Book snapshot
                                           "btcusdt@kline_1m/"
                                           "btcusdt@miniTicker";
 

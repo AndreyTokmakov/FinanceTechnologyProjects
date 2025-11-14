@@ -83,7 +83,7 @@ namespace parsing::agg_trade
     using binance::market_data::JsonParams;
     using binance::market_data::AggTrade;
 
-    AggTrade parseTrade(const nlohmann::json& data)
+    AggTrade parseAggTrade(const nlohmann::json& data)
     {
         AggTrade aggTrade;
         data.at(JsonParams::symbol).get_to(aggTrade.symbol);
@@ -105,7 +105,7 @@ namespace parsing::agg_trade
             const nlohmann::json jsonData = nlohmann::json::parse(content);
             const nlohmann::json& data = jsonData[JsonParams::data];
             // std::cout << data << std::endl;
-            const AggTrade aggTrade = parseTrade(data);
+            const AggTrade aggTrade = parseAggTrade(data);
             std::cout << aggTrade << std::endl;
         }
         catch (const std::exception& exc) {
@@ -331,10 +331,20 @@ namespace binance::all_streams
 
     using market_data::BookTicker;
     using market_data::MiniTicker;
+    using market_data::Trade;
+    using market_data::AggTrade;
+    using market_data::DepthUpdate;
 
     struct NoYetImplemented {};
 
-    using BinanceMarketEvent = std::variant<BookTicker, MiniTicker, NoYetImplemented>;
+    using BinanceMarketEvent = std::variant<
+        BookTicker,
+        MiniTicker,
+        Trade,
+        AggTrade,
+        DepthUpdate,
+        NoYetImplemented
+    >;
 
     struct EventHandler
     {
@@ -344,25 +354,19 @@ namespace binance::all_streams
         void operator()(const MiniTicker& ticker) const {
             std::cout << ticker << std::endl;
         }
+        void operator()(const Trade& trade) const {
+            std::cout << trade << std::endl;
+        }
+        void operator()(const AggTrade& aggTrade) const {
+            std::cout << aggTrade << std::endl;
+        }
+        void operator()(const DepthUpdate& depthUpdate) const {
+            std::cout << depthUpdate << std::endl;
+        }
         void operator()(const NoYetImplemented&) const {
-            std::cout << "NoYetImplemented" << std::endl;
+            std::cerr << "NoYetImplemented" << std::endl;
         }
     };
-
-    void visit_test()
-    {
-        /*
-        template <typename ...Ts>
-        struct overloaded : Ts... {
-            using Ts::operator()...;
-        };
-
-        std::visit(overloaded{
-            [](const auto& x) {std::cout <<  x << "\n";},
-            [](const Other& x) {std::cout << "Other\n";},
-        }, event);
-        */
-    }
 
     BinanceMarketEvent parse(const nlohmann::json& jsonData)
     {
@@ -375,8 +379,15 @@ namespace binance::all_streams
         if (stream.starts_with(StreamNames::miniTicker))
             return parsing::mini_ticker::parseMiniTicker(data);
         if (stream.starts_with(StreamNames::bookTicker))
-            return BookTicker{};
+            return parsing::book_ticker::parseBookTicker(data);
+        if (stream.starts_with(StreamNames::trade))
+            return parsing::trade::parseTrade(data);
+        if (stream.starts_with(StreamNames::aggTrade))
+            return parsing::agg_trade::parseAggTrade(data);
+        if (stream.starts_with(StreamNames::depth))
+            return parsing::book_depth_updates::parseDepthUpdate(data);
 
+        std::cerr << stream << std::endl;
         return NoYetImplemented{};
     }
 
@@ -399,24 +410,17 @@ namespace binance::all_streams
 
 void binance::Experiments::TestAll()
 {
-    // + aggTrade.json
-    // - bookDepthSnapshot.json
-    // + trade.json
-    // + bookTicker.json
-    // + depthUpdate.json
-    // + miniTicker.json
-    // + ticker.json
-
-    // all_streams::allStreams();
 
     // parsing::trade::test();
     // parsing::agg_trade::test();
     // parsing::mini_ticker::test();
     // parsing::book_ticker::test();
     // parsing::book_depth_updates::test();
-    parsing::book_depth_snapshot::test();
+    // parsing::book_depth_snapshot::test();
     // parsing::ticker::test();
 
+    // TODO: Ticker
 
+    all_streams::allStreams();
     // TODO: ----------> Move to Phase-1 (Connector -> ScSpQueue --> Parser (normalizer) --> ScSpQueue)
 }

@@ -16,7 +16,7 @@ Description :
 #include <ostream>
 #include <cstdint>
 
-namespace binance::market_data
+namespace market_data::binance
 {
     using Price     = double;
     using Quantity  = double;
@@ -25,7 +25,7 @@ namespace binance::market_data
     using Number    = uint64_t;
 
     // TODO: ---> implement StaticString (stack only)
-    using String = std::string;
+    using Symbol = std::string;
 
     struct Result
     {
@@ -136,60 +136,29 @@ namespace binance::market_data
     };
 }
 
-namespace binance::market_data
+namespace market_data::binance
 {
-    /*{
-        "e": "24hrMiniTicker",  // Event type
-        "E": 1672515782136,     // Event time
-        "s": "BNBBTC",          // Symbol
-        "c": "0.0025",          // Close price
-        "o": "0.0010",          // Open price
-        "h": "0.0025",          // High price
-        "l": "0.0010",          // Low price
-        "v": "10000",           // Total traded base asset volume
-        "q": "18"               // Total traded quote asset volume
-    }*/
-
     struct MiniTicker
     {
-        std::string symbol {}; //               <---------- REMOVE
-        uint64_t timestamp { 0 };
-        Price    close { 0.0 };
-        Price    open { 0.0 };
-        Price    high { 0.0 };
-        Price    low { 0.0 };
-        double   volume { 0.0 };
-        Quantity quantity { 0.0 };
+        Symbol    symbol {}; //               <---------- REMOVE
+        Timestamp timestamp { 0 };
+        Price     close { 0.0 };
+        Price     open { 0.0 };
+        Price     high { 0.0 };
+        Price     low { 0.0 };
+        Volume    volume { 0.0 };
+        Quantity  quantity { 0.0 };
     };
-
-    /*{
-      "u":400900217,     // order book updateId
-      "s":"BNBUSDT",     // symbol
-      "b":"25.35190000", // best bid price
-      "B":"31.21000000", // best bid qty
-      "a":"25.36520000", // best ask price
-      "A":"40.66000000"  // best ask qty
-    }*/
 
     struct BookTicker
     {
-        std::string symbol {}; //               <---------- REMOVE
+        Symbol   symbol {}; //               <---------- REMOVE
         Price    bidPrice { 0.0 };
         Quantity bidQuantity { 0.0 };
         Price    askPrice { 0.0 };
         Quantity askQuantity { 0.0 };
-        uint64_t updateId { 0 };
+        Number   updateId { 0 };
     };
-
-    /** {
-      "e": "depthUpdate",   // Event type
-      "E": 1700000000123,   // Event time
-      "s": "BTCUSDT",       // Symbol
-      "U": 400900200,       // First update ID in event
-      "u": 400900210,       // Final update ID in event
-      "b": [ ["67320.10","0.002"], ["67319.80","0.500"] ],  // Bids
-      "a": [ ["67321.00","0.100"], ["67321.10","0.000"] ]   // Asks
-    } **/
 
     struct PriceLevel
     {
@@ -199,7 +168,7 @@ namespace binance::market_data
 
     struct DepthUpdate
     {
-        std::string symbol {}; //               <---------- REMOVE
+        Symbol symbol {}; //               <---------- REMOVE
         Timestamp firstUpdateId { 0 };
         Timestamp finalUpdateId { 0 };
         Timestamp eventTime { 0 };
@@ -207,15 +176,6 @@ namespace binance::market_data
         std::vector<PriceLevel> asks;
     };
 
-    /** {
-        "lastUpdateId": 80089389252,
-        "bids": [
-            [ "102571.17000000", "0.38980000" ],
-        ],
-        "asks": [
-            ["102571.18000000", "5.54123000" ], .....
-        ]
-    **/
     struct BookSnapshot
     {
         Timestamp lastUpdateId { 0 };
@@ -223,35 +183,9 @@ namespace binance::market_data
         std::vector<PriceLevel> asks;
     };
 
-
-    /** {
-      "e": "24hrTicker",     // Event type
-      "E": 1700000000123,    // Event time
-      "s": "BTCUSDT",        // Symbol
-      "p": "120.45",         // Price change
-      "P": "0.18",           // Price change percent
-      "w": "67500.12",       // Weighted average price
-      "x": "67400.00",       // Previous close
-      "c": "67520.00",       // Last price
-      "Q": "0.003",          // Last quantity
-      "b": "67519.50",       // Best bid price
-      "B": "1.253",          // Best bid quantity
-      "a": "67520.10",       // Best ask price
-      "A": "0.856",          // Best ask quantity
-      "o": "67300.00",       // Open price
-      "h": "67600.00",       // High price
-      "l": "67100.00",       // Low price
-      "v": "1234.567",       // Total traded base asset volume
-      "q": "83200000.55",    // Total traded quote asset volume
-      "O": 1699999999000,    // Statistics open time
-      "C": 1700000000000,    // Statistics close time
-      "F": 100,              // First trade ID
-      "L": 200,              // Last trade ID
-      "n": 100               // Total trades
-    } **/
     struct Ticker
     {
-        std::string symbol;
+        Symbol symbol;
         std::string eventType;
         Timestamp eventTime { 0 };
         Price priceChange   { 0.0 };
@@ -276,22 +210,9 @@ namespace binance::market_data
         Number numTrades    { 0 };
     };
 
-    /**{
-          "e": "trade",            // Event type
-          "E": 1700000000123,      // Event time (ms)
-          "s": "BTCUSDT",          // Symbol
-          "t": 123456789,          // Trade ID
-          "p": "67520.10",         // Price
-          "q": "0.002",            // Quantity
-          "b": 88,                 // Buyer order ID
-          "a": 50,                 // Seller order ID
-          "T": 1700000000122,      // Trade time
-          "m": true,               // Is the buyer the market maker?
-          "M": true                // Ignore (always true)
-    }**/
     struct Trade
     {
-        std::string symbol;
+        Symbol symbol;
         Timestamp eventTime { 0 };
         Number tradeId { 0 };
         Price price { 0.0 };
@@ -302,23 +223,9 @@ namespace binance::market_data
         bool isBuyerMaker { false };
     };
 
-    /**{
-    {
-      "e": "aggTrade",       // Event type
-      "E": 1700000000123,    // Event time
-      "s": "BTCUSDT",        // Symbol
-      "a": 123456789,        // Aggregate trade ID
-      "p": "67520.10",       // Price
-      "q": "0.002",          // Quantity
-      "f": 100,              // First trade ID
-      "l": 105,              // Last trade ID
-      "T": 1700000000120,    // Trade time
-      "m": true,             // Was the buyer the maker?
-      "M": true              // Ignore
-    }**/
     struct AggTrade
     {
-        std::string symbol;
+        Symbol symbol;
         Timestamp eventTime { 0 };
         Number aggregateTradeId { 0 };
         Price price { 0.0 };
@@ -331,13 +238,13 @@ namespace binance::market_data
 }
 
 template<>
-struct std::formatter<binance::market_data::Trade>
+struct std::formatter<market_data::binance::Trade>
 {
     static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
         return ctx.begin();
     }
 
-    static auto format(const binance::market_data::Trade& trade, std::format_context& ctx) -> decltype(auto)
+    static auto format(const market_data::binance::Trade& trade, std::format_context& ctx) -> decltype(auto)
     {
         return std::format_to(ctx.out(), "Trade(\n\tsymbol: {},\n\teventTime: {}, \n\ttradeId: {},"
         "\n\tprice: {},\n\tquantity: {},\n\tbuyerOrderId: {},\n\tsellerOrderId: {},"
@@ -354,13 +261,13 @@ struct std::formatter<binance::market_data::Trade>
     }
 };
 template<>
-struct std::formatter<binance::market_data::AggTrade>
+struct std::formatter<market_data::binance::AggTrade>
 {
     static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
         return ctx.begin();
     }
 
-    static auto format(const binance::market_data::AggTrade& aggTrade, std::format_context& ctx) -> decltype(auto)
+    static auto format(const market_data::binance::AggTrade& aggTrade, std::format_context& ctx) -> decltype(auto)
     {
         return std::format_to(ctx.out(), "Trade(\n\tsymbol: {},\n\teventTime: {}, \n\taggregateTradeId: {},"
         "\n\tprice: {},\n\tquantity: {},\n\tfirstTradeId: {},\n\tlastTradeId: {},"
@@ -379,13 +286,13 @@ struct std::formatter<binance::market_data::AggTrade>
 
 
 template<>
-struct std::formatter<binance::market_data::MiniTicker>
+struct std::formatter<market_data::binance::MiniTicker>
 {
     static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
         return ctx.begin();
     }
 
-    static auto format(const binance::market_data::MiniTicker& miniTicker, std::format_context& ctx) -> decltype(auto)
+    static auto format(const market_data::binance::MiniTicker& miniTicker, std::format_context& ctx) -> decltype(auto)
     {
         return std::format_to(ctx.out(), "MiniTicker(\n\tsymbol: {},\n\ttimestamp: {}, \n\tclose: {},"
             "\n\topen: {},\n\thigh: {},\n\tlow: {},\n\tvolume: {},\n\tquantity: {}\n)",
@@ -401,13 +308,13 @@ struct std::formatter<binance::market_data::MiniTicker>
 };
 
 template<>
-struct std::formatter<binance::market_data::BookTicker>
+struct std::formatter<market_data::binance::BookTicker>
 {
     static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
         return ctx.begin();
     }
 
-    static auto format(const binance::market_data::BookTicker& bookTicker, std::format_context& ctx) -> decltype(auto)
+    static auto format(const market_data::binance::BookTicker& bookTicker, std::format_context& ctx) -> decltype(auto)
     {
         return std::format_to(ctx.out(),"BookTicker(\n\tsymbol: {},\n\tbidPrice: {}, \n\tbidQuantity: {},"
             "\n\taskPrice: {},\n\taskQuantity: {},\n\tupdateId: {}\n)",
@@ -421,25 +328,25 @@ struct std::formatter<binance::market_data::BookTicker>
 };
 
 template<>
-struct std::formatter<binance::market_data::PriceLevel>
+struct std::formatter<market_data::binance::PriceLevel>
 {
     static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
         return ctx.begin();
     }
 
-    static auto format(const binance::market_data::PriceLevel& lvl, std::format_context& ctx) -> decltype(auto) {
+    static auto format(const market_data::binance::PriceLevel& lvl, std::format_context& ctx) -> decltype(auto) {
         return std::format_to(ctx.out(),"({}, {})", lvl.price,lvl.quantity);
     }
 };
 
 template<>
-struct std::formatter<binance::market_data::DepthUpdate>
+struct std::formatter<market_data::binance::DepthUpdate>
 {
     static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
         return ctx.begin();
     }
 
-    static auto format(const binance::market_data::DepthUpdate& update, std::format_context& ctx) -> decltype(auto)
+    static auto format(const market_data::binance::DepthUpdate& update, std::format_context& ctx) -> decltype(auto)
     {
         std::string strAsks;
         for (const auto&[price, quantity]: update.asks) {
@@ -462,13 +369,13 @@ struct std::formatter<binance::market_data::DepthUpdate>
 };
 
 template<>
-struct std::formatter<binance::market_data::BookSnapshot>
+struct std::formatter<market_data::binance::BookSnapshot>
 {
     static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
         return ctx.begin();
     }
 
-    static auto format(const binance::market_data::BookSnapshot& bookSnapshot, std::format_context& ctx) -> decltype(auto)
+    static auto format(const market_data::binance::BookSnapshot& bookSnapshot, std::format_context& ctx) -> decltype(auto)
     {
         std::string strAsks;
         for (const auto&[price, quantity]: bookSnapshot.asks) {
@@ -488,13 +395,13 @@ struct std::formatter<binance::market_data::BookSnapshot>
 
 
 template<>
-struct std::formatter<binance::market_data::Ticker>
+struct std::formatter<market_data::binance::Ticker>
 {
     static constexpr auto parse(const std::format_parse_context& ctx) -> decltype(auto) {
         return ctx.begin();
     }
 
-    static auto format(const binance::market_data::Ticker& ticker, std::format_context& ctx) -> decltype(auto)
+    static auto format(const market_data::binance::Ticker& ticker, std::format_context& ctx) -> decltype(auto)
     {
         return std::format_to(ctx.out(), "Ticker("
              "\n\tsymbol: {},\n\teventType: {},\n\teventTime: {},\n\tpriceChange: {},"
@@ -528,31 +435,31 @@ struct std::formatter<binance::market_data::Ticker>
     }
 };
 
-inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::BookTicker& item) {
+inline std::ostream& operator<<(std::ostream& stream, const market_data::binance::BookTicker& item) {
     return stream << std::format("{}", item);
 }
 
-inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::MiniTicker& item) {
+inline std::ostream& operator<<(std::ostream& stream, const market_data::binance::MiniTicker& item) {
     return stream << std::format("{}", item);
 }
 
-inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::DepthUpdate& item) {
+inline std::ostream& operator<<(std::ostream& stream, const market_data::binance::DepthUpdate& item) {
     return stream << std::format("{}", item);
 }
 
-inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::BookSnapshot& item) {
+inline std::ostream& operator<<(std::ostream& stream, const market_data::binance::BookSnapshot& item) {
     return stream << std::format("{}", item);
 }
 
-inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::Ticker& item) {
+inline std::ostream& operator<<(std::ostream& stream, const market_data::binance::Ticker& item) {
     return stream << std::format("{}", item);
 }
 
-inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::Trade& item) {
+inline std::ostream& operator<<(std::ostream& stream, const market_data::binance::Trade& item) {
     return stream << std::format("{}", item);
 }
 
-inline std::ostream& operator<<(std::ostream& stream, const binance::market_data::AggTrade& item) {
+inline std::ostream& operator<<(std::ostream& stream, const market_data::binance::AggTrade& item) {
     return stream << std::format("{}", item);
 }
 

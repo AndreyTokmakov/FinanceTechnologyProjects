@@ -13,10 +13,14 @@ add_executable(${PROJECT_NAME}
         common/RingBuffer.hpp
         common/Common.hpp
         market_data/MarketData.hpp
+        market_data/Parser.cpp  market_data/Parser.hpp
         main.cpp
 )
 
 # Nlohmann JSON
+include_directories(${THIRD_PARTY_DIR}/json/include)
+
+# SIND JSON
 include_directories(${THIRD_PARTY_DIR}/simdjson/include)
 target_link_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/simdjson/build)
 

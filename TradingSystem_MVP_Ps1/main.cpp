@@ -16,9 +16,10 @@ Description :
 
 #include "common/Buffer.hpp"
 #include "common/RingBuffer.hpp"
+#include "market_data/Parser.hpp"
 
-#include "FinalAction.hpp"
-#include "DateTimeUtilities.hpp"
+// #include "FinalAction.hpp"
+// #include "DateTimeUtilities.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -43,6 +44,7 @@ namespace
 namespace
 {
     using namespace common;
+    using namespace ring_buffer;
 
     template<typename T>
     concept ConnectorType = requires(T& connector, buffer::Buffer& buffer) {
@@ -61,7 +63,7 @@ namespace
         Connector& connector;
         Parser& parser;
 
-        ring_buffer::static_capacity_with_commit_buffer::RingBuffer<1024> queue {};
+        static_buffer::RingBuffer<1024> queue {};
 
         std::jthread connectorThread {};
         std::jthread parserThread {};
@@ -90,7 +92,7 @@ namespace
             buffer::Buffer* response { nullptr };
             while ((response = queue.getItem())) {
                 const auto _ = connector.getData(*response);
-                std::cout << "Connector [CPU: " << getCpu() << "] : " << response->length() << std::endl;
+                // std::cout << "Connector [CPU: " << getCpu() << "] : " << response->length() << std::endl;
                 queue.commit();
             }
         }
@@ -120,15 +122,76 @@ namespace
         }
     };
 
+    struct NoYetImplemented {};
+
+    struct EventHandler
+    {
+        void operator()(const market_data::binance::BookTicker& ticker) const {
+            std::cout << ticker << std::endl;
+        }
+        void operator()(const market_data::binance::MiniTicker& ticker) const {
+            std::cout << ticker << std::endl;
+        }
+        void operator()(const market_data::binance::Trade& trade) const {
+            std::cout << trade << std::endl;
+        }
+        void operator()(const market_data::binance::AggTrade& aggTrade) const {
+            std::cout << aggTrade << std::endl;
+        }
+        void operator()(const market_data::binance::DepthUpdate& depthUpdate) const {
+            std::cout << depthUpdate << std::endl;
+        }
+        void operator()(const NoYetImplemented&) const {
+            std::cerr << "NoYetImplemented" << std::endl;
+        }
+    };
 
     struct DummyParser
     {
+        using JsonParams = market_data::binance::JsonParams;
+        using StreamNames = market_data::binance::StreamNames;
+
+        EventHandler eventHandler;
+
+        using BinanceMarketEvent = std::variant<
+            market_data::binance::BookTicker,
+            market_data::binance::MiniTicker,
+            market_data::binance::Trade,
+            market_data::binance::AggTrade,
+            market_data::binance::DepthUpdate,
+            NoYetImplemented
+        >;
+
+        static BinanceMarketEvent parseEventData(const nlohmann::json& jsonData)
+        {
+            std::string_view stream = jsonData[JsonParams::stream].get<std::string_view>();
+            const size_t pos = stream.find('@');
+            const std::string_view symbol ( stream.data(), pos);
+            stream.remove_prefix(pos + 1);
+
+            const nlohmann::json& data = jsonData[JsonParams::data];
+            if (stream.starts_with(StreamNames::miniTicker))
+                return BinanceParserJson::parseMiniTicker(data);
+            if (stream.starts_with(StreamNames::bookTicker))
+                return BinanceParserJson::parseBookTicker(data);
+            if (stream.starts_with(StreamNames::trade))
+                return BinanceParserJson::parseTrade(data);
+            if (stream.starts_with(StreamNames::aggTrade))
+                return BinanceParserJson::parseAggTrade(data);
+            if (stream.starts_with(StreamNames::depth))
+                return BinanceParserJson::parseDepthUpdate(data);
+
+            std::cerr << stream << std::endl;
+            return NoYetImplemented{};
+        }
+
         void parse(const buffer::Buffer& buffer)
         {
-            std::cout << "Parser [CPU: " << getCpu() << "] : " << buffer.length() << std::endl;
+            // std::cout << "Parser [CPU: " << getCpu() << "] : " << buffer.length() << std::endl;
             const std::string_view data = std::string_view(buffer.head(), buffer.length());
-
-            std::cout << data << std::endl;
+            const nlohmann::json jsonData = nlohmann::json::parse(data);
+            const BinanceMarketEvent event = parseEventData(jsonData);
+            std::visit(eventHandler, event);
         }
     };
 

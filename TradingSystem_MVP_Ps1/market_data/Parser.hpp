@@ -13,7 +13,7 @@ Description : Parser.hpp
 #include "MarketData.hpp"
 #include <nlohmann/json.hpp>
 
-namespace Parser
+namespace BinanceParserJson
 {
     market_data::binance::Trade parseTrade(const nlohmann::json& data);
     market_data::binance::AggTrade parseAggTrade(const nlohmann::json& data);

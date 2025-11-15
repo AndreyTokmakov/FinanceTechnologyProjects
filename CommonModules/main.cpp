@@ -23,7 +23,7 @@ Description : Common modules
 #include "ring_buffer_ex/RingBufferEx.h"
 #include "ring_buffer_two/RingBuffer_SPSC_Two.hpp"
 #include "ring_buffer_spsc_commit/RingBuffer_SpSc_Commit.hpp"
-
+#include "ring_buffer_spsc_commit_buffer/RingBuffer_SpSc_Commit_Buffer.hpp"
 
 // TODO:
 //  -  Low Latency logger
@@ -43,7 +43,8 @@ int main([[maybe_unused]] int argc,
     // RingBuffer_SPSC::TestAll();
     // RingBufferEx::TestAll();
     // RingBuffer_SPSC_Two::TestAll();
-    RingBuffer_SpSc_Commit::TestAll();
+    // RingBuffer_SpSc_Commit::TestAll();
+    RingBuffer_SpSc_Commit_Buffer::TestAll();
 
     // SpinLock::TestAll();
 

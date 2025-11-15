@@ -16,7 +16,7 @@ namespace
     };
 }
 
-namespace Parser
+namespace BinanceParserJson
 {
     using market_data::binance::JsonParams;
 

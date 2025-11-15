@@ -33,7 +33,11 @@ namespace
         return (value && !(value & (value - 1)));
     }
 
-    inline bool setThreadCore(const uint32_t coreId) noexcept
+    int32_t getCpu() noexcept{
+        return sched_getcpu();
+    }
+
+    bool setThreadCore(const uint32_t coreId) noexcept
     {
         cpu_set_t cpuSet {};
         CPU_ZERO(&cpuSet);
@@ -41,18 +45,13 @@ namespace
         return 0 == pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuSet);
     }
 
-    inline int32_t getCpu() noexcept
-    {
-        return sched_getcpu();
-    }
-
     std::random_device rd{};
-    auto mtgen = std::mt19937{ rd() };
+    auto generator = std::mt19937{ rd() };
 
-    int getRandomInRange(int start,int end) noexcept {
+    int getRandomInRange(const int start, const int end) noexcept {
 
         auto distribution = std::uniform_int_distribution<>{ start, end };
-        return distribution(mtgen);
+        return distribution(generator);
     }
 }
 
@@ -290,8 +289,9 @@ void RingBuffer_SpSc_Commit_Buffer::TestAll()
             std::memcpy(buffer->tail(text.length()), text.data(), text.length());
             buffer->incrementLength(size);
             queue.commit();
-            std::osyncstream { std::cout } << DateTimeUtilities::getCurrentTime() << "Producer: " << size << " bytes written\n";
-            std::this_thread::sleep_for(std::chrono::milliseconds (100U));
+            std::osyncstream { std::cout } << DateTimeUtilities::getCurrentTime()
+                    << "Producer: " << size << " bytes written\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds (10U));
         }
     };
 
@@ -302,11 +302,13 @@ void RingBuffer_SpSc_Commit_Buffer::TestAll()
         {
             if ((item = queue.pop())) {
                 const std::string_view data = std::string_view(item->head(), item->length());
-                std::osyncstream { std::cout } << DateTimeUtilities::getCurrentTime()  << "Consumer: " << data.length() << " bytes read\n";
+                std::osyncstream { std::cout } << DateTimeUtilities::getCurrentTime()
+                        << "Consumer: " << data.length() << " bytes read\n";
                 item->clear();
             }
         }
     };
 
-    std::jthread producer { produce }, consumer { consume };
+    std::jthread producer { produce },
+                 consumer { consume };
 }

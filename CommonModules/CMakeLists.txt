@@ -20,6 +20,7 @@ add_library(common_modules
     ring_buffer_two/RingBuffer_SPSC_Two.cpp
     ring_buffer_spsc_commit/RingBuffer_SpSc_Commit.cpp
     ring_buffer_spsc_commit_buffer/RingBuffer_SpSc_Commit_Buffer.cpp
+    ring_buffer_spsc_pricer/RingBuffer_SpSc_Pricer.cpp
 )
 
 target_include_directories(common_modules PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

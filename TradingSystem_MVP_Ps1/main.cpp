@@ -45,6 +45,18 @@ namespace
 {
     using namespace common;
     using namespace ring_buffer;
+    using namespace market_data::binance;
+
+    struct NoYetImplemented {};
+
+    using BinanceMarketEvent = std::variant<
+        BookTicker,
+        MiniTicker,
+        Trade,
+        AggTrade,
+        DepthUpdate,
+        NoYetImplemented
+    >;
 
     template<typename T>
     concept ConnectorType = requires(T& connector, buffer::Buffer& buffer) {
@@ -57,11 +69,18 @@ namespace
         // { parser.parse(buffer) } -> std::same_as<std::string>;
     };
 
-    template<ConnectorType Connector, ParserType Parser>
+    template<typename T>
+    concept PricerType = requires(T& parser, BinanceMarketEvent& event) {
+        { parser.push(event) } -> std::same_as<void>;
+    };
+
+
+    template<ConnectorType ConnectorT, ParserType ParserT, PricerType PricerT>
     struct DataFeederBase
     {
-        Connector& connector;
-        Parser& parser;
+        ConnectorT& connector;
+        ParserT& parser;
+        PricerT& pricer;
 
         static_buffer::RingBuffer<1024> queue {};
 
@@ -70,8 +89,8 @@ namespace
 
         constexpr static uint32_t maxSessionBeforeSleep { 10'000 };
 
-        DataFeederBase(Connector& connector, Parser& parser)
-            : connector(connector), parser(parser) {
+        DataFeederBase(ConnectorT& connector, ParserT& parser, PricerT& pricer)
+            : connector { connector }, parser { parser }, pricer { pricer } {
         }
 
         void run()
@@ -122,23 +141,21 @@ namespace
         }
     };
 
-    struct NoYetImplemented {};
-
     struct EventHandler
     {
-        void operator()(const market_data::binance::BookTicker& ticker) const {
+        void operator()(const BookTicker& ticker) const {
             std::cout << ticker << std::endl;
         }
-        void operator()(const market_data::binance::MiniTicker& ticker) const {
+        void operator()(const MiniTicker& ticker) const {
             std::cout << ticker << std::endl;
         }
-        void operator()(const market_data::binance::Trade& trade) const {
+        void operator()(const Trade& trade) const {
             std::cout << trade << std::endl;
         }
-        void operator()(const market_data::binance::AggTrade& aggTrade) const {
+        void operator()(const AggTrade& aggTrade) const {
             std::cout << aggTrade << std::endl;
         }
-        void operator()(const market_data::binance::DepthUpdate& depthUpdate) const {
+        void operator()(const DepthUpdate& depthUpdate) const {
             std::cout << depthUpdate << std::endl;
         }
         void operator()(const NoYetImplemented&) const {
@@ -148,19 +165,10 @@ namespace
 
     struct DummyParser
     {
-        using JsonParams = market_data::binance::JsonParams;
-        using StreamNames = market_data::binance::StreamNames;
+        using JsonParams = JsonParams;
+        using StreamNames = StreamNames;
 
         EventHandler eventHandler;
-
-        using BinanceMarketEvent = std::variant<
-            market_data::binance::BookTicker,
-            market_data::binance::MiniTicker,
-            market_data::binance::Trade,
-            market_data::binance::AggTrade,
-            market_data::binance::DepthUpdate,
-            NoYetImplemented
-        >;
 
         static BinanceMarketEvent parseEventData(const nlohmann::json& jsonData)
         {
@@ -223,6 +231,14 @@ namespace
         std::vector<std::string> data;
         size_t readPost { 0 };
     };
+
+    struct Pricer
+    {
+        void push(BinanceMarketEvent& event)
+        {
+
+        }
+    };
 }
 
 
@@ -237,8 +253,9 @@ int main([[maybe_unused]] const int argc,
         return EXIT_FAILURE;
     }
 
+    Pricer pricer {};
     DummyParser parser {};
-    DataFeederBase feeder {connector, parser};
+    DataFeederBase feeder {connector, parser, pricer};
     feeder.run();
 
     return EXIT_SUCCESS;

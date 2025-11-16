@@ -62,13 +62,13 @@ namespace
         [[nodiscard]]
         bool put(value_type& item)
         {
-            const size_type headCached = head.load(std::memory_order::relaxed);
-            const size_type headNext = fast_modulo(headCached + 1, Capacity);
+            const size_type headCurrent = head.load(std::memory_order::relaxed);
+            const size_type headNext = fast_modulo(headCurrent + 1, Capacity);
             if (headNext == tail.load(std::memory_order::acquire)) {
                 return false;
             }
 
-            buffer[headCached] = item;
+            buffer[headCurrent] = std::move(item);
             head.store(headNext, std::memory_order::release);
 
             return true;
@@ -77,13 +77,13 @@ namespace
         [[nodiscard]]
         bool pop(value_type& item)
         {
-            const size_type tailLocal = tail.load(std::memory_order::relaxed);
-            if (tailLocal == head.load(std::memory_order::acquire)) {
+            const size_type tailCurrent = tail.load(std::memory_order::relaxed);
+            if (tailCurrent == head.load(std::memory_order::acquire)) {
                 return false;
             }
 
-            item = std::move(buffer[tailLocal]);
-            tail.store(fast_modulo(tailLocal + 1, Capacity), std::memory_order::release);
+            item = std::move(buffer[tailCurrent]);
+            tail.store(fast_modulo(tailCurrent + 1, Capacity), std::memory_order::release);
 
             return true;
         }
@@ -287,12 +287,19 @@ void RingBuffer_SpSc_Pricer::TestAll()
     // tests::processStringTest();
     // tests::processEventsTests();
 
+    auto push = [](tests::BookUpdate& update)
+    {
+        std::cout << std::string(100, '-') << std::endl;
+        {
+            tests::BookUpdate update2 = std::move(update);
+            std::cout << "===> BookUpdate2: size = {" << update2.asks.size() << ", " << update2.asks.size() << "}\n";
+        }
+        std::cout << std::string(100, '-') << std::endl;
+    };
+
     tests::BookUpdate update1 = tests::makeBookUpdate();
 
     std::cout << "===> BookUpdate1: size = {" << update1.asks.size() << ", " << update1.asks.size() << "}\n";
-
-    tests::BookUpdate update2 = std::move(update1);
-
-    std::cout << "===> BookUpdate2: size = {" << update2.asks.size() << ", " << update2.asks.size() << "}\n";
+    push(update1);
     std::cout << "===> BookUpdate1: size = {" << update1.asks.size() << ", " << update1.asks.size() << "}\n";
 }

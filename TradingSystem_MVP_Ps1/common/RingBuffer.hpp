@@ -15,10 +15,84 @@ Description : RingBuffer.cpp
 #include "Common.hpp"
 #include "Buffer.hpp"
 
-namespace ring_buffer::static_buffer
+namespace ring_buffer
 {
     using namespace common;
+}
 
+namespace ring_buffer::pricer
+{
+    template<typename T, uint32_t Capacity>
+    struct RingBuffer
+    {
+        using size_type  = uint32_t;
+        using value_type = T;
+        using collection_type = std::vector<value_type>;
+
+        static_assert(!std::is_same_v<value_type, void>, "ERROR: Value type can not be void");
+        static_assert(is_pow_of_2(Capacity), "ERROR: Capacity must be a power of 2");
+
+        RingBuffer(): buffer(Capacity) {
+        }
+
+        [[nodiscard]]
+        bool put(value_type& item)
+        {
+            const size_type headCurrent = head.load(std::memory_order::relaxed);
+            const size_type headNext = fast_modulo(headCurrent + 1, Capacity);
+            if (headNext == tail.load(std::memory_order::acquire)) {
+                return false;
+            }
+
+            buffer[headCurrent] = std::move(item);
+            head.store(headNext, std::memory_order::release);
+
+            return true;
+        }
+
+        [[nodiscard]]
+        bool pop(value_type& item)
+        {
+            const size_type tailCurrent = tail.load(std::memory_order::relaxed);
+            if (tailCurrent == head.load(std::memory_order::acquire)) {
+                return false;
+            }
+
+            item = std::move(buffer[tailCurrent]);
+            tail.store(fast_modulo(tailCurrent + 1, Capacity), std::memory_order::release);
+
+            return true;
+        }
+
+        [[nodiscard]]
+        size_type size() const noexcept {
+            return head.load(std::memory_order::relaxed) - tail.load(std::memory_order::relaxed);
+        }
+
+        [[nodiscard]]
+        size_type empty() const noexcept
+        {
+            // TODO: can 'acquire' be replaced with 'relaxed' ?
+            return head.load(std::memory_order::acquire) == tail.load(std::memory_order::acquire);
+        }
+
+        [[nodiscard]]
+        size_type full() const noexcept
+        {
+            return size() == Capacity;
+        }
+
+    private:
+
+        std::vector<value_type> buffer;
+
+        alignas(std::hardware_destructive_interference_size) std::atomic<size_type> tail {0};
+        alignas(std::hardware_destructive_interference_size) std::atomic<size_type> head {0};
+    };
+}
+
+namespace ring_buffer::static_buffer
+{
     template<uint32_t Capacity>
     struct RingBuffer
     {

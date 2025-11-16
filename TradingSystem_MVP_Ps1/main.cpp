@@ -75,12 +75,11 @@ namespace
     };
 
 
-    template<ConnectorType ConnectorT, ParserType ParserT, PricerType PricerT>
+    template<ConnectorType ConnectorT, ParserType ParserT>
     struct DataFeederBase
     {
         ConnectorT& connector;
         ParserT& parser;
-        PricerT& pricer;
 
         static_buffer::RingBuffer<1024> queue {};
 
@@ -89,8 +88,8 @@ namespace
 
         constexpr static uint32_t maxSessionBeforeSleep { 10'000 };
 
-        DataFeederBase(ConnectorT& connector, ParserT& parser, PricerT& pricer)
-            : connector { connector }, parser { parser }, pricer { pricer } {
+        DataFeederBase(ConnectorT& connector, ParserT& parser)
+            : connector { connector }, parser { parser } {
         }
 
         void run()
@@ -163,12 +162,16 @@ namespace
         }
     };
 
+    template<PricerType PricerT>
     struct DummyParser
     {
         using JsonParams = JsonParams;
         using StreamNames = StreamNames;
 
-        EventHandler eventHandler;
+        PricerT& pricer;
+
+        explicit DummyParser(PricerT& pricer):pricer { pricer } {
+        }
 
         static BinanceMarketEvent parseEventData(const nlohmann::json& jsonData)
         {
@@ -198,8 +201,8 @@ namespace
             // std::cout << "Parser [CPU: " << getCpu() << "] : " << buffer.length() << std::endl;
             const std::string_view data = std::string_view(buffer.head(), buffer.length());
             const nlohmann::json jsonData = nlohmann::json::parse(data);
-            const BinanceMarketEvent event = parseEventData(jsonData);
-            std::visit(eventHandler, event);
+            BinanceMarketEvent event = parseEventData(jsonData);
+            pricer.push(event);
         }
     };
 
@@ -234,9 +237,11 @@ namespace
 
     struct Pricer
     {
+        EventHandler eventHandler;
+
         void push(BinanceMarketEvent& event)
         {
-
+            std::visit(eventHandler, event);
         }
     };
 }
@@ -254,8 +259,8 @@ int main([[maybe_unused]] const int argc,
     }
 
     Pricer pricer {};
-    DummyParser parser {};
-    DataFeederBase feeder {connector, parser, pricer};
+    DummyParser parser {pricer};
+    DataFeederBase feeder {connector, parser};
     feeder.run();
 
     return EXIT_SUCCESS;

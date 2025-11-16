@@ -110,7 +110,7 @@ namespace
             buffer::Buffer* response { nullptr };
             while ((response = queue.getItem())) {
                 const auto _ = connector.getData(*response);
-                // std::cout << "Connector [CPU: " << getCpu() << "] : " << response->length() << std::endl;
+                std::cout << "Connector [CPU: " << getCpu() << "] : " << response->length() << std::endl;
                 queue.commit();
             }
         }
@@ -143,19 +143,24 @@ namespace
     struct EventHandler
     {
         void operator()(const BookTicker& ticker) const {
-            std::cout << ticker << std::endl;
+            // std::cout << ticker << std::endl;
+            std::cout << "Pricer [CPU: " << getCpu() << "] : BookTicker" << std::endl;
         }
         void operator()(const MiniTicker& ticker) const {
-            std::cout << ticker << std::endl;
+            // std::cout << ticker << std::endl;
+            std::cout << "Pricer [CPU: " << getCpu() << "] : MiniTicker" << std::endl;
         }
         void operator()(const Trade& trade) const {
-            std::cout << trade << std::endl;
+            // std::cout << trade << std::endl;
+            std::cout << "Pricer [CPU: " << getCpu() << "] : Trade" << std::endl;
         }
         void operator()(const AggTrade& aggTrade) const {
-            std::cout << aggTrade << std::endl;
+            // std::cout << aggTrade << std::endl;
+            std::cout << "Pricer [CPU: " << getCpu() << "] : AggTrade" << std::endl;
         }
         void operator()(const DepthUpdate& depthUpdate) const {
-            std::cout << depthUpdate << std::endl;
+            // std::cout << depthUpdate << std::endl;
+            std::cout << "Pricer [CPU: " << getCpu() << "] : DepthUpdate" << std::endl;
         }
         void operator()(const NoYetImplemented&) const {
             std::cerr << "NoYetImplemented" << std::endl;
@@ -198,7 +203,7 @@ namespace
 
         void parse(const buffer::Buffer& buffer)
         {
-            // std::cout << "Parser [CPU: " << getCpu() << "] : " << buffer.length() << std::endl;
+            std::cout << "Parser [CPU: " << getCpu() << "] : " << buffer.length() << std::endl;
             const std::string_view data = std::string_view(buffer.head(), buffer.length());
             const nlohmann::json jsonData = nlohmann::json::parse(data);
             BinanceMarketEvent event = parseEventData(jsonData);
@@ -237,11 +242,33 @@ namespace
 
     struct Pricer
     {
-        EventHandler eventHandler;
+        pricer::RingBuffer<BinanceMarketEvent, 1024> queue {};
+        std::jthread worker {};
+
+        void run() {
+            worker = std::jthread { [&] { handleEvents(); } };
+        }
+
+        void handleEvents()
+        {
+            if (!setThreadCore(3)) {
+                std::cerr << "Failed to pin Parser thread to  CPU " << 3  << std::endl;
+                return;
+            }
+
+            EventHandler eventHandler;
+            BinanceMarketEvent event;
+            while (true) {
+                if (queue.pop(event)) {
+                    std::visit(eventHandler, event);
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds (1u));
+            }
+        }
 
         void push(BinanceMarketEvent& event)
         {
-            std::visit(eventHandler, event);
+            const auto _ = queue.put(event);
         }
     };
 }
@@ -259,6 +286,8 @@ int main([[maybe_unused]] const int argc,
     }
 
     Pricer pricer {};
+    pricer.run();
+
     DummyParser parser {pricer};
     DataFeederBase feeder {connector, parser};
     feeder.run();

@@ -14,6 +14,7 @@ Description : PriceEngine.cpp
 #include <optional>
 #include <ranges>
 #include <memory>
+#include <functional>
 
 #include <vector>
 #include <map>
@@ -151,15 +152,117 @@ namespace pricing_engine::debug_one
         Quantity quantity { 0 };
     };
 
+
     struct PricingEngine
     {
-        template<typename Comparator>
-        using PriceLevel = boost::container::flat_map<Price, Quantity, Comparator>;
+        /** BID's (BUY Orders) PriceLevels **/
+        boost::container::flat_map<Price, Quantity, std::greater<>> bidPriceLevelMap;
+
+        /** ASK's (SELL Orders) PriceLevels **/
+        boost::container::flat_map<Price, Quantity, std::less<>> askPriceLevelMap;
+
+        template<class LevelMap>
+        void addLevel(const PriceLevel& priceLevel,
+                      LevelMap& levelMap);
+
+        template<class LevelMap>
+        size_t removeLevel(const PriceLevel& priceLevel,
+                           LevelMap& levelMap);
+
+        void addBidPrice(const PriceLevel& priceLevel);
+        void addAskPrice(const PriceLevel& priceLevel);
+
+        void removeBidPrice(const PriceLevel& priceLevel);
+        void removeAskPrice(const PriceLevel& priceLevel);
     };
+
+    template<class LevelMap>
+    void PricingEngine::addLevel(const PriceLevel& priceLevel,
+                                 LevelMap& levelMap)
+    {
+        auto [iter, inserted] = levelMap.emplace(priceLevel.price, priceLevel.quantity);
+        if (!inserted) {
+            iter->second = priceLevel.quantity;
+        }
+    }
+
+    template<class LevelMap>
+    size_t PricingEngine::removeLevel(const PriceLevel& priceLevel,
+                                      LevelMap& levelMap)
+    {
+        return levelMap.erase(priceLevel.price);
+    }
+
+    void PricingEngine::addBidPrice(const PriceLevel& priceLevel) {
+        addLevel(priceLevel, bidPriceLevelMap);
+    }
+
+    void PricingEngine::addAskPrice(const PriceLevel& priceLevel) {
+        addLevel(priceLevel, askPriceLevelMap);
+    }
+
+    void PricingEngine::removeBidPrice(const PriceLevel& priceLevel) {
+        removeLevel(priceLevel, bidPriceLevelMap);
+    }
+
+    void PricingEngine::removeAskPrice(const PriceLevel& priceLevel) {
+        removeLevel(priceLevel, askPriceLevelMap);
+    }
+}
+
+
+namespace demo
+{
+
+    using Price = double;
+    using Quantity = double;
+
+    struct PriceLevel
+    {
+        Price price { 0 };
+        Quantity quantity { 0 };
+    };
+
+    struct Worker
+    {
+        void add(const PriceLevel lvl)
+        {
+            std::cout << "add: " << lvl.price  << " with quantity: " << lvl.quantity << std::endl;
+        }
+
+        void remove(const PriceLevel lvl)
+        {
+            std::cout << "remove: " << lvl.price  << " with quantity: " << lvl.quantity << std::endl;
+        }
+
+        using methodPtr = void (Worker::*)(PriceLevel);
+
+        const std::array<methodPtr, 2> methods {
+            &Worker::remove, &Worker::add
+        };
+
+        void handle(const PriceLevel lvl)
+        {
+            /*
+            const methodPtr ptr = methods[static_cast<bool>(lvl.quantity)];
+            (this->*ptr)(lvl);
+            */
+
+            const bool isZero = static_cast<bool>(lvl.quantity);
+            std::invoke(methods[isZero], this, lvl);
+        }
+    };
+
+    void test()
+    {
+        Worker worker;
+        worker.handle({11, 100});
+        worker.handle({22, 0});
+    }
 }
 
 void pricing_engine::debug_one::TestAll()
 {
-
+    demo::test();
 }
 

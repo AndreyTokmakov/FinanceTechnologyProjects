@@ -175,14 +175,14 @@ namespace
 
         PricerT& pricer;
 
-        explicit DummyParser(PricerT& pricer):pricer { pricer } {
+        explicit DummyParser(PricerT& pricer): pricer { pricer } {
         }
 
         static BinanceMarketEvent parseEventData(const nlohmann::json& jsonData)
         {
             std::string_view stream = jsonData[JsonParams::stream].get<std::string_view>();
             const size_t pos = stream.find('@');
-            const std::string_view symbol ( stream.data(), pos);
+            // const std::string_view symbol ( stream.data(), pos);
             stream.remove_prefix(pos + 1);
 
             const nlohmann::json& data = jsonData[JsonParams::data];

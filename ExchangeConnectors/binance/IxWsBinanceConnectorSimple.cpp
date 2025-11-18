@@ -25,7 +25,7 @@ using json = nlohmann::json;
 namespace
 {
     std::filesystem::path dataFile {
-        R"(/home/andtokm/DiskS/ProjectsUbuntu/FinanceTechnologyProjects/Parsers_JSON/data/binance/allData.json)" };
+        R"(/home/andtokm/DiskS/ProjectsUbuntu/FinanceTechnologyProjects/Parsers_JSON/data/binance/depth.json)" };
 
     void run()
     {
@@ -43,7 +43,7 @@ namespace
                                           "ethusdt@bookTicker/"
                                           "ethusdt@depth@100ms/"
                                           "bnbusdt@ticker/bnbusdt@aggTrade";*/
-        std::string url2 = binanceWsUrl + "stream?streams="
+        /*std::string url2 = binanceWsUrl + "stream?streams="
                                           "btcusdt@trade/"
                                           "btcusdt@aggTrade/"
                                           "btcusdt@ticker/"
@@ -51,7 +51,9 @@ namespace
                                           "btcusdt@depth@100ms/"
                                           // "btcusdt@depth20@100ms/"  <--- Book snapshot
                                           "btcusdt@kline_1m/"
-                                          "btcusdt@miniTicker";
+                                          "btcusdt@miniTicker";*/
+        const std::string url2 = binanceWsUrl + "stream?streams="
+                                  "btcusdt@depth@100ms";
 
         // webSocket.setUrl(url1);
         webSocket.setUrl(url2);

@@ -11,17 +11,13 @@ Description : PriceEngine.hpp
 #define FINANCETECHNOLOGYPROJECTS_PRICEENGINE_HPP
 
 #include <boost/container/flat_map.hpp>
+#include "../common/Types.hpp"
 
 namespace price_engine
 {
-    using Price = double;
-    using Quantity = double;
-
-    struct PriceLevel
-    {
-        Price price { 0 };
-        Quantity quantity { 0 };
-    };
+    using Price      = common::Price;
+    using Quantity   = common::Quantity;
+    using PriceLevel = common::PriceLevel;
 
     struct PricingEngine
     {

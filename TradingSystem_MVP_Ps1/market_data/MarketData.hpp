@@ -14,15 +14,17 @@ Description :
 #include <format>
 #include <vector>
 #include <ostream>
-#include <cstdint>
+
+#include "../common/Types.hpp"
 
 namespace market_data::binance
 {
-    using Price     = double;
-    using Quantity  = double;
-    using Volume    = double;
-    using Timestamp = uint64_t;
-    using Number    = uint64_t;
+    using Price      = common::Price;
+    using Quantity   = common::Quantity;
+    using Volume     = common::Volume;
+    using Number     = common::Number;
+    using Timestamp  = common::Timestamp;
+    using PriceLevel = common::PriceLevel;
 
     // TODO: ---> implement StaticString (stack only)
     using Symbol = std::string;
@@ -158,12 +160,6 @@ namespace market_data::binance
         Price    askPrice { 0.0 };
         Quantity askQuantity { 0.0 };
         Number   updateId { 0 };
-    };
-
-    struct PriceLevel
-    {
-        Price price { 0.0 };
-        Quantity quantity { 0.0 };
     };
 
     struct DepthUpdate

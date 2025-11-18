@@ -17,6 +17,7 @@ Description :
 #include "common/Buffer.hpp"
 #include "common/RingBuffer.hpp"
 #include "market_data/Parser.hpp"
+#include "price_engine/PriceEngine.hpp"
 
 // #include "FinalAction.hpp"
 // #include "DateTimeUtilities.hpp"
@@ -159,8 +160,8 @@ namespace
             std::cout << "Pricer [CPU: " << getCpu() << "] : AggTrade" << std::endl;
         }
         void operator()(const DepthUpdate& depthUpdate) const {
-            // std::cout << depthUpdate << std::endl;
-            std::cout << "Pricer [CPU: " << getCpu() << "] : DepthUpdate" << std::endl;
+            std::cout << depthUpdate << std::endl;
+            // std::cout << "Pricer [CPU: " << getCpu() << "] : DepthUpdate" << std::endl;
         }
         void operator()(const NoYetImplemented&) const {
             std::cerr << "NoYetImplemented" << std::endl;
@@ -274,15 +275,66 @@ namespace
 }
 
 
-int main([[maybe_unused]] const int argc,
-         [[maybe_unused]] char** argv)
+namespace pricer_test
 {
-    const std::vector<std::string_view> args(argv + 1, argv + argc);
+    struct EventPrinter
+    {
+        price_engine::PricingEngine& pricingEngine;
 
+        void operator()(const BookTicker&) const { }
+        void operator()(const MiniTicker&) const { }
+        void operator()(const Trade&) const {}
+        void operator()(const AggTrade&) const { }
+        void operator()(const NoYetImplemented&) const { }
+        void operator()(const DepthUpdate& depthUpdate) const
+        {
+            /*
+            std::cout << "DepthUpdate { bids: " << depthUpdate.bids.size()
+                << ". asks: " << depthUpdate.asks.size() << "}\n";*/
+            for (const common::PriceLevel& lvl: depthUpdate.bids) {
+                pricingEngine.handleBidUpdate(lvl);
+            }
+            for (const common::PriceLevel& lvl: depthUpdate.asks) {
+                pricingEngine.handleAskUpdate(lvl);
+            }
+        }
+    };
+
+    void print(const price_engine::PricingEngine& pricingEngine)
+    {
+        std::cout << "BIDS:" << std::endl;
+        for (const auto& [price, quantity]: pricingEngine.bidPriceLevelMap) {
+            std::cout << "\t { price: " << price << ", quantity: " << quantity << "}\n";
+        }
+        std::cout << "ASKS:" << std::endl;
+        for (const auto& [price, quantity]: pricingEngine.askPriceLevelMap) {
+            std::cout << "\t { price: " << price << ", quantity: " << quantity << "}\n";
+        }
+    }
+
+    void pricerTests()
+    {
+        const std::vector<std::string> data = readFile(getDataDir() / "depth.json");
+
+        price_engine::PricingEngine pricingEngine;
+        EventPrinter eventPrinter { .pricingEngine = pricingEngine };
+        for (const auto& entry: data)
+        {
+            const nlohmann::json jsonData = nlohmann::json::parse(entry);
+            BinanceMarketEvent event = BinanceParserJson::parseDepthUpdate(jsonData[JsonParams::data]);
+            std::visit(eventPrinter, event);
+        }
+
+        print(pricingEngine);
+    }
+}
+
+void startService()
+{
     TestConnector connector;
     if (!connector.init()) {
         std::cerr << "Failed to init connector" << std::endl;
-        return EXIT_FAILURE;
+        return;
     }
 
     Pricer pricer {};
@@ -291,6 +343,16 @@ int main([[maybe_unused]] const int argc,
     DummyParser parser {pricer};
     DataFeederBase feeder {connector, parser};
     feeder.run();
+
+}
+
+int main([[maybe_unused]] const int argc,
+         [[maybe_unused]] char** argv)
+{
+    const std::vector<std::string_view> args(argv + 1, argv + argc);
+
+    // startService();
+    pricer_test::pricerTests();
 
     return EXIT_SUCCESS;
 }

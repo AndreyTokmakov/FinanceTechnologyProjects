@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}
         common/Buffer.hpp common/Buffer.cpp
         common/RingBuffer.hpp
         common/Common.hpp
+        common/Types.hpp
         market_data/MarketData.hpp
         market_data/Parser.cpp market_data/Parser.hpp
         price_engine/PriceEngine.cpp price_engine/PriceEngine.hpp

@@ -12,6 +12,7 @@ Description :
 #include <vector>
 
 #include "debug_one/PriceEngine.hpp"
+#include "experiments/Experiments.hpp"
 
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
@@ -19,6 +20,7 @@ int main([[maybe_unused]] const int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
     pricing_engine::debug_one::TestAll();
+    // experiments::TestAll();
 
     return EXIT_SUCCESS;
 }

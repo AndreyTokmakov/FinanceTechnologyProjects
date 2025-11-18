@@ -152,7 +152,6 @@ namespace pricing_engine::debug_one
         Quantity quantity { 0 };
     };
 
-
     struct PricingEngine
     {
         /** BID's (BUY Orders) PriceLevels **/
@@ -166,14 +165,17 @@ namespace pricing_engine::debug_one
                       LevelMap& levelMap);
 
         template<class LevelMap>
-        size_t removeLevel(const PriceLevel& priceLevel,
-                           LevelMap& levelMap);
+        static size_t removeLevel(const PriceLevel& priceLevel,
+                                  LevelMap& levelMap);
 
         void addBidPrice(const PriceLevel& priceLevel);
         void addAskPrice(const PriceLevel& priceLevel);
 
         void removeBidPrice(const PriceLevel& priceLevel);
         void removeAskPrice(const PriceLevel& priceLevel);
+
+        void handleBidUpdate(const PriceLevel& priceLevel);
+        void handleAskUpdate(const PriceLevel& priceLevel);
     };
 
     template<class LevelMap>
@@ -208,61 +210,62 @@ namespace pricing_engine::debug_one
     void PricingEngine::removeAskPrice(const PriceLevel& priceLevel) {
         removeLevel(priceLevel, askPriceLevelMap);
     }
-}
 
-
-namespace demo
-{
-
-    using Price = double;
-    using Quantity = double;
-
-    struct PriceLevel
+    void PricingEngine::handleBidUpdate(const PriceLevel& priceLevel)
     {
-        Price price { 0 };
-        Quantity quantity { 0 };
-    };
+        if (priceLevel.quantity == 0) {
+            removeBidPrice(priceLevel);
+        }
+        else {
+            addBidPrice(priceLevel);
+        }
+    }
 
-    struct Worker
+    void PricingEngine:: handleAskUpdate(const PriceLevel& priceLevel)
     {
-        void add(const PriceLevel lvl)
-        {
-            std::cout << "add: " << lvl.price  << " with quantity: " << lvl.quantity << std::endl;
+        if (priceLevel.quantity == 0) {
+            removeAskPrice(priceLevel);
         }
-
-        void remove(const PriceLevel lvl)
-        {
-            std::cout << "remove: " << lvl.price  << " with quantity: " << lvl.quantity << std::endl;
+        else {
+            addAskPrice(priceLevel);
         }
-
-        using methodPtr = void (Worker::*)(PriceLevel);
-
-        const std::array<methodPtr, 2> methods {
-            &Worker::remove, &Worker::add
-        };
-
-        void handle(const PriceLevel lvl)
-        {
-            /*
-            const methodPtr ptr = methods[static_cast<bool>(lvl.quantity)];
-            (this->*ptr)(lvl);
-            */
-
-            const bool isZero = static_cast<bool>(lvl.quantity);
-            std::invoke(methods[isZero], this, lvl);
-        }
-    };
-
-    void test()
-    {
-        Worker worker;
-        worker.handle({11, 100});
-        worker.handle({22, 0});
     }
 }
 
+
+namespace pricing_engine::testing
+{
+    void print(const pricing_engine::debug_one::PricingEngine& pricingEngine)
+    {
+        std::cout << "BIDS:" << std::endl;
+        for (const auto& [price, quantity]: pricingEngine.bidPriceLevelMap) {
+            std::cout << "\t { price: " << price << ", quantity: " << quantity << "}\n";
+        }
+        std::cout << "ASKS:" << std::endl;
+        for (const auto& [price, quantity]: pricingEngine.askPriceLevelMap) {
+            std::cout << "\t { price: " << price << ", quantity: " << quantity << "}\n";
+        }
+    }
+
+    void test()
+    {
+        debug_one::PricingEngine engine;
+
+        engine.handleBidUpdate({10, 100});
+        engine.handleBidUpdate({12, 100});
+
+        engine.handleAskUpdate({20, 100});
+        engine.handleAskUpdate({23, 100});
+
+        engine.handleAskUpdate({20, 0});
+
+        print(engine);
+    }
+}
+
+
 void pricing_engine::debug_one::TestAll()
 {
-    demo::test();
+    testing::test();
 }
 

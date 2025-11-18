@@ -11,6 +11,7 @@ add_compile_options(-c -Wall -Wextra -Wno-interference-size -O3 -std=c++26)
 add_executable(${PROJECT_NAME}
         main.cpp
         debug_one/PriceEngine.cpp
+        experiments/Experiments.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

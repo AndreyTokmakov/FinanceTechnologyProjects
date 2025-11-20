@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}
         main.cpp
         debug_one/PriceEngine.cpp
         experiments/Experiments.cpp
+        flat_level_map/FlatLevelMap.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

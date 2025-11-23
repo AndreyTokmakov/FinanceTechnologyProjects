@@ -11,6 +11,7 @@ else()
     set(THIRD_PARTY_DIR /home/andrei/Projects/third_party)
 endif()
 
+add_subdirectory(Collection)
 add_subdirectory(CommonModules)
 add_subdirectory(DaVinchiTest)
 add_subdirectory(ExchangeConnectors)

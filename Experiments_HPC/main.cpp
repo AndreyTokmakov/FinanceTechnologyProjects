@@ -19,7 +19,8 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    experiments::unroll_data_processing_loop();
+    // experiments::unroll_data_processing_loop();
+    experiments::prefetch_unroll_processing();
 
     return EXIT_SUCCESS;
 }

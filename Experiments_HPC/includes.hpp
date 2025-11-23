@@ -13,6 +13,7 @@ Description : Experiments HPC
 namespace experiments
 {
     void unroll_data_processing_loop();
+    void prefetch_unroll_processing();
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_HPC_PROCESSING_HPP

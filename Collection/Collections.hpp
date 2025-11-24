@@ -13,6 +13,7 @@ Description : Collections.hpp
 namespace collections
 {
     void MapWithConstantSize();
+    void StaticSortedArray();
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_COLLECTIONS_HPP

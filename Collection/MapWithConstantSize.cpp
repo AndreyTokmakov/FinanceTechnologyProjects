@@ -71,7 +71,7 @@ namespace static_size_map
     }
 }
 
-namespace performance_test
+namespace map_with_constant_size  ::performance_test
 {
     [[nodiscard]]
     std::vector<int32_t> getTestData(const size_t size = 10'000'000)
@@ -113,7 +113,7 @@ namespace performance_test
                 push<int32_t, int32_t, collectionSize>(map, key, key);
             }
 
-            // std::cout << map << std::endl;
+            std::cout << map.size() << std::endl;
         }
     }
 }
@@ -121,6 +121,5 @@ namespace performance_test
 void collections::MapWithConstantSize()
 {
     // static_size_map::test_map_with_constant_size();
-
-    performance_test::benchmark();
+    map_with_constant_size::performance_test::benchmark();
 }

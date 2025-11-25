@@ -206,9 +206,8 @@ namespace static_sorted_array::testing::performance
         }
         std::cout << array.Size() << std::endl;
     }
-
-
 }
+
 namespace static_sorted_array::testing
 {
     template<typename K, typename V, size_t maxSize>

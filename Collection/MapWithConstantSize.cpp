@@ -17,62 +17,20 @@ Description : MapWithConstantSize.cpp
 #include <vector>
 #include <random>
 
+#include <boost/container/flat_map.hpp>
 
 namespace
 {
     std::random_device rd{};
     std::mt19937 generator = std::mt19937 {rd()};
 
+    [[nodiscard]]
     int getRandomInRange(const int32_t start, const int32_t end) noexcept
     {
         auto distribution = std::uniform_int_distribution<>{ start, end };
         return distribution(generator);
     }
 
-    template<typename K, typename V >
-    std::ostream& operator<<(std::ostream& stream, const std::map<K, V>& map)
-    {
-        for (const auto & [k, v]: map)
-            stream << "{" << k << " = " << v << "} ";
-        return stream;
-    }
-}
-
-namespace static_size_map
-{
-    constexpr uint32_t maxSize { 10 };
-
-    template<typename K, typename V >
-    bool push(std::map<K, V>& map, const K& key, const V& value)
-    {
-        const auto size = map.size();
-        if (maxSize == size && key >= map.rbegin()->first)
-            return false;
-
-        const auto [iter, ok] = map.emplace(key, value);
-        if (maxSize == size) {
-            map.erase(std::prev(map.end()));
-        }
-
-        return true;;
-    }
-
-    void test_map_with_constant_size()
-    {
-        std::map<int, int> map;
-        for (int i = 0; i < 20; i += 2)
-        {
-            push(map, i, i);
-            std::cout << map << std::endl;
-        }
-
-        push(map, 3 ,3);
-        std::cout << map << std::endl;
-    }
-}
-
-namespace map_with_constant_size  ::performance_test
-{
     [[nodiscard]]
     std::vector<int32_t> getTestData(const size_t size = 10'000'000)
     {
@@ -83,19 +41,65 @@ namespace map_with_constant_size  ::performance_test
         return data;
     }
 
-    template<typename K, typename V, size_t maxSize>
+    template<typename K, typename V >
+    std::ostream& operator<<(std::ostream& stream, const std::map<K, V>& map)
+    {
+        for (const auto & [k, v]: map)
+            stream << "{" << k << " = " << v << "} ";
+        return stream;
+    }
+
+    template<typename K, typename V >
+    std::ostream& operator<<(std::ostream& stream, const boost::container::flat_map<K, V>& map)
+    {
+        for (const auto & [k, v]: map)
+            stream << "{" << k << " = " << v << "} ";
+        return stream;
+    }
+
+    template<typename K, typename V, size_t MaxSize >
     bool push(std::map<K, V>& map, const K& key, const V& value)
     {
         const auto size = map.size();
-        if (maxSize == size && key >= map.rbegin()->first)
+        if (MaxSize == size && key >= map.rbegin()->first)
             return false;
 
         const auto [iter, ok] = map.emplace(key, value);
-        if (maxSize == size) {
+        if (MaxSize == size) {
             map.erase(std::prev(map.end()));
         }
+        return true;
+    }
 
-        return true;;
+    template<typename K, typename V, size_t MaxSize >
+    bool push(boost::container::flat_map<K, V>& map, const K& key, const V& value)
+    {
+        const auto size = map.size();
+        if (MaxSize == size && key >= map.rbegin()->first)
+            return false;
+
+        const auto [iter, ok] = map.emplace(key, value);
+        if (MaxSize == size) {
+            map.erase(std::prev(map.end()));
+        }
+        return true;
+    }
+}
+
+namespace static_size_map
+{
+    void validation()
+    {
+        constexpr uint32_t maxSize { 10 };
+        std::map<int, int> map;
+        for (int i = 0; i < 20; i += 2)
+        {
+            push<int, int, maxSize>(map, i, i);
+            std::cout << map << std::endl;
+        }
+
+        push<int, int, maxSize>(map, 3 ,3);
+        std::cout << map << std::endl;
     }
 
     void benchmark()
@@ -118,8 +122,53 @@ namespace map_with_constant_size  ::performance_test
     }
 }
 
+namespace static_size_map_boost
+{
+    void validation()
+    {
+        constexpr uint32_t maxSize { 10 };
+        boost::container::flat_map<int, int> map;
+        for (int i = 0; i < 20; i += 2)
+        {
+            push<int, int, maxSize>(map, i, i);
+            std::cout << map << std::endl;
+        }
+
+        push<int, int, maxSize>(map, 3 ,3);
+        std::cout << map << std::endl;
+    }
+
+    void benchmark()
+    {
+        constexpr uint32_t collectionSize { 1'000 }, testDataSize = 100'000'000;
+        const std::vector<int32_t> data = getTestData(testDataSize);
+
+        {
+            PerfUtilities::ScopedTimer timer { "map_boost"};
+            boost::container::flat_map<int, int> map;
+
+            for (uint32_t idx = 0; idx < testDataSize; ++idx)
+            {
+                const auto key = data[idx];
+                push<int32_t, int32_t, collectionSize>(map, key, key);
+            }
+
+            std::cout << map.size() << std::endl;
+        }
+    }
+}
+
+
+namespace map_with_constant_size::performance_test
+{
+
+}
+
 void collections::MapWithConstantSize()
 {
-    // static_size_map::test_map_with_constant_size();
-    map_with_constant_size::performance_test::benchmark();
+    // static_size_map::validation();
+    static_size_map::benchmark();
+
+    // static_size_map_boost::validation();
+    static_size_map_boost::benchmark();
 }

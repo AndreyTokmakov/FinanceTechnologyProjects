@@ -115,24 +115,11 @@ namespace static_sorted_array
 
         bool push(const value_type item)
         {
-            if (size == capacity && item > elements[size - 1]) {
-                return false;
-            }
-
-            /*
-            if (size > 0 && item > elements[size - 1]) {
-                elements[size++] = item;;
-                return true;
-            }
-            */
-
-
-
-            if (size == capacity && item > elements[size - 1]) {
-                return false;
-            }
-            if (size > 0 && item > elements[size - 1]) {
-                elements[size++] = item;;
+            if (size > 0 && item > elements[size - 1])
+            {
+                if (size == capacity)
+                    return false;
+                elements[size++] = item;
                 return true;
             }
 
@@ -263,6 +250,7 @@ namespace static_sorted_array::testing
 
 void collections::StaticSortedArray()
 {
+    static_sorted_array::testing::validation();
     static_sorted_array::testing::performance::benchmark();
-    // static_sorted_array::testing::validation();
+
 }

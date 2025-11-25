@@ -24,13 +24,9 @@ int main([[maybe_unused]] int argc,
     collections::StaticSortedFlatMap();
 
     /**
-    1000
-    std::map      :  0.28472 seconds.
-    1000
+    std::map      :  0.2847222 seconds.
     map_boost     :  0.0508274 seconds.
-    1000
     SortedArray   :  0.0297177 seconds.
-    1000
     FlatMap       :  0.0299015 seconds.
     **/
 

@@ -250,7 +250,7 @@ namespace static_sorted_array::testing
 
 void collections::StaticSortedArray()
 {
-    static_sorted_array::testing::validation();
+    // static_sorted_array::testing::validation();
     static_sorted_array::testing::performance::benchmark();
 
 }

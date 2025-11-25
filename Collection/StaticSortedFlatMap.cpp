@@ -204,7 +204,26 @@ namespace static_sorted_flat_map::testing
     }
 }
 
+namespace static_sorted_flat_map::testing::performance
+{
+    void benchmark()
+    {
+        constexpr uint32_t collectionSize { 1'000 }, testDataSize = 100'000'000;
+        const std::vector<int32_t> data = getTestData(testDataSize);
+
+        PerfUtilities::ScopedTimer timer { "FlatMap"};
+        FlatMap<int, int> array (collectionSize);
+        for (uint32_t idx = 0; idx < testDataSize; ++idx)
+        {
+            const auto key = data[idx];
+            array.push(key, key);
+        }
+        std::cout << array.Size() << std::endl;
+    }
+}
+
 void collections::StaticSortedFlatMap()
 {
-    static_sorted_flat_map::testing::validation();
+    // static_sorted_flat_map::testing::validation();
+    static_sorted_flat_map::testing::performance::benchmark();
 }

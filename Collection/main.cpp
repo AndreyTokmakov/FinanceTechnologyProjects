@@ -19,17 +19,19 @@ int main([[maybe_unused]] int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    // collections::MapWithConstantSize();
-    // collections::StaticSortedArray();
+    collections::MapWithConstantSize();
+    collections::StaticSortedArray();
     collections::StaticSortedFlatMap();
 
     /**
     1000
-    std::map      :  0.275893 seconds.
+    std::map      :  0.28472 seconds.
     1000
-    map_boost     :  0.0519193 seconds.
+    map_boost     :  0.0508274 seconds.
     1000
-    SortedArray   :  0.0304988 seconds.
+    SortedArray   :  0.0297177 seconds.
+    1000
+    FlatMap       :  0.0299015 seconds.
     **/
 
     return EXIT_SUCCESS;

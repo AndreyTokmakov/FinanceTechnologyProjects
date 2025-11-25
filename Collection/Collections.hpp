@@ -14,6 +14,7 @@ namespace collections
 {
     void MapWithConstantSize();
     void StaticSortedArray();
+    void StaticSortedFlatMap();
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_COLLECTIONS_HPP

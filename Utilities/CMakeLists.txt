@@ -15,6 +15,7 @@ add_library(utils
         PerfUtilities.cpp PerfUtilities.hpp
         DateTimeUtilities.cpp DateTimeUtilities.hpp
         FinalAction.hpp
+        Testing.hpp
 )
 
 # include all components

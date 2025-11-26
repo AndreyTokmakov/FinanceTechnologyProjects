@@ -184,6 +184,15 @@ namespace static_sorted_flat_map::testing
 
 namespace static_sorted_flat_map::testing
 {
+    template<typename K, typename V>
+    void print(const FlatMap<K, V>& flatMap)
+    {
+        for (typename FlatMap<K, V>::size_type idx = 0; idx < flatMap.Size(); ++idx) {
+            std::cout << flatMap.data()[idx].key << " ";
+        }
+        std::cout << std::endl;
+    }
+
     void validation()
     {
         constexpr uint32_t collectionSize { 10 }, testDataSize = 1000;
@@ -200,6 +209,35 @@ namespace static_sorted_flat_map::testing
         {
             const auto node = flatMap.elements[idx];
             std::cout << "[" << idx << "] = { " << node.key<< " | " << node.value << " } " << std::endl;
+        }
+    }
+
+    void checkIsSorted_Ascending()
+    {
+        constexpr uint32_t collectionSize { 10 }, testDataSize = 1000;
+        const std::vector<int32_t> data = getTestData(testDataSize);
+
+        FlatMap<int, int> flatMap (collectionSize);
+        using Node = FlatMap<int, int>::Node;
+        for (uint32_t idx = 0; idx < testDataSize; ++idx)
+        {
+            const auto key = data[idx];
+            flatMap.push(key,key * 10);
+            const bool isSorted = std::is_sorted(flatMap.data(), flatMap.data() + flatMap.Size(), [](const Node& a, const Node& b) {
+                return b.key >= a.key;
+            });
+
+            // TODO: Test-Assert
+            if (!isSorted) {
+                std::cerr << "ERROR: FlatMap is not sorted" << std::endl;
+            }
+        }
+        // TODO: Test-Assert
+        if (collectionSize != flatMap.Size()) {
+            std::cerr << "ERROR: Size != " << collectionSize << std::endl;
+        }
+        else {
+            std::cout << "OK" << std::endl;
         }
     }
 }
@@ -225,5 +263,7 @@ namespace static_sorted_flat_map::testing::performance
 void collections::StaticSortedFlatMap()
 {
     // static_sorted_flat_map::testing::validation();
-    static_sorted_flat_map::testing::performance::benchmark();
+    static_sorted_flat_map::testing::checkIsSorted_Ascending();
+
+    // static_sorted_flat_map::testing::performance::benchmark();
 }

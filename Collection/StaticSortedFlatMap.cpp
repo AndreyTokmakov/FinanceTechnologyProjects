@@ -50,18 +50,20 @@ namespace static_sorted_flat_map
     template<typename K, typename V, SortOrder ordering = SortOrder::Ascending>
     struct FlatMap
     {
-        using key_type       = K;
-        using value_type     = V;
+        static_assert(!std::is_same_v<K, void>, "ERROR: Key type can not be void");
+        static_assert(!std::is_same_v<V, void>, "ERROR: Value type can not be void");
 
         struct Node
         {
-            key_type key;
-            value_type value;
+            K key;
+            V value;
         };
 
+        using key_type       = K;
+        using value_type     = V;
         using size_type      = uint32_t;
-        using pointer        = Node*;
-        using const_pointer  = const pointer;
+        using node_pointer   = Node*;
+        using const_pointer  = const node_pointer;
         using array_type     = Node[];
 
         size_type size { 0 };
@@ -113,7 +115,7 @@ namespace static_sorted_flat_map
             while (left < right)
             {
                 const size_type mid = (left + right) >> 1;
-                if (better(key, elements[mid].key))
+                if (compare(key, elements[mid].key))
                     right = mid;
                 else
                     left = mid + 1;
@@ -123,12 +125,24 @@ namespace static_sorted_flat_map
 
         bool push(const key_type& key, const value_type& value)
         {
-            if (size > 0 && key > elements[size - 1].key)  // TODO: Fixme
+            if constexpr (ordering == SortOrder::Ascending)
             {
-                if (size == capacity)
-                    return false;
-                elements[size++] = Node {key, value};
-                return true;
+                if (size > 0 && key > elements[size - 1].key)  // TODO: Fixme
+                {
+                    if (size == capacity)
+                        return false;
+                    elements[size++] = Node {key, value};
+                    return true;
+                }
+            }
+            else {
+                if (size > 0 && elements[size - 1].key > key)  // TODO: Fixme
+                {
+                    if (size == capacity)
+                        return false;
+                    elements[size++] = Node {key, value};
+                    return true;
+                }
             }
 
             const size_type idxInsert = findInsertIndex(key);
@@ -144,7 +158,7 @@ namespace static_sorted_flat_map
         }
 
         [[nodiscard]]
-        pointer data() {
+        node_pointer data() {
             return elements.get();
         }
 
@@ -158,9 +172,7 @@ namespace static_sorted_flat_map
             return size;
         }
 
-        // TODO: compiler flags 'always inline'
-        // TODO: Rename
-        static constexpr bool better(const key_type& a, const key_type& b) noexcept
+        static constexpr bool compare(const key_type& a, const key_type& b) noexcept __attribute__((always_inline))
         {
             if constexpr (SortOrder::Descending == ordering)
                 return a >= b;
@@ -188,8 +200,8 @@ namespace static_sorted_flat_map::testing
     using ::testing::AssertEqual;
     using ::testing::AssertTrue;
 
-    template<typename K, typename V>
-    void print(const FlatMap<K, V>& flatMap)
+    template<typename K, typename V, SortOrder ordering = SortOrder::Ascending>
+    void print(const FlatMap<K, V, ordering>& flatMap)
     {
         for (typename FlatMap<K, V>::size_type idx = 0; idx < flatMap.Size(); ++idx) {
             std::cout << flatMap.data()[idx].key << " ";
@@ -218,7 +230,7 @@ namespace static_sorted_flat_map::testing
 
     void checkIsSorted_Ascending()
     {
-        constexpr uint32_t collectionSize { 10 }, testDataSize = 1000;
+        constexpr uint32_t collectionSize { 100 }, testDataSize = 10'000;
         const std::vector<int32_t> data = getTestData(testDataSize);
 
         FlatMap<int, int> flatMap (collectionSize);
@@ -236,30 +248,70 @@ namespace static_sorted_flat_map::testing
         AssertEqual(collectionSize, flatMap.Size());
         std::cout << "OK" << std::endl;
     }
+
+    void checkIsSorted_Descending()
+    {
+        constexpr uint32_t collectionSize { 100 }, testDataSize = 10'000;
+        const std::vector<int32_t> data = getTestData(testDataSize);
+
+        FlatMap<int, int, SortOrder::Descending> flatMap (collectionSize);
+        using Node = decltype(flatMap)::Node;
+        for (uint32_t idx = 0; idx < testDataSize; ++idx)
+        {
+            const auto key = data[idx];
+            flatMap.push(key,key * 10);
+            const bool isSortedDesc = std::is_sorted(flatMap.data(), flatMap.data() + flatMap.Size(), [](const Node& a, const Node& b) {
+                return a.key >= b.key;
+            });
+
+            //print(flatMap);
+            AssertTrue(isSortedDesc);
+        }
+        AssertEqual(collectionSize, flatMap.Size());
+        std::cout << "OK" << std::endl;
+    }
 }
 
 namespace static_sorted_flat_map::testing::performance
 {
-    void benchmark()
+    void benchmark_Ascending()
     {
         constexpr uint32_t collectionSize { 1'000 }, testDataSize = 100'000'000;
         const std::vector<int32_t> data = getTestData(testDataSize);
 
         PerfUtilities::ScopedTimer timer { "FlatMap"};
-        FlatMap<int, int> array (collectionSize);
+        FlatMap<int, int> flatMap (collectionSize);
         for (uint32_t idx = 0; idx < testDataSize; ++idx)
         {
             const auto key = data[idx];
-            array.push(key, key);
+            flatMap.push(key, key);
         }
-        std::cout << array.Size() << std::endl;
+        AssertEqual(collectionSize, flatMap.Size());
+    }
+
+    void benchmark_Descending()
+    {
+        constexpr uint32_t collectionSize { 1'000 }, testDataSize = 100'000'000;
+        const std::vector<int32_t> data = getTestData(testDataSize);
+
+        PerfUtilities::ScopedTimer timer { "FlatMap"};
+        FlatMap<int, int, SortOrder::Descending> flatMap (collectionSize);
+        for (uint32_t idx = 0; idx < testDataSize; ++idx)
+        {
+            const auto key = data[idx];
+            flatMap.push(key, key);
+        }
+        AssertEqual(collectionSize, flatMap.Size());
     }
 }
 
 void collections::StaticSortedFlatMap()
 {
     // static_sorted_flat_map::testing::validation();
-    static_sorted_flat_map::testing::checkIsSorted_Ascending();
 
-    // static_sorted_flat_map::testing::performance::benchmark();
+    static_sorted_flat_map::testing::checkIsSorted_Ascending();
+    static_sorted_flat_map::testing::checkIsSorted_Descending();
+
+    static_sorted_flat_map::testing::performance::benchmark_Ascending();
+    static_sorted_flat_map::testing::performance::benchmark_Descending();
 }

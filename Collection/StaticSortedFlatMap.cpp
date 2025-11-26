@@ -9,6 +9,7 @@ Description : StaticSortedFlatMap.cpp
 
 #include "Collections.hpp"
 #include "PerfUtilities.hpp"
+#include "Testing.hpp"
 
 #include <iostream>
 #include <print>
@@ -184,6 +185,9 @@ namespace static_sorted_flat_map::testing
 
 namespace static_sorted_flat_map::testing
 {
+    using ::testing::AssertEqual;
+    using ::testing::AssertTrue;
+
     template<typename K, typename V>
     void print(const FlatMap<K, V>& flatMap)
     {
@@ -227,18 +231,10 @@ namespace static_sorted_flat_map::testing
                 return b.key >= a.key;
             });
 
-            // TODO: Test-Assert
-            if (!isSorted) {
-                std::cerr << "ERROR: FlatMap is not sorted" << std::endl;
-            }
+            AssertTrue(isSorted);
         }
-        // TODO: Test-Assert
-        if (collectionSize != flatMap.Size()) {
-            std::cerr << "ERROR: Size != " << collectionSize << std::endl;
-        }
-        else {
-            std::cout << "OK" << std::endl;
-        }
+        AssertEqual(collectionSize, flatMap.Size());
+        std::cout << "OK" << std::endl;
     }
 }
 

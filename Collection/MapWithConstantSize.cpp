@@ -14,6 +14,7 @@ Description : MapWithConstantSize.cpp
 #include <print>
 #include <ostream>
 #include <map>
+#include <flat_map>
 #include <vector>
 #include <random>
 
@@ -57,6 +58,14 @@ namespace
         return stream;
     }
 
+    template<typename K, typename V >
+    std::ostream& operator<<(std::ostream& stream, const std::flat_map<K, V>& map)
+    {
+        for (const auto & [k, v]: map)
+            stream << "{" << k << " = " << v << "} ";
+        return stream;
+    }
+
     template<typename K, typename V, size_t MaxSize >
     bool push(std::map<K, V>& map, const K& key, const V& value)
     {
@@ -64,7 +73,7 @@ namespace
         if (MaxSize == size && key >= map.rbegin()->first)
             return false;
 
-        const auto [iter, ok] = map.emplace(key, value);
+        map.emplace(key, value);
         if (MaxSize == size) {
             map.erase(std::prev(map.end()));
         }
@@ -78,9 +87,23 @@ namespace
         if (MaxSize == size && key >= map.rbegin()->first)
             return false;
 
-        const auto [iter, ok] = map.emplace(key, value);
+        map.emplace(key, value);
         if (MaxSize == size) {
             map.erase(std::prev(map.end()));
+        }
+        return true;
+    }
+
+    template<typename K, typename V, size_t MaxSize >
+    bool push(std::flat_map<K, V>& map, const K& key, const V& value)
+    {
+        const auto size = map.size();
+        if (MaxSize == size && key >= map.rbegin()->first)
+            return false;
+
+        map.emplace(key, value);
+        if (MaxSize == size) {
+            map.erase(--map.end());
         }
         return true;
     }
@@ -117,7 +140,7 @@ namespace static_size_map
                 push<int32_t, int32_t, collectionSize>(map, key, key);
             }
 
-            std::cout << map.size() << std::endl;
+            // std::cout << map.size() << std::endl;
         }
     }
 }
@@ -153,21 +176,55 @@ namespace static_size_map_boost
                 push<int32_t, int32_t, collectionSize>(map, key, key);
             }
 
-            std::cout << map.size() << std::endl;
+            // std::cout << map.size() << std::endl;
         }
     }
 }
 
 
-namespace map_with_constant_size::performance_test
+namespace static_size_std_flat_map
 {
+    void validation()
+    {
+        constexpr uint32_t maxSize { 10 };
+        std::flat_map<int, int> map;
+        for (int i = 0; i < 20; i += 2)
+        {
+            push<int, int, maxSize>(map, i, i);
+            std::cout << map << std::endl;
+        }
 
+        push<int, int, maxSize>(map, 3 ,3);
+        std::cout << map << std::endl;
+    }
+
+    void benchmark()
+    {
+        constexpr uint32_t collectionSize { 1'000 }, testDataSize = 100'000'000;
+        const std::vector<int32_t> data = getTestData(testDataSize);
+
+        {
+            PerfUtilities::ScopedTimer timer { "std::flat_map"};
+            std::flat_map<int, int> map;
+
+            for (uint32_t idx = 0; idx < testDataSize; ++idx)
+            {
+                const auto key = data[idx];
+                push<int32_t, int32_t, collectionSize>(map, key, key);
+            }
+
+            // std::cout << map.size() << std::endl;
+        }
+    }
 }
 
 void collections::MapWithConstantSize()
 {
     // static_size_map::validation();
     static_size_map::benchmark();
+
+    // static_size_std_flat_map::validation();
+    static_size_std_flat_map::benchmark();
 
     // static_size_map_boost::validation();
     static_size_map_boost::benchmark();

@@ -191,7 +191,7 @@ namespace static_sorted_array::testing::performance
             const auto key = data[idx];
             array.push(key);
         }
-        std::cout << array.Size() << std::endl;
+        // std::cout << array.Size() << std::endl;
     }
 }
 

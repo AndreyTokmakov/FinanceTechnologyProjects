@@ -151,8 +151,10 @@ namespace static_sorted_flat_map
             }
 
             size = (capacity == size) ? size : size + 1;
-            for (size_type i = size - 1; i > idxInsert; --i) /** TODO: Prefetch **/
+            // __builtin_prefetch(elements.get() + size - 32, 0, 2);
+            for (size_type i = size - 1; i > idxInsert; --i) { /** TODO: Prefetch **/
                 elements[i] = elements[i - 1];
+            }
             elements[idxInsert] = Node {key, value};
             return true;
         }
@@ -309,9 +311,9 @@ void collections::StaticSortedFlatMap()
 {
     // static_sorted_flat_map::testing::validation();
 
-    static_sorted_flat_map::testing::checkIsSorted_Ascending();
-    static_sorted_flat_map::testing::checkIsSorted_Descending();
+    //static_sorted_flat_map::testing::checkIsSorted_Ascending();
+    // static_sorted_flat_map::testing::checkIsSorted_Descending();
 
     static_sorted_flat_map::testing::performance::benchmark_Ascending();
-    static_sorted_flat_map::testing::performance::benchmark_Descending();
+    // static_sorted_flat_map::testing::performance::benchmark_Descending();
 }

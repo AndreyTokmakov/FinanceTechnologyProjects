@@ -15,6 +15,7 @@ add_executable(${PROJECT_NAME}
         MapWithConstantSize.cpp
         StaticSortedArray.cpp
         StaticSortedFlatMap.cpp
+        StaticSortedFlatMap_WithDeletion.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

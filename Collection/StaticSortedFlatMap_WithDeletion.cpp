@@ -154,12 +154,13 @@ namespace static_sorted_flat_map_with_deletion
                 return true;
             }
 
-            std::cout << "Erasing: " << key << std::endl;
-
             const size_type idx = findInsertIndex(key);
+            if (key != elements[idx].key) {
+                return false;
+            }
 
-
-            std::cout << "Erasing: " << key << " at " << elements[idx].key << std::endl;
+            elements[idx].key = -1;
+            // std::cout << "Erasing: " << key << ". at [" << idx << "] = " << elements[idx].key << std::endl;
 
             return true;
         }
@@ -240,7 +241,7 @@ namespace static_sorted_flat_map_with_deletion::testing
         constexpr uint32_t collectionSize { 10 };
 
         FlatMap<int, int> flatMap (collectionSize);
-        for (int i = 20; i >= 0; --i) {
+        for (int i = 40; i >= 0; i -= 2) {
             flatMap.push(i,i * i);
         }
 
@@ -255,7 +256,8 @@ namespace static_sorted_flat_map_with_deletion::testing
         flatMap.erase(1);
         flatMap.erase(8);
         flatMap.erase(9);
-        flatMap.erase(10);
+        flatMap.erase(18);
+        flatMap.erase(21);
         std::cout << std::string(120, '-') << std::endl;
 
         for (uint32_t idx = 0; idx < collectionSize; ++idx) {

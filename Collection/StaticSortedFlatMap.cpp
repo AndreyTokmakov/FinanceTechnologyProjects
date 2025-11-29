@@ -125,24 +125,12 @@ namespace static_sorted_flat_map
 
         bool push(const key_type& key, const value_type& value)
         {
-            if constexpr (ordering == SortOrder::Ascending)
+            if (size > 0 && !compare(key, elements[size - 1].key))
             {
-                if (size > 0 && key > elements[size - 1].key)  // TODO: Fixme
-                {
-                    if (size == capacity)
-                        return false;
-                    elements[size++] = Node {key, value};
-                    return true;
-                }
-            }
-            else {
-                if (size > 0 && elements[size - 1].key > key)  // TODO: Fixme
-                {
-                    if (size == capacity)
-                        return false;
-                    elements[size++] = Node {key, value};
-                    return true;
-                }
+                if (size == capacity)
+                    return false;
+                elements[size++] = Node {key, value};
+                return true;
             }
 
             const size_type idxInsert = findInsertIndex(key);
@@ -307,13 +295,18 @@ namespace static_sorted_flat_map::testing::performance
     }
 }
 
+
+// TODO:
+//  - front()
+//  - back()
+
 void collections::StaticSortedFlatMap()
 {
-    // static_sorted_flat_map::testing::validation();
+    static_sorted_flat_map::testing::validation();
 
     //static_sorted_flat_map::testing::checkIsSorted_Ascending();
     // static_sorted_flat_map::testing::checkIsSorted_Descending();
 
-    static_sorted_flat_map::testing::performance::benchmark_Ascending();
+    // static_sorted_flat_map::testing::performance::benchmark_Ascending();
     // static_sorted_flat_map::testing::performance::benchmark_Descending();
 }

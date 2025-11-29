@@ -125,24 +125,12 @@ namespace static_sorted_flat_map_with_deletion
 
         bool push(const key_type& key, const value_type& value)
         {
-            if constexpr (ordering == SortOrder::Ascending)
+            if (size > 0 && !compare(key, elements[size - 1].key))
             {
-                if (size > 0 && key > elements[size - 1].key)  // TODO: Fixme
-                {
-                    if (size == capacity)
-                        return false;
-                    elements[size++] = Node {key, value};
-                    return true;
-                }
-            }
-            else {
-                if (size > 0 && elements[size - 1].key > key)  // TODO: Fixme
-                {
-                    if (size == capacity)
-                        return false;
-                    elements[size++] = Node {key, value};
-                    return true;
-                }
+                if (size == capacity)
+                    return false;
+                elements[size++] = Node {key, value};
+                return true;
             }
 
             const size_type idxInsert = findInsertIndex(key);
@@ -156,6 +144,23 @@ namespace static_sorted_flat_map_with_deletion
                 elements[i] = elements[i - 1];
             }
             elements[idxInsert] = Node {key, value};
+            return true;
+        }
+
+        bool erase(const key_type& key)
+        {
+            if (size > 0 && (!compare(elements[0].key, key) || !compare(key, elements[size - 1].key)))
+            {
+                return true;
+            }
+
+            std::cout << "Erasing: " << key << std::endl;
+
+            const size_type idx = findInsertIndex(key);
+
+
+            std::cout << "Erasing: " << key << " at " << elements[idx].key << std::endl;
+
             return true;
         }
 
@@ -213,7 +218,7 @@ namespace static_sorted_flat_map_with_deletion::testing
 
     void validation()
     {
-        constexpr uint32_t collectionSize { 10 }, testDataSize = 1000;
+        constexpr uint32_t collectionSize { 10 }, testDataSize = 100;
         const std::vector<int32_t> data = getTestData(testDataSize);
 
         FlatMap<int, int> flatMap (collectionSize);
@@ -230,90 +235,74 @@ namespace static_sorted_flat_map_with_deletion::testing
         }
     }
 
-    void checkIsSorted_Ascending()
+    void erase_ascending()
     {
-        constexpr uint32_t collectionSize { 100 }, testDataSize = 10'000;
-        const std::vector<int32_t> data = getTestData(testDataSize);
+        constexpr uint32_t collectionSize { 10 };
 
         FlatMap<int, int> flatMap (collectionSize);
-        using Node = FlatMap<int, int>::Node;
-        for (uint32_t idx = 0; idx < testDataSize; ++idx)
-        {
-            const auto key = data[idx];
-            flatMap.push(key,key * 10);
-            const bool isSorted = std::is_sorted(flatMap.data(), flatMap.data() + flatMap.Size(), [](const Node& a, const Node& b) {
-                return b.key >= a.key;
-            });
-
-            AssertTrue(isSorted);
+        for (int i = 20; i >= 0; --i) {
+            flatMap.push(i,i * i);
         }
-        AssertEqual(collectionSize, flatMap.Size());
-        std::cout << "OK" << std::endl;
+
+        for (uint32_t idx = 0; idx < collectionSize; ++idx) {
+            const auto node = flatMap.elements[idx];
+            std::cout << "[" << idx << "] = { " << node.key<< " | " << node.value << " } " << std::endl;
+        }
+
+        std::cout << std::string(120, '-') << std::endl;
+        flatMap.erase(-1);
+        flatMap.erase(0);
+        flatMap.erase(1);
+        flatMap.erase(8);
+        flatMap.erase(9);
+        flatMap.erase(10);
+        std::cout << std::string(120, '-') << std::endl;
+
+        for (uint32_t idx = 0; idx < collectionSize; ++idx) {
+            const auto node = flatMap.elements[idx];
+            std::cout << "[" << idx << "] = { " << node.key<< " | " << node.value << " } " << std::endl;
+        }
     }
 
-    void checkIsSorted_Descending()
+    void erase_descending()
     {
-        constexpr uint32_t collectionSize { 100 }, testDataSize = 10'000;
-        const std::vector<int32_t> data = getTestData(testDataSize);
+        constexpr uint32_t collectionSize { 10 };
 
         FlatMap<int, int, SortOrder::Descending> flatMap (collectionSize);
-        using Node = decltype(flatMap)::Node;
-        for (uint32_t idx = 0; idx < testDataSize; ++idx)
-        {
-            const auto key = data[idx];
-            flatMap.push(key,key * 10);
-            const bool isSortedDesc = std::is_sorted(flatMap.data(), flatMap.data() + flatMap.Size(), [](const Node& a, const Node& b) {
-                return a.key >= b.key;
-            });
-
-            //print(flatMap);
-            AssertTrue(isSortedDesc);
+        for (int i = 0; i <= 20; ++i) {
+            flatMap.push(i,i * i);
         }
-        AssertEqual(collectionSize, flatMap.Size());
-        std::cout << "OK" << std::endl;
+
+        for (uint32_t idx = 0; idx < collectionSize; ++idx) {
+            const auto node = flatMap.elements[idx];
+            std::cout << "[" << idx << "] = { " << node.key<< " | " << node.value << " } " << std::endl;
+        }
+
+        std::cout << std::string(120, '-') << std::endl;
+        flatMap.erase(10);
+        flatMap.erase(11);
+        flatMap.erase(12);
+        flatMap.erase(19);
+        flatMap.erase(20);
+        flatMap.erase(21);
+        std::cout << std::string(120, '-') << std::endl;
+
+        for (uint32_t idx = 0; idx < collectionSize; ++idx) {
+            const auto node = flatMap.elements[idx];
+            std::cout << "[" << idx << "] = { " << node.key<< " | " << node.value << " } " << std::endl;
+        }
     }
 }
 
-namespace static_sorted_flat_map_with_deletion::testing::performance
-{
-    void benchmark_Ascending()
-    {
-        constexpr uint32_t collectionSize { 1'000 }, testDataSize = 100'000'000;
-        const std::vector<int32_t> data = getTestData(testDataSize);
-
-        PerfUtilities::ScopedTimer timer { "FlatMap"};
-        FlatMap<int, int> flatMap (collectionSize);
-        for (uint32_t idx = 0; idx < testDataSize; ++idx)
-        {
-            const auto key = data[idx];
-            flatMap.push(key, key);
-        }
-        AssertEqual(collectionSize, flatMap.Size());
-    }
-
-    void benchmark_Descending()
-    {
-        constexpr uint32_t collectionSize { 1'000 }, testDataSize = 100'000'000;
-        const std::vector<int32_t> data = getTestData(testDataSize);
-
-        PerfUtilities::ScopedTimer timer { "FlatMap"};
-        FlatMap<int, int, SortOrder::Descending> flatMap (collectionSize);
-        for (uint32_t idx = 0; idx < testDataSize; ++idx)
-        {
-            const auto key = data[idx];
-            flatMap.push(key, key);
-        }
-        AssertEqual(collectionSize, flatMap.Size());
-    }
-}
+// TODO:
+//  - front()
+//  - back()
 
 void collections::StaticSortedFlatMap_WithDeletion()
 {
-    static_sorted_flat_map_with_deletion::testing::validation();
+    // static_sorted_flat_map_with_deletion::testing::validation();
+    static_sorted_flat_map_with_deletion::testing::erase_ascending();
+    // static_sorted_flat_map_with_deletion::testing::erase_descending();
 
-    //static_sorted_flat_map_with_deletion::testing::checkIsSorted_Ascending();
-    // static_sorted_flat_map_with_deletion::testing::checkIsSorted_Descending();
 
-    // static_sorted_flat_map_with_deletion::testing::performance::benchmark_Ascending();
-    // static_sorted_flat_map_with_deletion::testing::performance::benchmark_Descending();
 }

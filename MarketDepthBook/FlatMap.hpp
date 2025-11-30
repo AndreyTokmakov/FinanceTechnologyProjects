@@ -124,22 +124,22 @@ namespace flat_map
         }
 
         [[nodiscard]]
-        const_pointer data() const {
-            return _data.get();
-        }
-
-        [[nodiscard]]
         size_type size() const noexcept {
             return _size;
         }
 
         [[nodiscard]]
-        const_pointer front() const noexcept {
+        node_pointer data() const {
+            return _data.get();
+        }
+
+        [[nodiscard]]
+        node_pointer front() const noexcept {
             return _data[0];
         }
 
         [[nodiscard]]
-        const_pointer back() const noexcept {
+        node_pointer back() const noexcept {
             return _data[_size - 1];
         }
 

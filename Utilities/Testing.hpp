@@ -41,21 +41,6 @@ namespace testing
     template<typename Ty>
     constexpr void AssertEqual(const Ty& expected,
                                const Ty& actual,
-                               const Action action = Action::Terminate,
-                               const std::source_location& location = std::source_location::current())
-    {
-        if (expected != actual)
-        {
-            std::println(std::cerr, "Assertation failed: {} != {}",expected, actual);
-            printLocation(location);
-            performAction(action);
-        }
-    }
-
-    // TODO: Add concepts to 'Ty'
-    template<typename Ty>
-    constexpr void AssertEqual(const Ty& expected,
-                               const Ty& actual,
                                const std::string_view message,
                                const Action action = Action::Terminate,
                                const std::source_location& location = std::source_location::current())
@@ -70,16 +55,12 @@ namespace testing
 
     // TODO: Add concepts to 'Ty'
     template<typename Ty>
-    constexpr void AssertNotNull(const Ty* actual,
-                                 const Action action = Action::Terminate,
-                                 const std::source_location& location = std::source_location::current())
+    constexpr void AssertEqual(const Ty& expected,
+                               const Ty& actual,
+                               const Action action = Action::Terminate,
+                               const std::source_location& location = std::source_location::current())
     {
-        if (nullptr == actual)
-        {
-            std::println(std::cerr, "Assertion failed (Actual value is null)");
-            printLocation(location);
-            performAction(action);
-        }
+        AssertEqual(expected, actual, "Assertion failed:", action, location);
     }
 
     // TODO: Add concepts to 'Ty'
@@ -99,16 +80,11 @@ namespace testing
 
     // TODO: Add concepts to 'Ty'
     template<typename Ty>
-    constexpr void AssertIsNull(const Ty* actual,
-                                const Action action = Action::Terminate,
-                                const std::source_location& location = std::source_location::current())
+    constexpr void AssertNotNull(const Ty* actual,
+                                 const Action action = Action::Terminate,
+                                 const std::source_location& location = std::source_location::current())
     {
-        if (nullptr != actual)
-        {
-            std::println(std::cerr, "Assertion failed (Actual value is not null)");
-            printLocation(location);
-            performAction(action);
-        }
+        AssertNotNull(actual, "Assertion failed (Actual value is null)", action, location);
     }
 
     // TODO: Add concepts to 'Ty'
@@ -126,16 +102,13 @@ namespace testing
         }
     }
 
-    constexpr void AssertTrue(const bool condition,
-                              const Action action = Action::Terminate,
-                              const std::source_location& location = std::source_location::current())
+    // TODO: Add concepts to 'Ty'
+    template<typename Ty>
+    constexpr void AssertIsNull(const Ty* actual,
+                                const Action action = Action::Terminate,
+                                const std::source_location& location = std::source_location::current())
     {
-        if (!condition)
-        {
-            std::println(std::cerr, "Assertation failed");
-            printLocation(location);
-            performAction(action);
-        }
+        AssertIsNull(actual, "Assertion failed (Actual value is not null)", action, location);
     }
 
     constexpr void AssertTrue(const bool condition,
@@ -151,16 +124,11 @@ namespace testing
         }
     }
 
-    constexpr void AssertFalse(const bool condition,
-                               const Action action = Action::Terminate,
-                               const std::source_location& location = std::source_location::current())
+    constexpr void AssertTrue(const bool condition,
+                              const Action action = Action::Terminate,
+                              const std::source_location& location = std::source_location::current())
     {
-        if (condition)
-        {
-            std::println(std::cerr, "Condition is True (False expected):");
-            printLocation(location);
-            performAction(action);
-        }
+        AssertTrue(condition, "Condition is False (True expected):", action, location);
     }
 
     constexpr void AssertFalse(const bool condition,
@@ -174,6 +142,13 @@ namespace testing
             printLocation(location);
             performAction(action);
         }
+    }
+
+    constexpr void AssertFalse(const bool condition,
+                               const Action action = Action::Terminate,
+                               const std::source_location& location = std::source_location::current())
+    {
+        AssertFalse(condition, "Condition is True (False expected):", action, location);
     }
 }
 

@@ -66,100 +66,97 @@ namespace static_sorted_flat_map
         using const_pointer  = const node_pointer;
         using array_type     = Node[];
 
-        size_type size { 0 };
-        size_type capacity { 0 };
-        std::unique_ptr<array_type> elements { nullptr };
-
         explicit FlatMap(const size_type capacity) :
-                size { 0 }, capacity { capacity }, elements { std::make_unique<array_type>(capacity) }  {
+                _size { 0 }, _capacity { capacity }, _data { std::make_unique<array_type>(capacity) }  {
         }
 
         FlatMap(const FlatMap & other):
-                size { other.size },
-                capacity { other.capacity },
-                elements { std::make_unique_for_overwrite<array_type>(capacity) }
+                _size { other._size },
+                _capacity { other._capacity },
+                _data { std::make_unique_for_overwrite<array_type>(_capacity) }
         {
-            std::copy_n(other.elements.get(), size, elements.get());
+            std::copy_n(other._data.get(), _size, _data.get());
         }
 
         FlatMap & operator=(const FlatMap & other)
         {
-            size = other.size;
-            capacity = other.capacity;
-            elements = std::make_unique_for_overwrite<array_type>(capacity);
-            std::copy_n(other.elements.get(), size, elements.get());
+            _size = other._size;
+            _capacity = other._capacity;
+            _data = std::make_unique_for_overwrite<array_type>(_capacity);
+            std::copy_n(other._data.get(), _size, _data.get());
 
             return *this;
         }
 
         FlatMap(FlatMap && other) noexcept:
-                size { std::exchange(other.size, 0) },
-                capacity { std::exchange(other.capacity, 0) },
-                elements { std::move(other.elements) }
+                _size { std::exchange(other._size, 0) },
+                _capacity { std::exchange(other._capacity, 0) },
+                _data { std::move(other._data) }
         {
         }
 
         FlatMap & operator=(FlatMap && other) noexcept
         {
-            size = std::exchange(other.size, 0);
-            capacity = std::exchange(other.capacity, 0);
-            elements = std::move(other.elements);
+            _size = std::exchange(other._size, 0);
+            _capacity = std::exchange(other._capacity, 0);
+            _data = std::move(other._data);
 
             return *this;
         }
 
+        bool push(const key_type& key, const value_type& value)
+        {
+            if (_size > 0 && !compare(key, _data[_size - 1].key))
+            {
+                if (_size == _capacity)
+                    return false;
+                _data[_size++] = Node {key, value};
+                return true;
+            }
+
+            const size_type idxInsert = findInsertIndex(key);
+            if (_capacity == idxInsert || key == _data[idxInsert].key) { // TODO: Fixme
+                return false;
+            }
+
+            _size = (_capacity == _size) ? _size : _size + 1;
+            // __builtin_prefetch(elements.get() + size - 32, 0, 2);
+            for (size_type i = _size - 1; i > idxInsert; --i) { /** TODO: Prefetch **/
+                _data[i] = _data[i - 1];
+            }
+            _data[idxInsert] = Node {key, value};
+            return true;
+        }
+
+        [[nodiscard]]
+        const_pointer data() const noexcept {
+            return _data.get();
+        }
+
+        [[nodiscard]]
+        size_type size() const noexcept {
+            return _size;
+        }
+
+    private:
+
+        size_type _size { 0 };
+        size_type _capacity { 0 };
+        std::unique_ptr<array_type> _data { nullptr };
+
         [[nodiscard]]
         size_type findInsertIndex(const key_type& key) const noexcept
         {
-            size_type left = 0, right = size;
+            size_type left = 0, right = _size;
             while (left < right)
             {
                 const size_type mid = (left + right) >> 1;
-                if (compare(key, elements[mid].key))
+                if (compare(key, _data[mid].key))
                     right = mid;
                 else
                     left = mid + 1;
             }
             return left;
-        }
-
-        bool push(const key_type& key, const value_type& value)
-        {
-            if (size > 0 && !compare(key, elements[size - 1].key))
-            {
-                if (size == capacity)
-                    return false;
-                elements[size++] = Node {key, value};
-                return true;
-            }
-
-            const size_type idxInsert = findInsertIndex(key);
-            if (capacity == idxInsert || key == elements[idxInsert].key) { // TODO: Fixme
-                return false;
-            }
-
-            size = (capacity == size) ? size : size + 1;
-            // __builtin_prefetch(elements.get() + size - 32, 0, 2);
-            for (size_type i = size - 1; i > idxInsert; --i) { /** TODO: Prefetch **/
-                elements[i] = elements[i - 1];
-            }
-            elements[idxInsert] = Node {key, value};
-            return true;
-        }
-
-        [[nodiscard]]
-        node_pointer data() {
-            return elements.get();
-        }
-
-        [[nodiscard]]
-        const_pointer data() const {
-            return elements.get();
-        }
-
-        [[nodiscard]]
-        size_type Size() const {
-            return size;
         }
 
         static constexpr bool compare(const key_type& a, const key_type& b) noexcept __attribute__((always_inline))
@@ -213,7 +210,7 @@ namespace static_sorted_flat_map::testing
 
         for (uint32_t idx = 0; idx < collectionSize; ++idx)
         {
-            const auto node = flatMap.elements[idx];
+            const auto node = flatMap.data()[idx];
             std::cout << "[" << idx << "] = { " << node.key<< " | " << node.value << " } " << std::endl;
         }
     }
@@ -229,13 +226,13 @@ namespace static_sorted_flat_map::testing
         {
             const auto key = data[idx];
             flatMap.push(key,key * 10);
-            const bool isSorted = std::is_sorted(flatMap.data(), flatMap.data() + flatMap.Size(), [](const Node& a, const Node& b) {
+            const bool isSorted = std::is_sorted(flatMap.data(), flatMap.data() + flatMap.size(), [](const Node& a, const Node& b) {
                 return b.key >= a.key;
             });
 
             AssertTrue(isSorted);
         }
-        AssertEqual(collectionSize, flatMap.Size());
+        AssertEqual(collectionSize, flatMap.size());
         std::cout << "OK" << std::endl;
     }
 
@@ -250,14 +247,14 @@ namespace static_sorted_flat_map::testing
         {
             const auto key = data[idx];
             flatMap.push(key,key * 10);
-            const bool isSortedDesc = std::is_sorted(flatMap.data(), flatMap.data() + flatMap.Size(), [](const Node& a, const Node& b) {
+            const bool isSortedDesc = std::is_sorted(flatMap.data(), flatMap.data() + flatMap.size(), [](const Node& a, const Node& b) {
                 return a.key >= b.key;
             });
 
             //print(flatMap);
             AssertTrue(isSortedDesc);
         }
-        AssertEqual(collectionSize, flatMap.Size());
+        AssertEqual(collectionSize, flatMap.size());
         std::cout << "OK" << std::endl;
     }
 }
@@ -276,7 +273,7 @@ namespace static_sorted_flat_map::testing::performance
             const auto key = data[idx];
             flatMap.push(key, key);
         }
-        AssertEqual(collectionSize, flatMap.Size());
+        AssertEqual(collectionSize, flatMap.size());
     }
 
     void benchmark_Descending()
@@ -291,7 +288,7 @@ namespace static_sorted_flat_map::testing::performance
             const auto key = data[idx];
             flatMap.push(key, key);
         }
-        AssertEqual(collectionSize, flatMap.Size());
+        AssertEqual(collectionSize, flatMap.size());
     }
 }
 
@@ -302,11 +299,10 @@ namespace static_sorted_flat_map::testing::performance
 
 void collections::StaticSortedFlatMap()
 {
-    static_sorted_flat_map::testing::validation();
-
-    //static_sorted_flat_map::testing::checkIsSorted_Ascending();
+    // static_sorted_flat_map::testing::validation();
+    // static_sorted_flat_map::testing::checkIsSorted_Ascending();
     // static_sorted_flat_map::testing::checkIsSorted_Descending();
 
-    // static_sorted_flat_map::testing::performance::benchmark_Ascending();
+    static_sorted_flat_map::testing::performance::benchmark_Ascending();
     // static_sorted_flat_map::testing::performance::benchmark_Descending();
 }

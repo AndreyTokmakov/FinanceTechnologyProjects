@@ -47,8 +47,10 @@ namespace static_sorted_array
         Descending
     };
 
+    // TODO: Concepts on <K>
+    //  - Comparable
     template<typename Ty, SortOrder ordering = SortOrder::Ascending>
-    struct SortedArray
+    class  SortedArray
     {
         using size_type      = uint32_t;
         using value_type     = Ty;
@@ -56,56 +58,92 @@ namespace static_sorted_array
         using const_pointer  = const pointer;
         using array_type     = value_type[];
 
-        size_type size { 0 };
-        size_type capacity { 0 };
-        std::unique_ptr<array_type> elements { nullptr };
+        size_type _size { 0 };
+        size_type _capacity { 0 };
+        std::unique_ptr<array_type> _data { nullptr };
+
+    public:
 
         explicit SortedArray(const size_type capacity) :
-                size { 0 }, capacity { capacity }, elements { std::make_unique<array_type>(capacity) }  {
+                _size { 0 }, _capacity { capacity }, _data { std::make_unique<array_type>(capacity) }  {
         }
 
         SortedArray(const SortedArray & other):
-                size { other.size },
-                capacity { other.capacity },
-                elements { std::make_unique_for_overwrite<array_type>(capacity) }
+                _size { other._size },
+                _capacity { other._capacity },
+                _data { std::make_unique_for_overwrite<array_type>(_capacity) }
         {
-            std::copy_n(other.elements.get(), size, elements.get());
+            std::copy_n(other._data.get(), _size, _data.get());
         }
 
         SortedArray & operator=(const SortedArray & other)
         {
-            size = other.size;
-            capacity = other.capacity;
-            elements = std::make_unique_for_overwrite<array_type>(capacity);
-            std::copy_n(other.elements.get(), size, elements.get());
+            _size = other._size;
+            _capacity = other._capacity;
+            _data = std::make_unique_for_overwrite<array_type>(_capacity);
+            std::copy_n(other._data.get(), _size, _data.get());
 
             return *this;
         }
 
         SortedArray(SortedArray && other) noexcept:
-                size { std::exchange(other.size, 0) },
-                capacity { std::exchange(other.capacity, 0) },
-                elements { std::move(other.elements) }
+                _size { std::exchange(other._size, 0) },
+                _capacity { std::exchange(other._capacity, 0) },
+                _data { std::move(other._data) }
         {
         }
 
         SortedArray & operator=(SortedArray && other) noexcept
         {
-            size = std::exchange(other.size, 0);
-            capacity = std::exchange(other.capacity, 0);
-            elements = std::move(other.elements);
+            _size = std::exchange(other._size, 0);
+            _capacity = std::exchange(other._capacity, 0);
+            _data = std::move(other._data);
 
             return *this;
         }
 
+        bool push(const value_type item)
+        {
+            if (_size > 0 && item > _data[_size - 1])
+            {
+                if (_size == _capacity)
+                    return false;
+                _data[_size++] = item;
+                return true;
+            }
+
+            const size_type idxInsert = findInsertIndex(item);
+            if (_capacity == idxInsert || item == _data[idxInsert]) {
+                return false;
+            }
+
+            _size = (_capacity == _size) ? _size : _size + 1;
+            for (size_type i = _size - 1; i > idxInsert; --i) /** TODO: Prefetch **/
+                _data[i] = _data[i - 1];
+            _data[idxInsert] = item;
+            return true;
+        }
+
+        [[nodiscard]]
+        const_pointer data() const noexcept {
+            return _data.get();
+        }
+
+        [[nodiscard]]
+        size_type size() const noexcept {
+            return _size;
+        }
+
+    private:
+
         [[nodiscard]]
         size_type findInsertIndex(const value_type item) const noexcept
         {
-            size_type left = 0, right = size;
+            size_type left = 0, right = _size;
             while (left < right)
             {
                 const size_type mid = (left + right) >> 1;
-                if (better(item, elements[mid]))
+                if (compare(item, _data[mid]))
                     right = mid;
                 else
                     left = mid + 1;
@@ -113,46 +151,7 @@ namespace static_sorted_array
             return left;
         }
 
-        bool push(const value_type item)
-        {
-            if (size > 0 && item > elements[size - 1])
-            {
-                if (size == capacity)
-                    return false;
-                elements[size++] = item;
-                return true;
-            }
-
-            const size_type idxInsert = findInsertIndex(item);
-            if (capacity == idxInsert || item == elements[idxInsert]) {
-                return false;
-            }
-
-            size = (capacity == size) ? size : size + 1;
-            for (size_type i = size - 1; i > idxInsert; --i) /** TODO: Prefetch **/
-                elements[i] = elements[i - 1];
-            elements[idxInsert] = item;
-            return true;
-        }
-
-        [[nodiscard]]
-        pointer data() {
-            return elements.get();
-        }
-
-        [[nodiscard]]
-        const_pointer data() const {
-            return elements.get();
-        }
-
-        [[nodiscard]]
-        size_type Size() const {
-            return size;
-        }
-
-        // TODO: compiler flags 'always inline'
-        // TODO: Rename
-        static constexpr bool better(const value_type a, const value_type b) noexcept
+        static constexpr bool compare(const value_type& a, const value_type& b) noexcept __attribute__((always_inline))
         {
             if constexpr (SortOrder::Descending == ordering)
                 return a >= b;
@@ -227,7 +226,7 @@ namespace static_sorted_array::testing
             push<int32_t, int32_t, collectionSize>(map, key, key);
         }
 
-        if (map.size() != array.Size()) {
+        if (map.size() != array.size()) {
             std::cerr << "ERROR: Size mismatch" << std::endl;
             return;
         }
@@ -236,7 +235,7 @@ namespace static_sorted_array::testing
         for (uint32_t idx = 0; idx < collectionSize; ++idx)
         {
             const auto valMap = iter->first;
-            const auto valArr = array.elements[idx];
+            const auto valArr = array.data()[idx];
 
             std::cout << "[" << idx << "] = { " << valMap<< " | " << valArr << " } ";
             if (valMap != valArr) {

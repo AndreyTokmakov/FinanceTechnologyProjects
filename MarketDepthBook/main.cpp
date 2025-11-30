@@ -10,6 +10,7 @@ Description :
 #include <vector>
 #include <iostream>
 #include <string_view>
+#include <optional>
 
 #include "FlatMap.hpp"
 
@@ -33,17 +34,39 @@ struct MarketDepthBook
     using Price = double;
     using Quantity = double;
 
-    flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Descending> asks {MaxDepth };
+    flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Descending> asks { MaxDepth };
     flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Ascending>  bids { MaxDepth };
 
     void buyUpdate(const Price price, const Quantity quantity)
     {
         if (quantity != 0) {
-            const flat_map::FlatMap<double, double>::node_pointer result = bids.push(price, quantity);
+            const auto result = bids.push(price, quantity);
             result->value = quantity;
-            return;
         }
-        bids.erase(price);
+        else {
+            bids.erase(price);
+        }
+    }
+
+    void askUpdate(const Price price, const Quantity quantity)
+    {
+        if (quantity != 0) {
+            const auto result = asks.push(price, quantity);
+            result->value = quantity;
+        }
+        else {
+            asks.erase(price);
+        }
+    }
+
+    [[nodiscard]]
+    std::optional<std::pair<Price, Quantity>> getBestBid() const noexcept
+    {
+        if (bids.size() == 0) {
+            return std::nullopt;
+        }
+        const auto [price, quantity] = *(bids.front());
+        return std::make_optional(std::make_pair(price, quantity));
     }
 
     // TODO:
@@ -53,6 +76,45 @@ struct MarketDepthBook
     //  - number of asks / bids ?
 };
 
+namespace testing
+{
+    enum class Side {
+        Buy,
+        Sell
+    };
+
+    struct DepthUpdate
+    {
+        double price { 0.0 };
+        double quantity { 0.0 };
+        Side side { Side::Buy };
+    };
+
+    void handleUpdate(MarketDepthBook& book,
+                      const DepthUpdate& depthUpdate)
+    {
+        if (Side::Buy == depthUpdate.side) {
+            book.buyUpdate(depthUpdate.price, depthUpdate.quantity);
+        }
+        else {
+            book.askUpdate(depthUpdate.price, depthUpdate.quantity);
+        }
+    }
+
+    void handleEvents(MarketDepthBook& book,
+                      const std::vector<DepthUpdate>& events)
+    {
+        for (const auto& event : events) {
+            handleUpdate(book, event);
+        }
+    }
+
+    void test1()
+    {
+        MarketDepthBook book;
+        handleEvents(book, { { 100.0, 100.0, Side::Buy } });
+    }
+}
 
 
 int main([[maybe_unused]] int argc,

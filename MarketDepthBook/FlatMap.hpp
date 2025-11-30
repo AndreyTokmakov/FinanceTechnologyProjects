@@ -135,12 +135,12 @@ namespace flat_map
 
         [[nodiscard]]
         node_pointer front() const noexcept {
-            return _data[0];
+            return &(_data[0]);
         }
 
         [[nodiscard]]
         node_pointer back() const noexcept {
-            return _data[_size - 1];
+            return &(_data[_size - 1]);
         }
 
     private:

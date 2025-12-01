@@ -374,6 +374,32 @@ namespace testing
         AssertEqual(22.02, quantity);
     }
 
+    void test_Ask_Delete_Non_BA()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+            { 201.00, 11.01, Side::Sell },
+            { 200.01, 10.01, Side::Sell },
+            { 202.02, 12.07, Side::Sell },
+            { 201.60, 11.01, Side::Sell }
+        });
+
+        const uint32_t asksSize = book.asks.size();
+
+        handleEvents(book, {
+            { 202.02, 0, Side::Sell }
+        });
+
+        AssertEqual(asksSize - 1, book.asks.size());
+
+        const std::optional<std::pair<double, double>> bestAsk = book.getBestAsk();
+        AssertTrue(bestAsk.has_value());
+
+        const auto [price, quantity] = bestAsk.value();
+        AssertEqual(200.01, price);
+        AssertEqual(10.01, quantity);
+    }
+
     void test_load()
     {
         MarketDepthBook book;
@@ -409,9 +435,8 @@ namespace testing
 //  + Single Ask - check Best Ask
 //  + Multiple Ask - Check BA
 //  + Update Exising BA
-//  - Delete Exising (BA) Ask - Check BA
-//  - Delete Exising (non BA) Ask - Check BA
-
+//  + Delete Exising (BA) Ask - Check BA
+//  + Delete Exising (non BA) Ask - Check BA
 
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv,
@@ -431,13 +456,10 @@ int main([[maybe_unused]] const int argc,
     testing::test_Ask_MultipleBuy();
     testing::test_Ask_UpdateBA();
     testing::test_Ask_Delete_BA();
-
-
-
+    testing::test_Ask_Delete_Non_BA();
 
     // testing::test_Ask_1();
     // testing::test_load();
-
 
     return EXIT_SUCCESS;
 }

@@ -15,23 +15,8 @@ Description :
 #include <iomanip>
 #include <numeric>
 
-
 #include "FlatMap.hpp"
 #include "Testing.hpp"
-
-
-namespace
-{
-    template<typename K, typename V, flat_map::SortOrder ordering = flat_map::SortOrder::Ascending>
-    std::ostream& operator<<(std::ostream& stream, const flat_map::FlatMap<K, V, ordering>& map)
-    {
-        for (uint32_t idx = 0; idx < map.size(); ++idx) {
-            stream << map.data()[idx].key << " => " << map.data()[idx].value << std::endl;
-        }
-        return stream;
-    }
-}
-
 
 struct MarketDepthBook
 {
@@ -42,28 +27,26 @@ struct MarketDepthBook
     flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Ascending>   asks { MaxDepth };
     flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Descending>  bids { MaxDepth };
 
-    void buyUpdate(const Price price, const Quantity quantity)
+    template<flat_map::SortOrder ordering>
+    void handlePriceUpdate(flat_map::FlatMap<Price, Quantity, ordering>& priceMap,
+                           const Price price,
+                           const Quantity quantity)
     {
-        if (quantity != 0) {
-            if (const auto result = bids.push(price, quantity)) {
-                result->value = quantity;
-            }
+        if (0 == quantity) {
+            priceMap.erase(price);
+            return;
         }
-        else {
-            bids.erase(price);
+        if (const auto result = priceMap.push(price, quantity)) {
+            result->value = quantity;
         }
     }
 
-    void askUpdate(const Price price, const Quantity quantity)
-    {
-        if (quantity != 0) {
-            if (const auto result = asks.push(price, quantity)) {
-                result->value = quantity;
-            }
-        }
-        else {
-            asks.erase(price);
-        }
+    void buyUpdate(const Price price, const Quantity quantity) {
+        handlePriceUpdate(bids, price, quantity);
+    }
+
+    void askUpdate(const Price price, const Quantity quantity) {
+        handlePriceUpdate(asks, price, quantity);
     }
 
     [[nodiscard]]
@@ -507,6 +490,8 @@ namespace testing::market_price
 
         AssertTrue(book.getMarketPrice().has_value());
         AssertEqual(201.05, book.getMarketPrice().value());
+        // print(book);
+
     }
 }
 
@@ -556,7 +541,10 @@ namespace testing::performance
 //  + Simple Basic test
 
 // TODO: MarketPrice
-//  +
+//  + No Events
+//  + Just Sell - 0
+//  + Just Buy - 0
+//  + Simple Basic test
 
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv,

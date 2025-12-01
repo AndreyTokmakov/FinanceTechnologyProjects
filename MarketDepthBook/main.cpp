@@ -13,6 +13,7 @@ Description :
 #include <optional>
 #include <format>
 #include <iomanip>
+#include <numeric>
 
 
 #include "FlatMap.hpp"
@@ -68,7 +69,7 @@ struct MarketDepthBook
     [[nodiscard]]
     std::optional<std::pair<Price, Quantity>> getBestBid() const noexcept
     {
-        if (bids.size() == 0) {
+        if (bids.empty()) {
             return std::nullopt;
         }
         const auto [price, quantity] = *(bids.front());
@@ -78,18 +79,30 @@ struct MarketDepthBook
     [[nodiscard]]
     std::optional<std::pair<Price, Quantity>> getBestAsk() const noexcept
     {
-        if (asks.size() == 0) {
+        if (asks.empty()) {
             return std::nullopt;
         }
         const auto [price, quantity] = *(asks.front());
         return std::make_optional(std::make_pair(price, quantity));
     }
 
-    // TODO:
-    //  - bid()
-    //  - ask()
-    //  - spread()
-    //  - number of asks / bids ?
+    [[nodiscard]]
+    std::optional<Price> getMarketPrice() const noexcept
+    {
+        if (asks.empty() || bids.empty()) {
+            return std::nullopt;
+        }
+        return std::midpoint(asks.front()->key, bids.front()->key);
+    }
+
+    [[nodiscard]]
+    Price getSpread() const noexcept
+    {
+        if (asks.empty() || bids.empty()) {
+            return 0.0;
+        }
+        return std::abs(asks.front()->key - bids.front()->key);
+    }
 };
 
 namespace printer
@@ -188,8 +201,11 @@ namespace testing
             handleUpdate(book, event);
         }
     }
+}
 
-    void test_Bid_Empty()
+namespace testing::bids
+{
+    void test_Empty()
     {
         MarketDepthBook book;
         handleEvents(book, {});
@@ -198,7 +214,7 @@ namespace testing
         AssertFalse(bestBid.has_value());
     }
 
-    void test_Bid_SingleBuy()
+    void test_SingleBuy()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -213,7 +229,7 @@ namespace testing
         AssertEqual(10.01, quantity);
     }
 
-    void test_Bid_MultipleBuy()
+    void test_MultipleBuy()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -230,7 +246,7 @@ namespace testing
         AssertEqual(12.07, quantity);
     }
 
-    void test_Bid_UpdateBB()
+    void test_UpdateBB()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -250,7 +266,7 @@ namespace testing
         AssertEqual(12.01, quantity);
     }
 
-    void test_Bid_Delete_BB()
+    void test_Delete_BB()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -270,7 +286,7 @@ namespace testing
         AssertEqual(11.011, quantity);
     }
 
-    void test_Bid_Delete_Non_BB()
+    void test_Delete_Non_BB()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -296,8 +312,11 @@ namespace testing
         AssertEqual(102.02, price);
         AssertEqual(12.07, quantity);
     }
+}
 
-    void test_Ask_Empty()
+namespace testing::ask
+{
+    void test_Empty()
     {
         MarketDepthBook book;
         handleEvents(book, {});
@@ -306,7 +325,7 @@ namespace testing
         AssertFalse(bestAsk.has_value());
     }
 
-    void test_Ask_SingleBuy()
+    void test_SingleBuy()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -321,7 +340,7 @@ namespace testing
         AssertEqual(20.02, quantity);
     }
 
-    void test_Ask_MultipleBuy()
+    void test_MultipleBuy()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -338,7 +357,7 @@ namespace testing
         AssertEqual(20.01, quantity);
     }
 
-    void test_Ask_UpdateBA()
+    void test_UpdateBA()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -356,7 +375,7 @@ namespace testing
         AssertEqual(10.0123, quantity);
     }
 
-    void test_Ask_Delete_BA()
+    void test_Delete_BA()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -374,7 +393,7 @@ namespace testing
         AssertEqual(22.02, quantity);
     }
 
-    void test_Ask_Delete_Non_BA()
+    void test_Delete_Non_BA()
     {
         MarketDepthBook book;
         handleEvents(book, {
@@ -399,7 +418,100 @@ namespace testing
         AssertEqual(200.01, price);
         AssertEqual(10.01, quantity);
     }
+}
 
+namespace testing::spread
+{
+    void test_No_Events()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {});
+
+        AssertEqual(0.0, book.getSpread());
+    }
+
+    void test_No_BuyEvents()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+        { 202.02, 21.01, Side::Sell },
+        { 200.03, 20.01, Side::Sell }
+        });
+
+        AssertEqual(0.0, book.getSpread());
+    }
+
+    void test_No_SellEvents()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+        { 202.02, 21.01, Side::Buy },
+        { 200.03, 20.01, Side::Buy }
+        });
+
+        AssertEqual(0.0, book.getSpread());
+    }
+
+    void test_Couple_of_Updates()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+            { 202.02, 21.01, Side::Sell },
+            { 200.03, 20.01, Side::Buy }
+        });
+
+        AssertTrue(1.991 > book.getSpread() && book.getSpread() >= 1.990);
+    }
+}
+
+
+namespace testing::market_price
+{
+    void test_No_Events()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {});
+
+        AssertFalse(book.getMarketPrice().has_value());
+    }
+
+    void test_No_BuyEvents()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+            { 202.02, 21.01, Side::Sell },
+            { 200.03, 20.01, Side::Sell }
+        });
+
+        AssertFalse(book.getMarketPrice().has_value());
+    }
+
+    void test_No_SellEvents()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+            { 202.02, 21.01, Side::Buy },
+            { 200.03, 20.01, Side::Buy }
+        });
+
+        AssertFalse(book.getMarketPrice().has_value());
+    }
+
+    void test_Basic_1()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+                { 202.02, 21.01, Side::Sell },
+                { 200.08, 20.01, Side::Buy }
+        });
+
+        AssertTrue(book.getMarketPrice().has_value());
+        AssertEqual(201.05, book.getMarketPrice().value());
+    }
+}
+
+namespace testing::performance
+{
     void test_load()
     {
         MarketDepthBook book;
@@ -421,7 +533,6 @@ namespace testing
     }
 }
 
-
 // TODO: BID
 //  + Empty - no Best Buy
 //  + Single Buy - check Best Buy
@@ -438,28 +549,47 @@ namespace testing
 //  + Delete Exising (BA) Ask - Check BA
 //  + Delete Exising (non BA) Ask - Check BA
 
+// TODO: Spread
+//  + No Events
+//  + Just Sell - 0
+//  + Just Buy - 0
+//  + Simple Basic test
+
+// TODO: MarketPrice
+//  +
+
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv,
          [[maybe_unused]] char** env)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
+    using namespace testing;
 
-    testing::test_Bid_Empty();
-    testing::test_Bid_SingleBuy();
-    testing::test_Bid_MultipleBuy();
-    testing::test_Bid_UpdateBB();
-    testing::test_Bid_Delete_BB();
-    testing::test_Bid_Delete_Non_BB();
+    bids::test_Empty();
+    bids::test_SingleBuy();
+    bids::test_MultipleBuy();
+    bids::test_UpdateBB();
+    bids::test_Delete_BB();
+    bids::test_Delete_Non_BB();
 
-    testing::test_Ask_Empty();
-    testing::test_Ask_SingleBuy();
-    testing::test_Ask_MultipleBuy();
-    testing::test_Ask_UpdateBA();
-    testing::test_Ask_Delete_BA();
-    testing::test_Ask_Delete_Non_BA();
+    ask::test_Empty();
+    ask::test_SingleBuy();
+    ask::test_MultipleBuy();
+    ask::test_UpdateBA();
+    ask::test_Delete_BA();
+    ask::test_Delete_Non_BA();
 
-    // testing::test_Ask_1();
-    // testing::test_load();
+    spread::test_No_Events();
+    spread::test_No_BuyEvents();
+    spread::test_No_SellEvents();
+    spread::test_Couple_of_Updates();
+
+    market_price::test_No_Events();
+    market_price::test_No_BuyEvents();
+    market_price::test_No_SellEvents();
+    market_price::test_Basic_1();
+
+    // performance::test_load();
 
     return EXIT_SUCCESS;
 }

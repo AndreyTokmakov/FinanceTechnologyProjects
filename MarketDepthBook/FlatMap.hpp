@@ -129,6 +129,11 @@ namespace flat_map
         }
 
         [[nodiscard]]
+        size_type empty() const noexcept {
+            return 0 == _size;
+        }
+
+        [[nodiscard]]
         node_pointer data() const {
             return _data.get();
         }

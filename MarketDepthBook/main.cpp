@@ -75,6 +75,16 @@ struct MarketDepthBook
         return std::make_optional(std::make_pair(price, quantity));
     }
 
+    [[nodiscard]]
+    std::optional<std::pair<Price, Quantity>> getBestAsk() const noexcept
+    {
+        if (asks.size() == 0) {
+            return std::nullopt;
+        }
+        const auto [price, quantity] = *(asks.front());
+        return std::make_optional(std::make_pair(price, quantity));
+    }
+
     // TODO:
     //  - bid()
     //  - ask()
@@ -287,14 +297,81 @@ namespace testing
         AssertEqual(12.07, quantity);
     }
 
-    void test_Ask_1()
+    void test_Ask_Empty()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {});
+
+        const std::optional<std::pair<double, double>> bestAsk = book.getBestAsk();
+        AssertFalse(bestAsk.has_value());
+    }
+
+    void test_Ask_SingleBuy()
     {
         MarketDepthBook book;
         handleEvents(book, {
-            { 101.0, 11.0, Side::Sell },
-            { 102.0, 12.0, Side::Sell },
+            { 201.01, 20.02, Side::Sell },
         });
-        print(book);
+
+        const std::optional<std::pair<double, double>> bestAsk = book.getBestAsk();
+        AssertTrue(bestAsk.has_value());
+
+        const auto [price, quantity] = bestAsk.value();
+        AssertEqual(201.01, price);
+        AssertEqual(20.02, quantity);
+    }
+
+    void test_Ask_MultipleBuy()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+            { 202.02, 21.01, Side::Sell },
+            { 200.01, 20.01, Side::Sell },
+            { 201.55, 22.02, Side::Sell },
+        });
+
+        const std::optional<std::pair<double, double>> bestAsk = book.getBestAsk();
+        AssertTrue(bestAsk.has_value());
+
+        const auto [price, quantity] = bestAsk.value();
+        AssertEqual(200.01, price);
+        AssertEqual(20.01, quantity);
+    }
+
+    void test_Ask_UpdateBA()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+            { 202.02, 21.01, Side::Sell },
+            { 200.01, 20.01, Side::Sell },
+            { 201.55, 22.02, Side::Sell },
+            { 200.01, 10.0123, Side::Sell },
+
+        });
+        const std::optional<std::pair<double, double>> bestAsk = book.getBestAsk();
+        AssertTrue(bestAsk.has_value());
+
+        const auto [price, quantity] = bestAsk.value();
+        AssertEqual(200.01, price);
+        AssertEqual(10.0123, quantity);
+    }
+
+    void test_Ask_Delete_BA()
+    {
+        MarketDepthBook book;
+        handleEvents(book, {
+            { 202.02, 21.01, Side::Sell },
+            { 200.01, 20.01, Side::Sell },
+            { 201.55, 22.02, Side::Sell },
+            { 200.01, 0, Side::Sell },
+
+        });
+        const std::optional<std::pair<double, double>> bestAsk = book.getBestAsk();
+        AssertTrue(bestAsk.has_value());
+
+        const auto [price, quantity] = bestAsk.value();
+        AssertEqual(201.55, price);
+        AssertEqual(22.02, quantity);
     }
 
     void test_load()
@@ -327,6 +404,15 @@ namespace testing
 //  + Delete Exising (BB) Buy - Check BB
 //  + Delete Exising (non BB) Buy - Check BB
 
+// TODO: ASK
+//  + Empty - no Best Ask
+//  + Single Ask - check Best Ask
+//  + Multiple Ask - Check BA
+//  + Update Exising BA
+//  - Delete Exising (BA) Ask - Check BA
+//  - Delete Exising (non BA) Ask - Check BA
+
+
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv,
          [[maybe_unused]] char** env)
@@ -339,6 +425,13 @@ int main([[maybe_unused]] const int argc,
     testing::test_Bid_UpdateBB();
     testing::test_Bid_Delete_BB();
     testing::test_Bid_Delete_Non_BB();
+
+    testing::test_Ask_Empty();
+    testing::test_Ask_SingleBuy();
+    testing::test_Ask_MultipleBuy();
+    testing::test_Ask_UpdateBA();
+    testing::test_Ask_Delete_BA();
+
 
 
 

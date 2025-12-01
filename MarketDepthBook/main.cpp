@@ -27,10 +27,10 @@ struct MarketDepthBook
     flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Ascending>   asks { MaxDepth };
     flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Descending>  bids { MaxDepth };
 
-    template<flat_map::SortOrder ordering>
-    void handlePriceUpdate(flat_map::FlatMap<Price, Quantity, ordering>& priceMap,
-                           const Price price,
-                           const Quantity quantity)
+    template<flat_map::SortOrder Ordering>
+    static void handlePriceUpdate(flat_map::FlatMap<Price, Quantity, Ordering>& priceMap,
+                                  const Price price,
+                                  const Quantity quantity)
     {
         if (0 == quantity) {
             priceMap.erase(price);
@@ -39,6 +39,18 @@ struct MarketDepthBook
         if (const auto result = priceMap.push(price, quantity)) {
             result->value = quantity;
         }
+    }
+
+    template<flat_map::SortOrder Ordering>
+    [[nodiscard]]
+    static std::optional<std::pair<Price, Quantity>>
+    getBestPrice(const flat_map::FlatMap<Price, Quantity, Ordering>& priceMap) noexcept
+    {
+        if (priceMap.empty()) {
+            return std::nullopt;
+        }
+        const auto [price, quantity] = *(priceMap.front());
+        return std::make_optional(std::make_pair(price, quantity));
     }
 
     void buyUpdate(const Price price, const Quantity quantity) {
@@ -50,23 +62,13 @@ struct MarketDepthBook
     }
 
     [[nodiscard]]
-    std::optional<std::pair<Price, Quantity>> getBestBid() const noexcept
-    {
-        if (bids.empty()) {
-            return std::nullopt;
-        }
-        const auto [price, quantity] = *(bids.front());
-        return std::make_optional(std::make_pair(price, quantity));
+    std::optional<std::pair<Price, Quantity>> getBestBid() const noexcept {
+        return getBestPrice(bids);
     }
 
     [[nodiscard]]
-    std::optional<std::pair<Price, Quantity>> getBestAsk() const noexcept
-    {
-        if (asks.empty()) {
-            return std::nullopt;
-        }
-        const auto [price, quantity] = *(asks.front());
-        return std::make_optional(std::make_pair(price, quantity));
+    std::optional<std::pair<Price, Quantity>> getBestAsk() const noexcept {
+        return getBestPrice(asks);
     }
 
     [[nodiscard]]

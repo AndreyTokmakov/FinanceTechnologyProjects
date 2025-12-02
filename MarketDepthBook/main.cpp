@@ -7,6 +7,7 @@ Copyright   : Your copyright notice
 Description :
 ============================================================================**/
 
+#include <chrono>
 #include <vector>
 #include <iostream>
 #include <string_view>
@@ -14,6 +15,8 @@ Description :
 #include <format>
 #include <iomanip>
 #include <numeric>
+#include <map>
+#include <random>
 
 #include "FlatMap.hpp"
 #include "Testing.hpp"
@@ -499,13 +502,65 @@ namespace testing::market_price
 
 namespace testing::performance
 {
+    using Price    = double;
+    using Quantity = double;
+
+    std::random_device rd{};
+    std::mt19937 generator = std::mt19937 {rd()};
+
+    template<typename Ty>
+    [[nodiscard]]
+    Ty getRandomInRange(const Ty start, const Ty end) noexcept
+    {
+        if constexpr (std::is_integral_v<Ty>) {
+            return std::uniform_int_distribution<Ty> {start, end}(generator);
+        }
+        else if constexpr (std::is_floating_point_v<Ty>) {
+            return std::uniform_real_distribution<Ty> {start, end}(generator);
+        }
+        else {
+            throw std::invalid_argument("getRandomInRange: Invalid type");
+        }
+    }
+
+    template<typename Ty = int32_t>
+    [[nodiscard]]
+    std::vector<Ty> getTestData(const size_t size = 10'000'000,
+                                const Ty start = Ty(0),
+                                const Ty end = Ty(10'000'000))
+    {
+        std::vector<Ty> data(size);
+        for (size_t i = 0; i < size; ++i) {
+            data[i] = getRandomInRange<Ty>(start, end);
+        }
+        return data;
+    }
+
+    template<typename K, typename V, typename Comparator >
+    std::ostream& operator<<(std::ostream& stream, const std::map<K, V, Comparator>& map)
+    {
+        for (const auto & [k, v]: map)
+            stream << "{" << k << " = " << v << "}\n";
+        return stream;
+    }
+
+    template<typename K, typename V, size_t MaxSize, typename Comparator>
+    bool push(std::map<K, V, Comparator>& map, const K& key, const V& value)
+    {
+        map.emplace(key, value);
+        if (MaxSize + 1 == map.size()) {
+            map.erase(--map.end());
+        }
+        return true;
+    }
+
     void test_load()
     {
         MarketDepthBook book;
 
         double buyPrice = 100.0, sellPrice = 200.0;
         double buyQuantity = 10.0, sellQuantity = 10.0;
-        for (int i = 0; i < 100; ++i)
+        for (int i = 0; i < 10000; ++i)
         {
             handleUpdate(book, DepthUpdate { .price=buyPrice, .quantity=buyQuantity, .side= Side::Buy });
             buyPrice += 0.001;
@@ -517,6 +572,60 @@ namespace testing::performance
         }
 
         print(book);
+    }
+
+    void complex_test()
+    {
+        static constexpr uint32_t Depth { 10 };
+        // static constexpr uint32_t testDataSize = 100'000'000;
+        static constexpr uint32_t testDataSize = 100;
+        const std::vector<Price> data = getTestData<double>(testDataSize, 1.0, 100.0);
+
+        std::map<Price, Quantity, std::less<>> bidMap;
+        std::map<Price, Quantity, std::greater<>> askMap;
+
+        for (uint32_t idx = 0; idx < testDataSize; ++idx)
+        {
+            const Price price = data[idx];
+            const Quantity quantity = price / 2;
+            push<Price, Quantity, Depth>(bidMap, price, quantity);
+            push<Price, Quantity, Depth>(askMap, price, quantity);
+
+            if (1 == (idx & 1))
+            {
+                if (!bidMap.empty())
+                {
+                    const size_t randBidNum = getRandomInRange<size_t>(0, bidMap.size());
+                    auto itBeginBid = bidMap.begin();
+                    std::advance(itBeginBid, randBidNum);
+                    if (bidMap.erase(itBeginBid->first))
+                    {
+                        // std::cout << "Deleting bid: " << itBeginBid->first << std::endl;
+                    }
+                }
+
+                if (!askMap.empty())
+                {
+                    const size_t randAskNum = getRandomInRange<size_t>(0, askMap.size());
+                    auto itBeginAsk = askMap.begin();
+                    std::advance(itBeginAsk, randAskNum);
+                    if (askMap.erase(itBeginAsk->first))
+                    {
+                        // std::cout << "Deleting ask: " << itBeginAsk->first << std::endl;
+                    }
+                }
+            }
+
+            if (!bidMap.empty() && !askMap.empty())
+            {
+                const Price bestBid = bidMap.begin()->first;
+                const Price bestAsk = askMap.begin()->first;
+                std::cout << "Best Bid: " << bestBid << ", Best Ask: " << bestAsk << std::endl;
+            }
+        }
+
+        // std::cout << bidMap << std::endl;
+        // std::cout << askMap << std::endl;
     }
 }
 
@@ -555,6 +664,7 @@ int main([[maybe_unused]] const int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
     using namespace testing;
 
+    /**
     bids::test_Empty();
     bids::test_SingleBuy();
     bids::test_MultipleBuy();
@@ -578,8 +688,14 @@ int main([[maybe_unused]] const int argc,
     market_price::test_No_BuyEvents();
     market_price::test_No_SellEvents();
     market_price::test_Basic_1();
+    **/
 
     // performance::test_load();
+    performance::complex_test();
+
+
+
+
 
     return EXIT_SUCCESS;
 }

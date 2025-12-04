@@ -17,7 +17,6 @@ Description :
 #include <map>
 #include <random>
 
-#include "FlatMap.hpp"
 #include "MarketDepthBook.hpp"
 #include "Testing.hpp"
 

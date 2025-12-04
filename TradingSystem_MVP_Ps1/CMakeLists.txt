@@ -10,7 +10,9 @@ add_compile_options(-c -Wall -Wextra -Wno-interference-size -O3 -std=c++26)
 # include all components
 add_executable(${PROJECT_NAME}
         common/Buffer.hpp common/Buffer.cpp
+        common/FlatMap.hpp
         common/RingBuffer.hpp
+        common/MarketDepthBook.hpp
         common/Common.hpp
         common/Types.hpp
         market_data/MarketData.hpp

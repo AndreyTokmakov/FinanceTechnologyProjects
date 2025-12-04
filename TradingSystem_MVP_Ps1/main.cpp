@@ -279,7 +279,8 @@ namespace pricer_test
 {
     struct EventPrinter
     {
-        price_engine::PricingEngine& pricingEngine;
+        // price_engine::PricingEngine& pricingEngine;
+        price_engine::PricingEngineEx& pricingEngineEx;
 
         void operator()(const BookTicker&) const { }
         void operator()(const MiniTicker&) const { }
@@ -314,8 +315,10 @@ namespace pricer_test
     {
         const std::vector<std::string> data = readFile(getDataDir() / "depth.json");
 
-        price_engine::PricingEngine pricingEngine;
-        EventPrinter eventPrinter { .pricingEngine = pricingEngine };
+        // price_engine::PricingEngine pricingEngine;
+        price_engine::PricingEngineEx pricingEngineEx;
+
+        EventPrinter eventPrinter { .pricingEngineEx = pricingEngineEx };
         for (const auto& entry: data)
         {
             const nlohmann::json jsonData = nlohmann::json::parse(entry);

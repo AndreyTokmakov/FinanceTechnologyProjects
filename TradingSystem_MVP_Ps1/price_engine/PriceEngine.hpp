@@ -12,6 +12,7 @@ Description : PriceEngine.hpp
 
 #include <boost/container/flat_map.hpp>
 #include "../common/Types.hpp"
+#include "../common/MarketDepthBook.hpp"
 
 namespace price_engine
 {
@@ -44,6 +45,8 @@ namespace price_engine
         void handleBidUpdate(const PriceLevel& priceLevel);
         void handleAskUpdate(const PriceLevel& priceLevel);
     };
+
+    using PricingEngineEx = depth_book::MarketDepthBook<Price, Quantity>;
 };
 
 #endif //FINANCETECHNOLOGYPROJECTS_PRICEENGINE_HPP

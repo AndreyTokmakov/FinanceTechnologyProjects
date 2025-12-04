@@ -10,17 +10,17 @@ Description : MarketDepthBook.hpp
 #ifndef FINANCETECHNOLOGYPROJECTS_MARKETDEPTHBOOK_HPP
 #define FINANCETECHNOLOGYPROJECTS_MARKETDEPTHBOOK_HPP
 
+#include <numeric>
 #include <optional>
 #include "FlatMap.hpp"
 
 
 namespace depth_book
 {
+    template<class Price, class Quantity>
     struct MarketDepthBook
     {
         constexpr static size_t MaxDepth { 1'000 };
-        using Price    = double;
-        using Quantity = double;
 
         flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Ascending>   asks { MaxDepth };
         flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Descending>  bids { MaxDepth };

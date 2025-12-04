@@ -288,15 +288,13 @@ namespace pricer_test
         void operator()(const NoYetImplemented&) const { }
         void operator()(const DepthUpdate& depthUpdate) const
         {
-            /*
-            std::cout << "DepthUpdate { bids: " << depthUpdate.bids.size()
-                << ". asks: " << depthUpdate.asks.size() << "}\n";*/
-            for (const common::PriceLevel& lvl: depthUpdate.bids) {
+            std::cout << "DepthUpdate { bids: " << depthUpdate.bids.size() << ". asks: " << depthUpdate.asks.size() << "}\n";
+            /*for (const common::PriceLevel& lvl: depthUpdate.bids) {
                 pricingEngine.handleBidUpdate(lvl);
             }
             for (const common::PriceLevel& lvl: depthUpdate.asks) {
                 pricingEngine.handleAskUpdate(lvl);
-            }
+            }*/
         }
     };
 
@@ -323,9 +321,11 @@ namespace pricer_test
             const nlohmann::json jsonData = nlohmann::json::parse(entry);
             BinanceMarketEvent event = BinanceParserJson::parseDepthUpdate(jsonData[JsonParams::data]);
             std::visit(eventPrinter, event);
+
+            std::this_thread::sleep_for(std::chrono::milliseconds (100U));
         }
 
-        print(pricingEngine);
+        // print(pricingEngine);
     }
 }
 

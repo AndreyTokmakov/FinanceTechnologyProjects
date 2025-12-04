@@ -11,7 +11,6 @@ Description :
 #include <vector>
 #include <iostream>
 #include <string_view>
-#include <optional>
 #include <format>
 #include <iomanip>
 #include <numeric>
@@ -19,83 +18,14 @@ Description :
 #include <random>
 
 #include "FlatMap.hpp"
+#include "MarketDepthBook.hpp"
 #include "Testing.hpp"
 
-struct MarketDepthBook
-{
-    constexpr static size_t MaxDepth { 1'000 };
-    using Price    = double;
-    using Quantity = double;
-
-    flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Ascending>   asks { MaxDepth };
-    flat_map::FlatMap<Price, Quantity, flat_map::SortOrder::Descending>  bids { MaxDepth };
-
-    template<flat_map::SortOrder Ordering>
-    static void handlePriceUpdate(flat_map::FlatMap<Price, Quantity, Ordering>& priceMap,
-                                  const Price price,
-                                  const Quantity quantity)
-    {
-        if (0 == quantity) {
-            priceMap.erase(price);
-            return;
-        }
-        if (const auto result = priceMap.push(price, quantity)) {
-            result->value = quantity;
-        }
-    }
-
-    template<flat_map::SortOrder Ordering>
-    [[nodiscard]]
-    static std::optional<std::pair<Price, Quantity>>
-    getBestPrice(const flat_map::FlatMap<Price, Quantity, Ordering>& priceMap) noexcept
-    {
-        if (priceMap.empty()) {
-            return std::nullopt;
-        }
-        const auto [price, quantity] = *(priceMap.front());
-        return std::make_optional(std::make_pair(price, quantity));
-    }
-
-    void buyUpdate(const Price price, const Quantity quantity) {
-        handlePriceUpdate(bids, price, quantity);
-    }
-
-    void askUpdate(const Price price, const Quantity quantity) {
-        handlePriceUpdate(asks, price, quantity);
-    }
-
-    [[nodiscard]]
-    std::optional<std::pair<Price, Quantity>> getBestBid() const noexcept {
-        return getBestPrice(bids);
-    }
-
-    [[nodiscard]]
-    std::optional<std::pair<Price, Quantity>> getBestAsk() const noexcept {
-        return getBestPrice(asks);
-    }
-
-    [[nodiscard]]
-    std::optional<Price> getMarketPrice() const noexcept
-    {
-        if (asks.empty() || bids.empty()) {
-            return std::nullopt;
-        }
-        return std::midpoint(asks.front()->key, bids.front()->key);
-    }
-
-    [[nodiscard]]
-    Price getSpread() const noexcept
-    {
-        if (asks.empty() || bids.empty()) {
-            return 0.0;
-        }
-        return std::abs(asks.front()->key - bids.front()->key);
-    }
-};
 
 namespace printer
 {
     using namespace std::string_view_literals;
+    using namespace depth_book;
 
     static constexpr std::string_view red   = "\033[31m"sv;
     static constexpr std::string_view green = "\033[32m"sv;
@@ -153,6 +83,7 @@ namespace printer
 namespace testing
 {
     using namespace ::testing;
+    using namespace depth_book;
 
     void print(const MarketDepthBook& depthBook)
     {

@@ -11,6 +11,7 @@ add_compile_options(-c -Wall -Wextra -O3 -std=c++26)
 add_executable(${PROJECT_NAME}
         main.cpp
         FlatMap.hpp
+        MarketDepthBook.hpp
 )
 
 # message("CMAKE_SOURCE_DIR       : ${CMAKE_SOURCE_DIR}")

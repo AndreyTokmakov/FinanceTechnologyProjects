@@ -280,7 +280,7 @@ namespace pricer_test
     struct EventPrinter
     {
         // price_engine::PricingEngine& pricingEngine;
-        price_engine::PricingEngineEx& pricingEngineEx;
+        price_engine::PricingEngineEx& pricingEngine;
 
         void operator()(const BookTicker&) const { }
         void operator()(const MiniTicker&) const { }
@@ -289,13 +289,17 @@ namespace pricer_test
         void operator()(const NoYetImplemented&) const { }
         void operator()(const DepthUpdate& depthUpdate) const
         {
-            std::cout << "DepthUpdate { bids: " << depthUpdate.bids.size() << ". asks: " << depthUpdate.asks.size() << "}\n";
-            /*for (const common::PriceLevel& lvl: depthUpdate.bids) {
-                pricingEngine.handleBidUpdate(lvl);
+            for (const auto&[price, quantity]: depthUpdate.bids) {
+                pricingEngine.buyUpdate(price, quantity);
             }
-            for (const common::PriceLevel& lvl: depthUpdate.asks) {
-                pricingEngine.handleAskUpdate(lvl);
-            }*/
+            for (const auto&[price, quantity]: depthUpdate.asks) {
+                pricingEngine.askUpdate(price, quantity);
+            }
+            std::cout << "DepthUpdate { bids: " << depthUpdate.bids.size() << ". asks: " << depthUpdate.asks.size() << "}  "
+                    << " Spread: " << pricingEngine.getSpread()
+                    << ", Market Price: " << pricingEngine.getMarketPrice().value_or(0)
+                    << ", Book [bids: " << pricingEngine.bids.size() << ", asks: " << pricingEngine.asks.size() << "]"
+                    << std::endl;
         }
     };
 
@@ -318,14 +322,14 @@ namespace pricer_test
         // price_engine::PricingEngine pricingEngine;
         price_engine::PricingEngineEx pricingEngineEx;
 
-        EventPrinter eventPrinter { .pricingEngineEx = pricingEngineEx };
+        EventPrinter eventPrinter { .pricingEngine = pricingEngineEx };
         for (const auto& entry: data)
         {
             const nlohmann::json jsonData = nlohmann::json::parse(entry);
             BinanceMarketEvent event = BinanceParserJson::parseDepthUpdate(jsonData[JsonParams::data]);
             std::visit(eventPrinter, event);
 
-            std::this_thread::sleep_for(std::chrono::milliseconds (100U));
+            std::this_thread::sleep_for(std::chrono::milliseconds (1U));
         }
 
         // print(pricingEngine);

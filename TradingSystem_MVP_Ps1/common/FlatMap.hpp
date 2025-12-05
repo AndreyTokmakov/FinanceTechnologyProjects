@@ -86,8 +86,8 @@ namespace flat_map
             {
                 if (_size == _capacity)
                     return nullptr;
-                _data[_size++] = Node {key, value};
-                return &(_data[_size]);
+                _data[_size] = Node {key, value};
+                return &(_data[_size++]);
             }
 
             const size_type idxInsert = findInsertIndex(key);

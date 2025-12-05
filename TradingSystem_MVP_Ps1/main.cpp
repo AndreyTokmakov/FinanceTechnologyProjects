@@ -329,7 +329,7 @@ namespace pricer_test
             BinanceMarketEvent event = BinanceParserJson::parseDepthUpdate(jsonData[JsonParams::data]);
             std::visit(eventPrinter, event);
 
-            std::this_thread::sleep_for(std::chrono::milliseconds (1U));
+            // std::this_thread::sleep_for(std::chrono::milliseconds (1U));
         }
 
         // print(pricingEngine);

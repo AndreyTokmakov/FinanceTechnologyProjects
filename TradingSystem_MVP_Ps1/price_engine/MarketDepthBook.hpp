@@ -15,7 +15,7 @@ Description : MarketDepthBook.hpp
 #include "FlatMap.hpp"
 
 
-namespace depth_book
+namespace price_engine
 {
     template<class Price, class Quantity>
     struct MarketDepthBook

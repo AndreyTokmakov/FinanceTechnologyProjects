@@ -14,14 +14,16 @@ Description :
 #include <vector>
 #include <thread>
 
-#include "common/Buffer.hpp"
-#include "common/RingBuffer.hpp"
-#include "market_data/Parser.hpp"
-#include "price_engine/PriceEngine.hpp"
+#include "Buffer.hpp"
+#include "RingBuffer.hpp"
+#include "Parser.hpp"
+#include "price_engine/MarketDepthBook.hpp"
 
+/** Utilities **/
 // #include "FinalAction.hpp"
 // #include "DateTimeUtilities.hpp"
 
+/** JSON lib - Remove/Replace **/
 #include <nlohmann/json.hpp>
 
 namespace
@@ -143,27 +145,27 @@ namespace
 
     struct EventHandler
     {
-        void operator()(const BookTicker& ticker) const {
+        void operator()([[maybe_unused]] const BookTicker& ticker) const {
             // std::cout << ticker << std::endl;
             std::cout << "Pricer [CPU: " << getCpu() << "] : BookTicker" << std::endl;
         }
-        void operator()(const MiniTicker& ticker) const {
+        void operator()([[maybe_unused]] const MiniTicker& ticker) const {
             // std::cout << ticker << std::endl;
             std::cout << "Pricer [CPU: " << getCpu() << "] : MiniTicker" << std::endl;
         }
-        void operator()(const Trade& trade) const {
+        void operator()([[maybe_unused]] const Trade& trade) const {
             // std::cout << trade << std::endl;
             std::cout << "Pricer [CPU: " << getCpu() << "] : Trade" << std::endl;
         }
-        void operator()(const AggTrade& aggTrade) const {
+        void operator()([[maybe_unused]] const AggTrade& aggTrade) const {
             // std::cout << aggTrade << std::endl;
             std::cout << "Pricer [CPU: " << getCpu() << "] : AggTrade" << std::endl;
         }
-        void operator()(const DepthUpdate& depthUpdate) const {
+        void operator()([[maybe_unused]] const DepthUpdate& depthUpdate) const {
             std::cout << depthUpdate << std::endl;
             // std::cout << "Pricer [CPU: " << getCpu() << "] : DepthUpdate" << std::endl;
         }
-        void operator()(const NoYetImplemented&) const {
+        void operator()([[maybe_unused]] const NoYetImplemented&) const {
             std::cerr << "NoYetImplemented" << std::endl;
         }
     };
@@ -171,7 +173,7 @@ namespace
     template<PricerType PricerT>
     struct DummyParser
     {
-        using JsonParams = JsonParams;
+        using JsonParams  = JsonParams;
         using StreamNames = StreamNames;
 
         PricerT& pricer;
@@ -277,10 +279,13 @@ namespace
 
 namespace pricer_test
 {
+    using common::Price;
+    using common::Quantity;
+    using PricingEngine = price_engine::MarketDepthBook<Price, Quantity>;
+
     struct EventPrinter
     {
-        // price_engine::PricingEngine& pricingEngine;
-        price_engine::PricingEngineEx& pricingEngine;
+        PricingEngine& pricingEngine;
 
         void operator()(const BookTicker&) const { }
         void operator()(const MiniTicker&) const { }
@@ -303,8 +308,9 @@ namespace pricer_test
         }
     };
 
-    void print(const price_engine::PricingEngine& pricingEngine)
+    void print(const PricingEngine&)
     {
+        /*
         std::cout << "BIDS:" << std::endl;
         for (const auto& [price, quantity]: pricingEngine.bidPriceLevelMap) {
             std::cout << "\t { price: " << price << ", quantity: " << quantity << "}\n";
@@ -312,17 +318,15 @@ namespace pricer_test
         std::cout << "ASKS:" << std::endl;
         for (const auto& [price, quantity]: pricingEngine.askPriceLevelMap) {
             std::cout << "\t { price: " << price << ", quantity: " << quantity << "}\n";
-        }
+        }*/
     }
 
     void pricerTests()
     {
         const std::vector<std::string> data = readFile(getDataDir() / "depth.json");
 
-        // price_engine::PricingEngine pricingEngine;
-        price_engine::PricingEngineEx pricingEngineEx;
-
-        EventPrinter eventPrinter { .pricingEngine = pricingEngineEx };
+        PricingEngine pricingEngine;
+        EventPrinter eventPrinter { .pricingEngine = pricingEngine };
         for (const auto& entry: data)
         {
             const nlohmann::json jsonData = nlohmann::json::parse(entry);

@@ -7,17 +7,23 @@ project(${PROJECT_NAME} VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
 add_compile_options(-c -Wall -Wextra -Wno-interference-size -O3 -std=c++26)
 
+set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/${PROJECT_NAME})
+set(COMMON ${PROJECT_DIR}/common)
+set(MARKET_DATA ${PROJECT_DIR}/market_data)
+
+include_directories(${COMMON})
+include_directories(${MARKET_DATA})
+
 # include all components
 add_executable(${PROJECT_NAME}
-        common/Buffer.hpp common/Buffer.cpp
-        common/FlatMap.hpp
-        common/RingBuffer.hpp
-        common/MarketDepthBook.hpp
-        common/Common.hpp
-        common/Types.hpp
-        market_data/MarketData.hpp
-        market_data/Parser.cpp market_data/Parser.hpp
-        price_engine/PriceEngine.cpp price_engine/PriceEngine.hpp
+        ${COMMON}/Buffer.hpp common/Buffer.cpp
+        ${COMMON}/FlatMap.hpp
+        ${COMMON}/RingBuffer.hpp
+        ${COMMON}/Common.hpp
+        ${COMMON}/Types.hpp
+        ${MARKET_DATA}/MarketData.hpp
+        ${MARKET_DATA}/Parser.cpp market_data/Parser.hpp
+        price_engine/MarketDepthBook.hpp
         main.cpp
 )
 

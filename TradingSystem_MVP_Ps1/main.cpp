@@ -317,7 +317,7 @@ int main([[maybe_unused]] const int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
     startService();
-    // tests::pricerTests();
+    tests::pricerTests();
 
     return EXIT_SUCCESS;
 }

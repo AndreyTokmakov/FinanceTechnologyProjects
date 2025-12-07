@@ -7,14 +7,32 @@ project(${PROJECT_NAME} VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
 add_compile_options(-c -Wall -Wextra -Wno-interference-size -O3 -std=c++26)
 
-set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/${PROJECT_NAME})
-set(COMMON      ${PROJECT_DIR}/common)
-set(MARKET_DATA ${PROJECT_DIR}/market_data)
-set(UTILS       ${PROJECT_DIR}/utils)
+set(PROJECT_DIR  ${CMAKE_SOURCE_DIR}/${PROJECT_NAME})
+set(COMMON       ${PROJECT_DIR}/common)
+set(PRICE_ENGINE ${PROJECT_DIR}/price_engine)
+set(PARSER       ${PROJECT_DIR}/parser)
+set(MARKET_DATA  ${PROJECT_DIR}/market_data)
+set(CONNECTORS   ${PROJECT_DIR}/connectors)
+set(UTILS        ${PROJECT_DIR}/utils)
 
 include_directories(${COMMON})
+include_directories(${CONNECTORS})
 include_directories(${MARKET_DATA})
+include_directories(${PARSER})
+include_directories(${PRICE_ENGINE})
 include_directories(${UTILS})
+
+link_directories(${THIRD_PARTY_DIR}/openssl)
+include_directories(${THIRD_PARTY_DIR}/openssl/include)
+
+# Nlohmann JSON
+include_directories(${THIRD_PARTY_DIR}/json/include)
+
+# IXWebSocket
+include_directories(${THIRD_PARTY_DIR}/IXWebSocket)
+link_directories(${THIRD_PARTY_DIR}/IXWebSocket/build)
+
+message(${THIRD_PARTY_DIR}/IXWebSocket/build)
 
 # include all components
 add_executable(${PROJECT_NAME}
@@ -25,21 +43,14 @@ add_executable(${PROJECT_NAME}
         ${COMMON}/Types.hpp
         ${MARKET_DATA}/MarketData.hpp
         ${MARKET_DATA}/Formatting.hpp
-        ${MARKET_DATA}/BinanceDataParser.cpp market_data/BinanceDataParser.hpp
-        price_engine/PriceEngine.hpp price_engine/PriceEngine.cpp
-        parser/Parser.hpp parser/Parser.cpp
-        connectors/Connector.cpp connectors/Connector.hpp
-        tests/Tests.cpp
+        ${MARKET_DATA}/BinanceDataParser.cpp
+        ${PRICE_ENGINE}/PriceEngine.cpp
+        ${PARSER}/Parser.cpp
+        ${CONNECTORS}/Connector.cpp ${CONNECTORS}/Connector.hpp
         ${UTILS}/Utils.cpp
+        tests/Tests.cpp
         main.cpp
 )
-
-# Nlohmann JSON
-include_directories(${THIRD_PARTY_DIR}/json/include)
-
-# SIND JSON
-# include_directories(${THIRD_PARTY_DIR}/simdjson/include)
-# target_link_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/simdjson/build)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")
 target_link_directories(${PROJECT_NAME} PUBLIC "${CMAKE_BINARY_DIR}/Utilities")
@@ -47,5 +58,9 @@ target_link_directories(${PROJECT_NAME} PUBLIC "${CMAKE_BINARY_DIR}/Utilities")
 target_link_libraries(${PROJECT_NAME}
         utils
         pthread
+        crypto
+        ssl
+        ixwebsocket
+        z
         ${EXTRA_LIBS}
 )

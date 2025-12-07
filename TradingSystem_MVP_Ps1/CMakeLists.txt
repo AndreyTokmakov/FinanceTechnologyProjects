@@ -22,7 +22,7 @@ add_executable(${PROJECT_NAME}
         ${COMMON}/Common.hpp
         ${COMMON}/Types.hpp
         ${MARKET_DATA}/MarketData.hpp
-        ${MARKET_DATA}/Parser.cpp market_data/Parser.hpp
+        ${MARKET_DATA}/Parser.cpp
         price_engine/MarketDepthBook.hpp
         tests/Tests.cpp
         utilities/Utilities.cpp utilities/Utilities.hpp

@@ -34,6 +34,8 @@ namespace connectors
         std::vector<std::string> data;
         size_t readPost { 0 };
     };
+
+    void run();
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_CONNECTOR_HPP

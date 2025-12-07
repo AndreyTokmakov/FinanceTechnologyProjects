@@ -11,11 +11,10 @@ Description : BinanceDataParser.cpp
 
 namespace
 {
-    constexpr inline double asDouble(const nlohmann::json& data){
+    constexpr double asDouble(const nlohmann::json& data){
         return std::stod(data.get_ref<const std::string&>());
     };
 }
-
 
 
 namespace BinanceParserJson

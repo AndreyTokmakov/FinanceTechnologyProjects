@@ -9,8 +9,6 @@ Description :
 
 #include <iostream>
 #include <string_view>
-#include <filesystem>
-#include <fstream>
 #include <vector>
 #include <thread>
 
@@ -18,31 +16,8 @@ Description :
 #include "RingBuffer.hpp"
 #include "Parser.hpp"
 #include "price_engine/MarketDepthBook.hpp"
-
-/** Utilities **/
-// #include "FinalAction.hpp"
-// #include "DateTimeUtilities.hpp"
-
-/** JSON lib - Remove/Replace **/
-#include <nlohmann/json.hpp>
-
-namespace
-{
-    constexpr std::filesystem::path getDataDir() noexcept
-    {
-        return std::filesystem::current_path() / "../../Parsers_JSON/data/binance/";
-    }
-
-    std::vector<std::string> readFile(const std::filesystem::path &filePath)
-    {
-        std::vector<std::string> lines;
-        if (std::ifstream file(filePath); file.is_open() && file.good()){
-            while (std::getline(file, lines.emplace_back())) { /** **/ }
-        }
-        lines.pop_back();
-        return lines;
-    }
-}
+#include "tests/Tests.hpp"
+#include "utilities/Utilities.hpp"
 
 namespace
 {
@@ -78,6 +53,7 @@ namespace
     };
 
 
+    // TODO: Rename >>>
     template<ConnectorType ConnectorT, ParserType ParserT>
     struct DataFeederBase
     {
@@ -98,7 +74,7 @@ namespace
         void run()
         {
             connectorThread = std::jthread { [&] { runConnector(); } };
-            parserThread = std::jthread { [&] { runParser(); } };
+            parserThread    = std::jthread { [&] { runParser(); } };
         }
 
     private:
@@ -170,12 +146,10 @@ namespace
         }
     };
 
+
     template<PricerType PricerT>
     struct DummyParser
     {
-        using JsonParams  = JsonParams;
-        using StreamNames = StreamNames;
-
         PricerT& pricer;
 
         explicit DummyParser(PricerT& pricer): pricer { pricer } {
@@ -214,12 +188,12 @@ namespace
         }
     };
 
-    struct TestConnector
+    struct FileData_DummyConnector
     {
         [[nodiscard]]
         bool init()
         {
-            data = readFile(getDataDir() / "allData2.json");
+            data =  utilities::readFile(utilities::getDataDir() / "allData2.json");
             return !data.empty();
         }
 
@@ -276,73 +250,9 @@ namespace
     };
 }
 
-
-namespace pricer_test
-{
-    using common::Price;
-    using common::Quantity;
-    using PricingEngine = price_engine::MarketDepthBook<Price, Quantity>;
-
-    struct EventPrinter
-    {
-        PricingEngine& pricingEngine;
-
-        void operator()(const BookTicker&) const { }
-        void operator()(const MiniTicker&) const { }
-        void operator()(const Trade&) const {}
-        void operator()(const AggTrade&) const { }
-        void operator()(const NoYetImplemented&) const { }
-        void operator()(const DepthUpdate& depthUpdate) const
-        {
-            for (const auto&[price, quantity]: depthUpdate.bids) {
-                pricingEngine.buyUpdate(price, quantity);
-            }
-            for (const auto&[price, quantity]: depthUpdate.asks) {
-                pricingEngine.askUpdate(price, quantity);
-            }
-            std::cout << "DepthUpdate { bids: " << depthUpdate.bids.size() << ". asks: " << depthUpdate.asks.size() << "}  "
-                    << " Spread: " << pricingEngine.getSpread()
-                    << ", Market Price: " << pricingEngine.getMarketPrice().value_or(0)
-                    << ", Book [bids: " << pricingEngine.bids.size() << ", asks: " << pricingEngine.asks.size() << "]"
-                    << std::endl;
-        }
-    };
-
-    void print(const PricingEngine&)
-    {
-        /*
-        std::cout << "BIDS:" << std::endl;
-        for (const auto& [price, quantity]: pricingEngine.bidPriceLevelMap) {
-            std::cout << "\t { price: " << price << ", quantity: " << quantity << "}\n";
-        }
-        std::cout << "ASKS:" << std::endl;
-        for (const auto& [price, quantity]: pricingEngine.askPriceLevelMap) {
-            std::cout << "\t { price: " << price << ", quantity: " << quantity << "}\n";
-        }*/
-    }
-
-    void pricerTests()
-    {
-        const std::vector<std::string> data = readFile(getDataDir() / "depth.json");
-
-        PricingEngine pricingEngine;
-        EventPrinter eventPrinter { .pricingEngine = pricingEngine };
-        for (const auto& entry: data)
-        {
-            const nlohmann::json jsonData = nlohmann::json::parse(entry);
-            BinanceMarketEvent event = BinanceParserJson::parseDepthUpdate(jsonData[JsonParams::data]);
-            std::visit(eventPrinter, event);
-
-            // std::this_thread::sleep_for(std::chrono::milliseconds (1U));
-        }
-
-        // print(pricingEngine);
-    }
-}
-
 void startService()
 {
-    TestConnector connector;
+    FileData_DummyConnector connector;
     if (!connector.init()) {
         std::cerr << "Failed to init connector" << std::endl;
         return;
@@ -363,7 +273,7 @@ int main([[maybe_unused]] const int argc,
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
     // startService();
-    pricer_test::pricerTests();
+    tests::pricerTests();
 
     return EXIT_SUCCESS;
 }

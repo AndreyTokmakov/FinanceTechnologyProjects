@@ -24,6 +24,8 @@ add_executable(${PROJECT_NAME}
         ${MARKET_DATA}/MarketData.hpp
         ${MARKET_DATA}/Parser.cpp market_data/Parser.hpp
         price_engine/MarketDepthBook.hpp
+        tests/Tests.cpp
+        utilities/Utilities.cpp utilities/Utilities.hpp
         main.cpp
 )
 

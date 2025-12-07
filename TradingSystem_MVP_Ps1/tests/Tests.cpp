@@ -61,6 +61,8 @@ namespace pricer_test
                     << " Spread: " << pricingEngine.getSpread()
                     << ", Market Price: " << pricingEngine.getMarketPrice().value_or(0)
                     << ", Book [bids: " << pricingEngine.bids.size() << ", asks: " << pricingEngine.asks.size() << "]"
+                    << ", Best [bid: " << pricingEngine.getBestBid().value_or({}).first
+                    << ", ask: " << pricingEngine.getBestAsk().value_or({}).first << "]"
                     << std::endl;
         }
     };
@@ -84,12 +86,14 @@ namespace pricer_test
 
         PricingEngine pricingEngine;
         EventPrinter eventPrinter { .pricingEngine = pricingEngine };
+        int n = 0;
         for (const auto& entry: data)
         {
             const nlohmann::json jsonData = nlohmann::json::parse(entry);
             BinanceMarketEvent event = BinanceParserJson::parseDepthUpdate(jsonData[JsonParams::data]);
             std::visit(eventPrinter, event);
 
+            std::cout << n++ << std::endl;
             // std::this_thread::sleep_for(std::chrono::milliseconds (1U));
         }
 

@@ -8,6 +8,7 @@ Description :
 ============================================================================**/
 
 #include <iostream>
+#include <print>
 #include <string_view>
 #include <vector>
 #include <thread>
@@ -25,7 +26,9 @@ namespace
     using namespace ring_buffer;
     using namespace market_data::binance;
 
-    struct NoYetImplemented {};
+    struct NoYetImplemented {
+        std::string streamName {};
+    };
 
     using BinanceMarketEvent = std::variant<
         BookTicker,
@@ -89,7 +92,7 @@ namespace
             buffer::Buffer* response { nullptr };
             while ((response = queue.getItem())) {
                 const auto _ = connector.getData(*response);
-                std::cout << "Connector [CPU: " << getCpu() << "] : " << response->length() << std::endl;
+                // std::cout << "Connector [CPU: " << getCpu() << "] : " << response->length() << std::endl;
                 queue.commit();
             }
         }
@@ -118,35 +121,10 @@ namespace
             }
         }
     };
+}
 
-    struct EventHandler
-    {
-        void operator()([[maybe_unused]] const BookTicker& ticker) const {
-            // std::cout << ticker << std::endl;
-            std::cout << "Pricer [CPU: " << getCpu() << "] : BookTicker" << std::endl;
-        }
-        void operator()([[maybe_unused]] const MiniTicker& ticker) const {
-            // std::cout << ticker << std::endl;
-            std::cout << "Pricer [CPU: " << getCpu() << "] : MiniTicker" << std::endl;
-        }
-        void operator()([[maybe_unused]] const Trade& trade) const {
-            // std::cout << trade << std::endl;
-            std::cout << "Pricer [CPU: " << getCpu() << "] : Trade" << std::endl;
-        }
-        void operator()([[maybe_unused]] const AggTrade& aggTrade) const {
-            // std::cout << aggTrade << std::endl;
-            std::cout << "Pricer [CPU: " << getCpu() << "] : AggTrade" << std::endl;
-        }
-        void operator()([[maybe_unused]] const DepthUpdate& depthUpdate) const {
-            std::cout << depthUpdate << std::endl;
-            // std::cout << "Pricer [CPU: " << getCpu() << "] : DepthUpdate" << std::endl;
-        }
-        void operator()([[maybe_unused]] const NoYetImplemented&) const {
-            std::cerr << "NoYetImplemented" << std::endl;
-        }
-    };
-
-
+namespace parser_local
+{
     template<PricerType PricerT>
     struct DummyParser
     {
@@ -174,39 +152,48 @@ namespace
             if (stream.starts_with(StreamNames::depth))
                 return BinanceParserJson::parseDepthUpdate(data);
 
-            std::cerr << stream << std::endl;
-            return NoYetImplemented{};
+            return NoYetImplemented { std::string(stream) };
         }
 
         void parse(const buffer::Buffer& buffer)
         {
-            std::cout << "Parser [CPU: " << getCpu() << "] : " << buffer.length() << std::endl;
+            // std::cout << "Parser [CPU: " << getCpu() << "] : " << buffer.length() << std::endl;
             const std::string_view data = std::string_view(buffer.head(), buffer.length());
             const nlohmann::json jsonData = nlohmann::json::parse(data);
             BinanceMarketEvent event = parseEventData(jsonData);
             pricer.push(event);
         }
     };
+}
 
+namespace connector_local
+{
     struct FileData_DummyConnector
     {
         [[nodiscard]]
         bool init()
         {
-            data =  utilities::readFile(utilities::getDataDir() / "allData2.json");
+            // data =  utilities::readFile(utilities::getDataDir() / "allData.json");
+            data =  utilities::readFile(utilities::getDataDir() / "depth.json");
             return !data.empty();
         }
 
         [[nodiscard]]
         bool getData(buffer::Buffer& response)
         {
+            // std::cout << data.size() << std::endl;
+            if (readPost == data.size()) {
+                std::println(std::cerr, "No more data to read");
+                std::terminate();
+            }
+
             const std::string& entry = data[readPost % data.size()];
             const size_t bytes = entry.size();
 
             std::memcpy(response.tail(bytes), entry.data(), bytes);
             response.incrementLength(bytes);
 
-            std::this_thread::sleep_for(std::chrono::milliseconds (1000U));
+            std::this_thread::sleep_for(std::chrono::microseconds (250U));
             ++readPost;
             return true;
         }
@@ -216,10 +203,67 @@ namespace
         std::vector<std::string> data;
         size_t readPost { 0 };
     };
+}
+
+namespace pricer_local
+{
+    template<class P, class Q>
+    struct EventHandler
+    {
+        price_engine::MarketDepthBook<P, Q>& marketDepthBook;
+
+        void operator()([[maybe_unused]] const BookTicker& ticker) const {
+            // debug(ticker);
+        }
+        void operator()([[maybe_unused]] const MiniTicker& ticker) const {
+            // debug(ticker);
+        }
+        void operator()([[maybe_unused]] const Trade& trade) const {
+            // debug(trade);
+        }
+        void operator()([[maybe_unused]] const AggTrade& aggTrade) const {
+            // debug(aggTrade);
+        }
+
+        void operator()([[maybe_unused]] const DepthUpdate& depthUpdate) const
+        {
+            // debug(depthUpdate);
+            for (const auto&[price, quantity]: depthUpdate.bids) {
+                marketDepthBook.buyUpdate(price, quantity);
+            }
+            for (const auto&[price, quantity]: depthUpdate.asks) {
+                marketDepthBook.askUpdate(price, quantity);
+            }
+
+            std::cout << "DepthUpdate { bids: " << depthUpdate.bids.size() << ". asks: " << depthUpdate.asks.size() << "}  "
+                    << " Spread: " << marketDepthBook.getSpread()
+                    << ", Market Price: " << marketDepthBook.getMarketPrice().value_or(0)
+                    << ", Book [bids: " << marketDepthBook.bids.size() << ", asks: " << marketDepthBook.asks.size() << "]"
+                    << ", Best [bid: " << marketDepthBook.getBestBid().value_or({}).first
+                         << ", ask: " << marketDepthBook.getBestAsk().value_or({}).first << "]"
+                    << std::endl;
+        }
+
+        void operator()(const NoYetImplemented& nonImpl) const {
+            // std::println(std::cerr, "NoYetImplemented(strean: {})", nonImpl.streamName);
+        }
+
+    private:
+
+        template<typename Event>
+        static void debug(const Event& event)
+        {
+            std::cout << "Pricer [CPU: " << getCpu() << "] : " << typeid(event).name() << std::endl;
+            std::cout << event << std::endl;
+        }
+    };
+
 
     struct Pricer
     {
         pricer::RingBuffer<BinanceMarketEvent, 1024> queue {};
+        price_engine::MarketDepthBook<Price, Quantity> book;
+
         std::jthread worker {};
 
         void run() {
@@ -233,13 +277,13 @@ namespace
                 return;
             }
 
-            EventHandler eventHandler;
+            EventHandler eventHandler { book } ;
             BinanceMarketEvent event;
             while (true) {
                 if (queue.pop(event)) {
                     std::visit(eventHandler, event);
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds (1u));
+                //std::this_thread::sleep_for(std::chrono::milliseconds (1u));
             }
         }
 
@@ -252,16 +296,16 @@ namespace
 
 void startService()
 {
-    FileData_DummyConnector connector;
+    connector_local::FileData_DummyConnector connector;
     if (!connector.init()) {
         std::cerr << "Failed to init connector" << std::endl;
         return;
     }
 
-    Pricer pricer {};
+    pricer_local::Pricer pricer {};
     pricer.run();
 
-    DummyParser parser {pricer};
+    parser_local::DummyParser parser {pricer};
     DataFeederBase feeder {connector, parser};
     feeder.run();
 
@@ -272,8 +316,8 @@ int main([[maybe_unused]] const int argc,
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
 
-    // startService();
-    tests::pricerTests();
+    startService();
+    // tests::pricerTests();
 
     return EXIT_SUCCESS;
 }

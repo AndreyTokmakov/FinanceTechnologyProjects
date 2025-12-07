@@ -17,6 +17,7 @@ Description :
 #include "price_engine/PriceEngine.hpp"
 #include "parser/Parser.hpp"
 #include "connectors/Connector.hpp"
+#include "utils/Utils.hpp"
 #include "tests/Tests.hpp"
 
 namespace
@@ -52,7 +53,7 @@ namespace
 
         void runConnector()
         {
-            if (!setThreadCore(1)) {
+            if (!utilities::setThreadCore(1)) {
                 std::cerr << "Failed to pin Connector thread to  CPU " << 1  << std::endl;
                 return;
             }
@@ -67,7 +68,7 @@ namespace
 
         void runParser()
         {
-            if (!setThreadCore(2)) {
+            if (!utilities::setThreadCore(2)) {
                 std::cerr << "Failed to pin Parser thread to  CPU " << 2  << std::endl;
                 return;
             }

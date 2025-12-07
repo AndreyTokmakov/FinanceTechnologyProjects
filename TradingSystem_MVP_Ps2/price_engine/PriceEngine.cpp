@@ -12,6 +12,7 @@ Description : PriceEngine.cpp
 
 #include "PriceEngine.hpp"
 #include "Formatting.hpp"
+#include "Utils.hpp"
 
 namespace price_engine
 {
@@ -64,7 +65,7 @@ namespace price_engine
         template<typename Event>
         static void debug(const Event& event)
         {
-            std::cout << "Pricer [CPU: " << common::getCpu() << "] : " << typeid(event).name() << std::endl;
+            std::cout << "Pricer [CPU: " << utilities::getCpu() << "] : " << typeid(event).name() << std::endl;
             std::cout << event << std::endl;
         }
     };
@@ -78,7 +79,7 @@ namespace price_engine
 
     void PricerEngine::handleEvents()
     {
-        if (!common::setThreadCore(3)) {
+        if (!utilities::setThreadCore(3)) {
             std::cerr << "Failed to pin Parser thread to  CPU " << 3  << std::endl;
             return;
         }

@@ -17,6 +17,9 @@ namespace utilities
 {
     std::filesystem::path getDataDir() noexcept;
     std::vector<std::string> readFile(const std::filesystem::path &filePath);
+
+    bool setThreadCore(uint32_t coreId) noexcept;
+    int32_t getCpu() noexcept;
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_UTILITIES_HPP

@@ -24,10 +24,10 @@ namespace demo
     using namespace ring_buffer;
     using price_engine::ParserType;
 
-    template<typename Connector, ParserType ParserT>
+    template<ConnectorType ConnectorT, ParserType ParserT>
     struct Processor
     {
-        Connector& connector;
+        ConnectorT& connector;
         ParserT& parser;
 
         two_phase_push::RingBuffer<1024> queue {};
@@ -37,7 +37,7 @@ namespace demo
 
         constexpr static uint32_t maxSessionBeforeSleep { 10'000 };
 
-        Processor(Connector& connector, ParserT& parser)
+        Processor(ConnectorT& connector, ParserT& parser)
             : connector { connector }, parser { parser } {
         }
 
@@ -76,6 +76,7 @@ namespace demo
                     continue;
                 }
 
+                /** Sleep when do not have messages for some time **/
                 if (misses++ > maxSessionBeforeSleep) {
                     std::this_thread::sleep_for(std::chrono::microseconds (10U));
                 }
@@ -94,7 +95,7 @@ namespace demo
         price_engine::PricerEngine priceEngine {};
         priceEngine.run();
 
-        parser::DummyParser parser { priceEngine };
+        parser::DummyParser parser { priceEngine };  /** TODO: Rename **/
         Processor processor {connector, parser };
         processor.run();
     }

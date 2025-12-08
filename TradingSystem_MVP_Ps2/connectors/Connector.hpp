@@ -11,14 +11,11 @@ Description : Connector.hpp
 #define FINANCETECHNOLOGYPROJECTS_CONNECTOR_HPP
 
 #include <concepts>
-#include <vector>
-
-#include "Buffer.hpp"
 #include "RingBuffer.hpp"
 
 template<typename T>
-concept ConnectorType = requires(T& connector, buffer::Buffer& buffer) {
-    { connector.getData(buffer) } -> std::same_as<bool>;
+concept ConnectorType = requires(T& connector, ring_buffer::two_phase_push::RingBuffer<1024>& queue) {
+    { connector.run(queue) } -> std::same_as<void>;
 };
 
 namespace connectors

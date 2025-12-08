@@ -34,6 +34,8 @@ namespace price_engine
 
         void run();
         void handleEvents();
+
+        /** TODO: Support move **/
         void push(BinanceMarketEvent& event);
     };
 }

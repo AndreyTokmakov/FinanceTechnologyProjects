@@ -11,7 +11,6 @@ Description : Parser.hpp
 #define FINANCETECHNOLOGYPROJECTS_PARSER_HPP
 
 #include <concepts>
-#include <string_view>
 #include "Buffer.hpp"
 #include "MarketData.hpp"
 #include "BinanceDataParser.hpp"

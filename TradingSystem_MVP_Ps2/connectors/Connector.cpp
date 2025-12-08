@@ -17,33 +17,6 @@ Description : Connector.cpp
 
 #include <ixwebsocket/IXWebSocket.h>
 
-namespace connectors
-{
-    bool FileData_DummyConnector::init()
-    {
-        // data =  utilities::readFile(utilities::getDataDir() / "allData.json");
-        data = utilities::readFile(utilities::getDataDir() / "depth.json");
-        return !data.empty();
-    }
-
-    bool FileData_DummyConnector::getData(buffer::Buffer& response)
-    {
-        if (readPost == data.size()) {
-            std::println(std::cerr, "No more data to read");
-            std::terminate();
-        }
-
-        const std::string& entry = data[readPost % data.size()];
-        const size_t bytes = entry.size();
-
-        std::memcpy(response.tail(bytes), entry.data(), bytes);
-        response.incrementLength(bytes);
-
-        std::this_thread::sleep_for(std::chrono::microseconds (250U));
-        ++readPost;
-        return true;
-    };
-}
 
 namespace connectors
 {

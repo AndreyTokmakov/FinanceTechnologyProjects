@@ -54,7 +54,6 @@ namespace demo
                 std::cerr << "Failed to pin Connector thread to  CPU " << 1  << std::endl;
                 return;
             }
-
             connector.run(queue);
         }
 

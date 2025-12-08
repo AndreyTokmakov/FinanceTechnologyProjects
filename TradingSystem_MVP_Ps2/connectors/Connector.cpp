@@ -47,13 +47,13 @@ namespace connectors
 
 namespace connectors
 {
-    void run()
-    {
-        ix::WebSocket webSocket;
-        const std::string binanceWsUrl = "wss://stream.binance.com:9443/";
-        const std::string url2 = binanceWsUrl + "stream?streams=btcusdt@depth@100ms";
+    ix::WebSocket webSocket;
+    const std::string binanceWsUrl = "wss://stream.binance.com:9443/";
+    const std::string url = binanceWsUrl + "stream?streams=btcusdt@depth@100ms";
 
-        webSocket.setUrl(url2);
+    bool IxWsConnector::init()
+    {
+        webSocket.setUrl(url);
 
         ix::SocketTLSOptions tlsOptions;
         tlsOptions.caFile = "/etc/ssl/certs/ca-certificates.crt"; // Debian/Ubuntu
@@ -61,6 +61,12 @@ namespace connectors
 
         webSocket.setTLSOptions(tlsOptions);
 
+        return true;
+    }
+
+    void IxWsConnector::run(ring_buffer::two_phase_push::RingBuffer<1024>& queue)
+    {
+        buffer::Buffer* response { nullptr };
         webSocket.setOnMessageCallback([&](const ix::WebSocketMessagePtr& msg) {
             if (msg->type == ix::WebSocketMessageType::Open) {
                 std::cout << "✅ Connected to Binance WebSocket\n";
@@ -69,8 +75,16 @@ namespace connectors
             {
                 try
                 {
-                    auto data = msg->str;
-                    std::cout << data << std::endl;
+                    response = queue.getItem();
+                    const std::string& message { msg->str };
+                    const size_t bytes = message.size();
+
+                    std::memcpy(response->tail(bytes), message.data(), bytes);
+                    response->incrementLength(bytes);
+                    queue.commit();
+
+                    // std::cout << queue.tail << std::endl;
+                    // std::cout << "Received message of " << bytes << " bytes" << std::endl;
                 }
                 catch (const std::exception& exc) {
                     std::cerr << "Parse error: " << exc.what() << std::endl;

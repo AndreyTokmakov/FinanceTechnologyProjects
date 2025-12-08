@@ -20,7 +20,7 @@ namespace ring_buffer
     using namespace common;
 }
 
-namespace ring_buffer::pricer
+namespace ring_buffer::basic
 {
     template<typename T, uint32_t Capacity>
     struct RingBuffer
@@ -91,7 +91,7 @@ namespace ring_buffer::pricer
     };
 }
 
-namespace ring_buffer::static_buffer
+namespace ring_buffer::two_phase_push
 {
     template<uint32_t Capacity>
     struct RingBuffer

@@ -28,7 +28,7 @@ namespace price_engine
 
     struct PricerEngine
     {
-        ring_buffer::pricer::RingBuffer<BinanceMarketEvent, 1024> queue {};
+        ring_buffer::basic::RingBuffer<BinanceMarketEvent, 1024> queue {};
         MarketDepthBook<Price, Quantity> book;
         std::jthread worker {};
 

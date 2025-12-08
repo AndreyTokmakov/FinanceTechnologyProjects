@@ -12,6 +12,7 @@ Description : Parser.hpp
 
 #include <concepts>
 #include <string_view>
+#include "Buffer.hpp"
 #include "MarketData.hpp"
 #include "BinanceDataParser.hpp"
 
@@ -22,7 +23,10 @@ concept PricerType = requires(T& parser, market_data::binance::BinanceMarketEven
 
 namespace parser
 {
-    using namespace market_data::binance;
+    using market_data::binance::BinanceMarketEvent;
+
+    BinanceMarketEvent parseEventData(const nlohmann::json& jsonData);
+    BinanceMarketEvent parseBuffer(const buffer::Buffer& buffer);
 
     template<PricerType PricerT>
     struct DummyParser
@@ -32,36 +36,17 @@ namespace parser
         explicit DummyParser(PricerT& pricer): pricer { pricer } {
         }
 
-        static BinanceMarketEvent parseEventData(const nlohmann::json& jsonData)
-        {
-            std::string_view stream = jsonData[JsonParams::stream].get<std::string_view>();
-            const size_t pos = stream.find('@');
-            // const std::string_view symbol ( stream.data(), pos);
-            stream.remove_prefix(pos + 1);
-
-            const nlohmann::json& data = jsonData[JsonParams::data];
-            if (stream.starts_with(StreamNames::miniTicker))
-                return BinanceParserJson::parseMiniTicker(data);
-            if (stream.starts_with(StreamNames::bookTicker))
-                return BinanceParserJson::parseBookTicker(data);
-            if (stream.starts_with(StreamNames::trade))
-                return BinanceParserJson::parseTrade(data);
-            if (stream.starts_with(StreamNames::aggTrade))
-                return BinanceParserJson::parseAggTrade(data);
-            if (stream.starts_with(StreamNames::depth))
-                return BinanceParserJson::parseDepthUpdate(data);
-
-            return NoYetImplemented { std::string(stream) };
-        }
-
         void parse(const buffer::Buffer& buffer)
         {
             // std::cout << "Parser [CPU: " << getCpu() << "] : " << buffer.length() << std::endl;
-            const std::string_view data = std::string_view(buffer.head(), buffer.length());
-            const nlohmann::json jsonData = nlohmann::json::parse(data);
-            BinanceMarketEvent event = parseEventData(jsonData);
+            BinanceMarketEvent event = parseBuffer(buffer);
             pricer.push(event);
         }
+    };
+
+    struct EventParser
+    {
+        void parse(const buffer::Buffer& buffer);
     };
 }
 

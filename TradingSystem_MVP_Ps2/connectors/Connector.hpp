@@ -12,7 +12,9 @@ Description : Connector.hpp
 
 #include <concepts>
 #include <vector>
+
 #include "Buffer.hpp"
+#include "RingBuffer.hpp"
 
 template<typename T>
 concept ConnectorType = requires(T& connector, buffer::Buffer& buffer) {
@@ -35,7 +37,13 @@ namespace connectors
         size_t readPost { 0 };
     };
 
-    void run();
+    struct IxWsConnector
+    {
+        [[nodiscard]]
+        bool init();
+
+        void run(ring_buffer::two_phase_push::RingBuffer<1024>& queue);
+    };
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_CONNECTOR_HPP

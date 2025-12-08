@@ -73,8 +73,7 @@ namespace connectors
             }
             else if (msg->type == ix::WebSocketMessageType::Message)
             {
-                try
-                {
+                try{
                     response = queue.getItem();
                     const std::string& message { msg->str };
                     const size_t bytes = message.size();
@@ -83,8 +82,7 @@ namespace connectors
                     response->incrementLength(bytes);
                     queue.commit();
 
-                    // std::cout << queue.tail << std::endl;
-                    // std::cout << "Received message of " << bytes << " bytes" << std::endl;
+                    std::cout << "Connector [CPU: " << utilities::getCpu() << "] : " << bytes << std::endl;
                 }
                 catch (const std::exception& exc) {
                     std::cerr << "Parse error: " << exc.what() << std::endl;

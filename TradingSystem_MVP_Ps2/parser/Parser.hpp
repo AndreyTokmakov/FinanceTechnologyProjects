@@ -38,15 +38,10 @@ namespace parser
 
         void parse(const buffer::Buffer& buffer)
         {
-            // std::cout << "Parser [CPU: " << getCpu() << "] : " << buffer.length() << std::endl;
+            // TODO: Move 'event' --> Queue
             BinanceMarketEvent event = parseBuffer(buffer);
             pricer.push(event);
         }
-    };
-
-    struct EventParser
-    {
-        void parse(const buffer::Buffer& buffer);
     };
 }
 

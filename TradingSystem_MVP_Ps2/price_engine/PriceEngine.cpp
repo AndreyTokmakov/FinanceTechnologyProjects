@@ -39,7 +39,8 @@ namespace price_engine
 
         void operator()([[maybe_unused]] const DepthUpdate& depthUpdate) const
         {
-            // debug(depthUpdate);
+            debug(depthUpdate);
+            /*
             for (const auto&[price, quantity]: depthUpdate.bids) {
                 marketDepthBook.buyUpdate(price, quantity);
             }
@@ -54,6 +55,7 @@ namespace price_engine
                     << ", Best [bid: " << marketDepthBook.getBestBid().value_or({}).first
                          << ", ask: " << marketDepthBook.getBestAsk().value_or({}).first << "]"
                     << std::endl;
+            */
         }
 
         void operator()([[maybe_unused]] const NoYetImplemented& nonImpl) const {

@@ -7,13 +7,10 @@ Copyright   : Your copyright notice
 Description : Parser.cpp
 ============================================================================**/
 
-
 #include "Parser.hpp"
 #include "Formatting.hpp"
 #include "Utils.hpp"
-
 #include <iostream>
-#include <print>
 
 namespace
 {
@@ -46,54 +43,10 @@ namespace parser
 
     BinanceMarketEvent parseBuffer(const buffer::Buffer& buffer)
     {
+        std::cout << "Parser [CPU: " << utilities::getCpu() << "] : " << buffer.length() << std::endl;
+
         const std::string_view data = std::string_view(buffer.head(), buffer.length());
         const nlohmann::json jsonData = nlohmann::json::parse(data);
         return parseEventData(jsonData);
-    }
-}
-
-namespace parser
-{
-    struct EventHandler
-    {
-        void operator()([[maybe_unused]] const BookTicker& ticker) const {
-            // debug(ticker);
-        }
-
-        void operator()([[maybe_unused]] const MiniTicker& ticker) const {
-            // debug(ticker);
-        }
-
-        void operator()([[maybe_unused]] const Trade& trade) const {
-            // debug(trade);
-        }
-
-        void operator()([[maybe_unused]] const AggTrade& aggTrade) const {
-            // debug(aggTrade);
-        }
-
-        void operator()([[maybe_unused]] const DepthUpdate& depthUpdate) const {
-            debug(depthUpdate);
-        }
-
-        void operator()([[maybe_unused]] const NoYetImplemented& nonImpl) const {
-            std::println(std::cerr, "NoYetImplemented(strean: {})", nonImpl.streamName);
-        }
-
-    private:
-
-        template<typename Event>
-        static void debug(const Event& event)
-        {
-            std::cout << "Pricer [CPU: " << utilities::getCpu() << "] : " << typeid(event).name() << std::endl;
-            std::cout << event << std::endl;
-        }
-    };
-
-    void EventParser::parse(const buffer::Buffer& buffer)
-    {
-        BinanceMarketEvent event = parseBuffer(buffer);
-        EventHandler eventHandler {};
-        std::visit(eventHandler, event);
     }
 }

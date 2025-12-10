@@ -12,12 +12,14 @@ Description : Parser.hpp
 
 #include <concepts>
 #include "Buffer.hpp"
+#include "Exchange.hpp"
 #include "MarketData.hpp"
 #include "BinanceDataParser.hpp"
 
 template<typename T>
-concept PricerType = requires(T& parser, market_data::binance::BinanceMarketEvent& event) {
-    { parser.push(event) } -> std::same_as<void>;
+concept PricerType = requires(T& priceEngine, common::Exchange exchange,
+        market_data::binance::BinanceMarketEvent& event) {
+    { priceEngine.push(exchange, event) } -> std::same_as<void>;
 };
 
 namespace parser
@@ -37,9 +39,11 @@ namespace parser
 
         void parse(const buffer::Buffer& buffer)
         {
-            // TODO: Move 'event' --> Queue
             BinanceMarketEvent event = parseBuffer(buffer);
-            pricer.push(event);
+
+            // FIXME: 1. Get Exchange Type
+            // FIXME: 2. Use right Exchange
+            pricer.push(common::Exchange::Binance, event);
         }
     };
 }

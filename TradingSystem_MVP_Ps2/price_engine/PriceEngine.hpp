@@ -12,6 +12,7 @@ Description : PriceEngine.hpp
 
 #include <concepts>
 #include <thread>
+#include "Exchange.hpp"
 #include "RingBuffer.hpp"
 #include "MarketData.hpp"
 #include "MarketDepthBook.hpp"
@@ -26,17 +27,32 @@ namespace price_engine
         { parser.parse(buffer) } -> std::same_as<void>;
     };
 
-    struct PricerEngine
+    // TODO: Rename
+    struct ExchangeBookKeeper
     {
         ring_buffer::basic::RingBuffer<BinanceMarketEvent, 1024> queue {};
         MarketDepthBook<Price, Quantity> book;
         std::jthread worker {};
 
-        void run();
-        void handleEvents();
+        void run(uint32_t cpuId);
+        void handleEvents(uint32_t cpuId);
 
         /** TODO: Support move **/
         void push(BinanceMarketEvent& event);
+    };
+
+    struct PricerEngine
+    {
+        /** For Exchange::Binance **/
+        ExchangeBookKeeper binanceBookKeeper;
+
+        /** For Exchange::ByBit **/
+        ExchangeBookKeeper byBitBookKeeper;
+
+        std::array<ExchangeBookKeeper*, 2> books { &binanceBookKeeper, &byBitBookKeeper };
+
+        void run() const;
+        void push(common::Exchange exchange, BinanceMarketEvent& event) const;
     };
 }
 

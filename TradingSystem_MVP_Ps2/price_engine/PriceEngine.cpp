@@ -75,14 +75,14 @@ namespace price_engine
 
 namespace price_engine
 {
-    void PricerEngine::run() {
-        worker = std::jthread { [&] { handleEvents(); } };
+    void ExchangeBookKeeper::run(const uint32_t cpuId) {
+        worker = std::jthread { &ExchangeBookKeeper::handleEvents, this, cpuId };
     }
 
-    void PricerEngine::handleEvents()
+    void ExchangeBookKeeper::handleEvents(const uint32_t cpuId)
     {
-        if (!utilities::setThreadCore(3)) {
-            std::cerr << "Failed to pin Parser thread to  CPU " << 3  << std::endl;
+        if (!utilities::setThreadCore(cpuId)) {
+            std::cerr << "Failed to pin Parser thread to  CPU " << cpuId  << std::endl;
             return;
         }
 
@@ -96,8 +96,26 @@ namespace price_engine
         }
     }
 
-    void PricerEngine::push(BinanceMarketEvent& event)
+    void ExchangeBookKeeper::push(BinanceMarketEvent& event)
     {
         const auto _ = queue.put(event);
+    }
+}
+
+namespace price_engine
+{
+    void PricerEngine::run() const
+    {
+        uint32_t cpuId = 3;
+        for (ExchangeBookKeeper* bookKeeper: books) {
+            bookKeeper->run(cpuId++);
+        }
+    }
+
+    void PricerEngine::push(common::Exchange exchange,
+                           BinanceMarketEvent& event) const
+    {
+        // std::cout << "push (CPU: " << Utils::getCpu() << ") : " << jsonMessage << std::endl;
+        books[static_cast<uint32_t>(exchange)]->push(event);
     }
 }

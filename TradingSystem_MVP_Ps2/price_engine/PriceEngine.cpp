@@ -86,7 +86,7 @@ namespace price_engine
             return;
         }
 
-        EventHandler eventHandler { book } ;
+        EventHandler eventHandler { marketDepthBook } ;
         BinanceMarketEvent event;
         while (true) {
             if (queue.pop(event)) {
@@ -115,7 +115,6 @@ namespace price_engine
     void PricerEngine::push(common::Exchange exchange,
                            BinanceMarketEvent& event) const
     {
-        // std::cout << "push (CPU: " << Utils::getCpu() << ") : " << jsonMessage << std::endl;
         books[static_cast<uint32_t>(exchange)]->push(event);
     }
 }

@@ -31,7 +31,7 @@ namespace price_engine
     struct ExchangeBookKeeper
     {
         ring_buffer::basic::RingBuffer<BinanceMarketEvent, 1024> queue {};
-        MarketDepthBook<Price, Quantity> book;
+        MarketDepthBook<Price, Quantity> marketDepthBook;
         std::jthread worker {};
 
         void run(uint32_t cpuId);

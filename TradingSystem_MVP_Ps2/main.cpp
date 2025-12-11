@@ -42,8 +42,8 @@ namespace demo
         }
 
         void run() {
-            connectorThread = std::jthread { [&] { runConnector(); } };
-            parserThread    = std::jthread { [&] { runParser(); } };
+            connectorThread = std::jthread { &Processor::runConnector, this };
+            parserThread    = std::jthread { &Processor::runParser, this };
         }
 
     private:
@@ -100,6 +100,15 @@ namespace demo
         processor.run();
     }
 }
+
+// TODO:
+//  - ExchangeBookKeeper:
+//    - Raname and Move to separate module
+//  -
+//  - DummyParser:
+//    - Raname?
+//    - Use right Exchange Types in DummyParser::parse()
+
 
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)

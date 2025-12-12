@@ -17,8 +17,9 @@ Description : Parser.hpp
 #include "BinanceDataParser.hpp"
 
 template<typename T>
-concept PricerType = requires(T& priceEngine, common::Exchange exchange,
-        market_data::binance::BinanceMarketEvent& event) {
+concept MarketEventProcessor = requires(T& priceEngine,
+    common::Exchange exchange, market_data::binance::BinanceMarketEvent& event)
+{
     { priceEngine.push(exchange, event) } -> std::same_as<void>;
 };
 
@@ -29,12 +30,12 @@ namespace parser
     BinanceMarketEvent parseEventData(const nlohmann::json& jsonData);
     BinanceMarketEvent parseBuffer(const buffer::Buffer& buffer);
 
-    template<PricerType PricerT>
+    template<MarketEventProcessor _EventProcessor>
     struct DummyParser
     {
-        PricerT& pricer;
+        _EventProcessor& marketStateManager;
 
-        explicit DummyParser(PricerT& pricer): pricer { pricer } {
+        explicit DummyParser(_EventProcessor& eventProcessor): marketStateManager { eventProcessor } {
         }
 
         void parse(const buffer::Buffer& buffer)
@@ -43,7 +44,7 @@ namespace parser
 
             // FIXME: 1. Get Exchange Type
             // FIXME: 2. Use right Exchange
-            pricer.push(common::Exchange::Binance, event);
+            marketStateManager.push(common::Exchange::Binance, event);
         }
     };
 }

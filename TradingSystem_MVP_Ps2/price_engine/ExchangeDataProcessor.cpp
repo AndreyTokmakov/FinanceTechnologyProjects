@@ -1,16 +1,16 @@
 /**============================================================================
-Name        : PriceEngine.cpp
+Name        : ExchangeDataProcessor.cpp
 Created on  : 07.12.2025
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : PriceEngine.cpp
+Description : ExchangeDataProcessor.cpp
 ============================================================================**/
 
 #include <iostream>
 #include <print>
 
-#include "PriceEngine.hpp"
+#include "ExchangeDataProcessor.hpp"
 #include "Formatting.hpp"
 #include "Utils.hpp"
 
@@ -75,11 +75,11 @@ namespace price_engine
 
 namespace price_engine
 {
-    void ExchangeBookKeeper::run(const uint32_t cpuId) {
-        worker = std::jthread { &ExchangeBookKeeper::handleEvents, this, cpuId };
+    void ExchangeDataProcessor::run(const uint32_t cpuId) {
+        worker = std::jthread { &ExchangeDataProcessor::handleEvents, this, cpuId };
     }
 
-    void ExchangeBookKeeper::handleEvents(const uint32_t cpuId)
+    void ExchangeDataProcessor::handleEvents(const uint32_t cpuId)
     {
         if (!utilities::setThreadCore(cpuId)) {
             std::cerr << "Failed to pin Parser thread to  CPU " << cpuId  << std::endl;
@@ -96,25 +96,9 @@ namespace price_engine
         }
     }
 
-    void ExchangeBookKeeper::push(BinanceMarketEvent& event)
+    void ExchangeDataProcessor::push(BinanceMarketEvent& event)
     {
         const auto _ = queue.put(event);
     }
 }
 
-namespace price_engine
-{
-    void PricerEngine::run() const
-    {
-        uint32_t cpuId = 3;
-        for (ExchangeBookKeeper* bookKeeper: books) {
-            bookKeeper->run(cpuId++);
-        }
-    }
-
-    void PricerEngine::push(common::Exchange exchange,
-                           BinanceMarketEvent& event) const
-    {
-        books[static_cast<uint32_t>(exchange)]->push(event);
-    }
-}

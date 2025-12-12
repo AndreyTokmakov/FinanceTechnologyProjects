@@ -13,7 +13,7 @@ Description :
 #include <thread>
 
 #include "RingBuffer.hpp"
-#include "price_engine/PriceEngine.hpp"
+#include "price_engine/MarketStateManager.hpp"
 #include "parser/Parser.hpp"
 #include "connectors/Connector.hpp"
 #include "utils/Utils.hpp"
@@ -22,7 +22,13 @@ Description :
 namespace demo
 {
     using namespace ring_buffer;
-    using price_engine::ParserType;
+
+    // TODO: Rename
+    template<typename T>
+    concept ParserType = requires(T& parser, const buffer::Buffer& buffer) {
+        { parser.parse(buffer) } -> std::same_as<void>;
+    };
+
 
     template<ConnectorType ConnectorT, ParserType ParserT>
     struct Processor
@@ -41,7 +47,8 @@ namespace demo
             : connector { connector }, parser { parser } {
         }
 
-        void run() {
+        void run()
+        {
             connectorThread = std::jthread { &Processor::runConnector, this };
             parserThread    = std::jthread { &Processor::runParser, this };
         }
@@ -92,10 +99,10 @@ namespace demo
             return;
         }
 
-        price_engine::PricerEngine priceEngine {};
-        priceEngine.run();
+        price_engine::MarketStateManager marketStateMgr {};
+        marketStateMgr.run();
 
-        parser::DummyParser parser { priceEngine };  /** TODO: Rename **/
+        parser::DummyParser parser { marketStateMgr };  /** TODO: Rename **/
         Processor processor {connector, parser };
         processor.run();
     }

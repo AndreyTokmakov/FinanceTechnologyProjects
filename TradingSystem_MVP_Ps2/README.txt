@@ -84,7 +84,8 @@
   - map order_id → Order* (для cancels/mods)
 
 ## 3.2 Рекомендованные реализации уровней/карты
-- **Для небольшого количества уровней** (например, L2 50–500 уровней): `flat vector` sorted + binary_search → лучше кеша.
+- **Для небольшого количества уровней** (например, L2 50–500 уровней): `
+     flat vector` sorted + binary_search → лучше кеша.
 - **Для произвольных уровней**: `std::map<int64, PriceLevel, comparator>` (AVL/RB) — удобен, но медленнее.
 - **Оптимальный**: `std::vector<PriceLevel>` + `unordered_map<int64, index>` — O(log N) на вставку (shift) or maintain skiplist. Для HFT — custom skiplist / double-heap.
 - **Orders per level**: intrusive double-linked list (без выделений на каждом push): `Order` содержит next/prev pointers.

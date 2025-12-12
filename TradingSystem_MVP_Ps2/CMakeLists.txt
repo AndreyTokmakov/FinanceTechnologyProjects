@@ -44,7 +44,8 @@ add_executable(${PROJECT_NAME}
         ${MARKET_DATA}/MarketData.hpp
         ${MARKET_DATA}/Formatting.hpp
         ${MARKET_DATA}/BinanceDataParser.cpp
-        ${PRICE_ENGINE}/PriceEngine.cpp
+        ${PRICE_ENGINE}/ExchangeDataProcessor.cpp
+        ${PRICE_ENGINE}/MarketStateManager.cpp
         ${PARSER}/Parser.cpp
         ${CONNECTORS}/Connector.cpp ${CONNECTORS}/Connector.hpp
         ${UTILS}/Utils.cpp

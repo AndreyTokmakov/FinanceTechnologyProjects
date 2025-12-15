@@ -10,9 +10,35 @@ Description : Tests.hpp
 #ifndef FINANCETECHNOLOGYPROJECTS_TESTS_HPP
 #define FINANCETECHNOLOGYPROJECTS_TESTS_HPP
 
+#include <thread>
+#include "RingBuffer.hpp"
+
+
 namespace tests
 {
     void pricerTests();
 }
+
+
+namespace connectors
+{
+    struct DataFileDummyConnector
+    {
+        [[nodiscard]]
+        bool init();
+
+        void run(ring_buffer::two_phase_push::RingBuffer<1024>& queue);
+
+    private:
+
+        void produceTestEvents(ring_buffer::two_phase_push::RingBuffer<1024>& queue);
+
+        std::vector<std::string> data;
+        size_t readPost { 0 };
+        std::jthread worker {};
+
+    };
+}
+
 
 #endif //FINANCETECHNOLOGYPROJECTS_TESTS_HPP

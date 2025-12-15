@@ -10,12 +10,56 @@ Description : Tests.cpp
 #include "Tests.hpp"
 
 #include <iostream>
+#include <print>
 
 #include "RingBuffer.hpp"
 #include "BinanceDataParser.hpp"
 #include "MarketDepthBook.hpp"
 #include "Utils.hpp"
 
+
+namespace connectors
+{
+    [[nodiscard]]
+    bool DataFileDummyConnector::init()
+    {
+        data =  utilities::readFile(utilities::getDataDir() / "depth.json");
+        return !data.empty();
+    }
+
+    void DataFileDummyConnector::run(ring_buffer::two_phase_push::RingBuffer<1024>& queue)
+    {
+        worker = std::jthread { &DataFileDummyConnector::produceTestEvents, this, std::ref(queue) };
+        //worker.join();
+    }
+
+    void DataFileDummyConnector::produceTestEvents(ring_buffer::two_phase_push::RingBuffer<1024>&)
+    {
+        while (true)
+        {
+            if (readPost == data.size()) {
+                std::println(std::cerr, "No more data to read");
+                std::terminate();
+            }
+
+            const std::string& entry = data[readPost % data.size()];
+            const size_t bytes = entry.size();
+
+            std::cout << entry << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds (250U));
+            ++readPost;
+        }
+
+        /*
+
+        std::memcpy(response.tail(bytes), entry.data(), bytes);
+        response.incrementLength(bytes);
+
+        std::this_thread::sleep_for(std::chrono::microseconds (250U));
+
+        */
+    }
+}
 
 
 namespace pricer_test

@@ -23,18 +23,18 @@ namespace connectors
     [[nodiscard]]
     bool DataFileDummyConnector::init()
     {
-        data =  utilities::readFile(utilities::getDataDir() / "depth.json");
+        data = utilities::readFile(utilities::getDataDir() / "depth.json");
         return !data.empty();
     }
 
     void DataFileDummyConnector::run(ring_buffer::two_phase_push::RingBuffer<1024>& queue)
     {
         worker = std::jthread { &DataFileDummyConnector::produceTestEvents, this, std::ref(queue) };
-        //worker.join();
     }
 
-    void DataFileDummyConnector::produceTestEvents(ring_buffer::two_phase_push::RingBuffer<1024>&)
+    void DataFileDummyConnector::produceTestEvents(ring_buffer::two_phase_push::RingBuffer<1024>& queue)
     {
+        buffer::Buffer* response { nullptr };
         while (true)
         {
             if (readPost == data.size()) {
@@ -42,22 +42,19 @@ namespace connectors
                 std::terminate();
             }
 
-            const std::string& entry = data[readPost % data.size()];
-            const size_t bytes = entry.size();
+            const std::string& message { data[readPost % data.size()] };
+            const size_t bytes = message.size();
 
-            std::cout << entry << std::endl;
+            std::cout << message << std::endl;
+
+            response = queue.getItem();
+            std::memcpy(response->tail(bytes), message.data(), bytes);
+            response->incrementLength(bytes);
+            queue.commit();
+
             std::this_thread::sleep_for(std::chrono::milliseconds (250U));
             ++readPost;
         }
-
-        /*
-
-        std::memcpy(response.tail(bytes), entry.data(), bytes);
-        response.incrementLength(bytes);
-
-        std::this_thread::sleep_for(std::chrono::microseconds (250U));
-
-        */
     }
 }
 

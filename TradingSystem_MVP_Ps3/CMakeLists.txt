@@ -49,7 +49,7 @@ add_executable(${PROJECT_NAME}
         ${PARSER}/Parser.cpp
         ${CONNECTORS}/Connector.cpp ${CONNECTORS}/Connector.hpp
         ${UTILS}/Utils.cpp
-        tests/Tests.cpp
+        tests/Tests.cpp tests/Tests.hpp
         main.cpp
 )
 

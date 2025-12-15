@@ -93,7 +93,9 @@ namespace demo
 
     void start()
     {
-        connectors::IxWsConnector connector;
+        // connectors::IxWsConnector connector;
+        connectors::DataFileDummyConnector connector;
+
         if (!connector.init()) {
             std::cerr << "Failed to init connector" << std::endl;
             return;
@@ -118,18 +120,8 @@ int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
-    // demo::start();
+    demo::start();
     // tests::pricerTests();
-
-    connectors::DataFileDummyConnector connector;
-    if (!connector.init()) {
-        std::cerr << "Failed to init connector" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    ring_buffer::two_phase_push::RingBuffer<1024> queue {};
-    connector.run(queue);
-
 
     return EXIT_SUCCESS;
 }

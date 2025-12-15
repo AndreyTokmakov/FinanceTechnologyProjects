@@ -13,12 +13,10 @@ Description : Tests.hpp
 #include <thread>
 #include "RingBuffer.hpp"
 
-
 namespace tests
 {
     void pricerTests();
 }
-
 
 namespace connectors
 {
@@ -36,7 +34,6 @@ namespace connectors
         std::vector<std::string> data;
         size_t readPost { 0 };
         std::jthread worker {};
-
     };
 }
 

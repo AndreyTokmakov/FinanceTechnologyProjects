@@ -12,6 +12,7 @@ Description : Tests.hpp
 
 #include <thread>
 #include "RingBuffer.hpp"
+#include "MarketStateManager.hpp"
 
 namespace tests
 {
@@ -30,6 +31,26 @@ namespace connectors
     private:
 
         void produceTestEvents(ring_buffer::two_phase_push::RingBuffer<1024>& queue);
+
+        std::vector<std::string> data;
+        size_t readPost { 0 };
+        std::jthread worker {};
+    };
+
+    struct DataFileDummyConnector2
+    {
+        explicit DataFileDummyConnector2(price_engine::MarketStateManager& marketStateManager);
+
+        [[nodiscard]]
+        bool init();
+
+        void run();
+
+    private:
+
+        price_engine::MarketStateManager& marketStateManager;
+
+        void produceTestEvents();
 
         std::vector<std::string> data;
         size_t readPost { 0 };

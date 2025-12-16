@@ -23,10 +23,23 @@ namespace demo
 {
     using namespace ring_buffer;
 
-    // TODO: Rename
     template<typename T>
     concept ParserType = requires(T& parser, const buffer::Buffer& buffer) {
         { parser.parse(buffer) } -> std::same_as<void>;
+    };
+
+    template<typename T>
+    concept ConnectorType = requires(T& connector,
+                                     ring_buffer::two_phase_push::RingBuffer<1024>& queue) {
+        { connector.run(queue) } -> std::same_as<void>;
+    };
+
+    template<typename T>
+    concept MarketEventProcessor = requires(T& eventProcessor,
+                                            common::Exchange exchange,
+                                            market_data::binance::BinanceMarketEvent& event)
+    {
+        { eventProcessor.push(exchange, event) } -> std::same_as<void>;
     };
 
 
@@ -93,20 +106,27 @@ namespace demo
 
     void start()
     {
+        price_engine::MarketStateManager marketStateMgr {};
+
         // connectors::IxWsConnector connector;
-        connectors::DataFileDummyConnector connector;
+        connectors::DataFileDummyConnector2 connector { marketStateMgr };
 
         if (!connector.init()) {
             std::cerr << "Failed to init connector" << std::endl;
             return;
         }
 
+        marketStateMgr.run();
+        connector.run();
+
+        /**
         price_engine::MarketStateManager marketStateMgr {};
         marketStateMgr.run();
 
-        parser::DummyParser parser { marketStateMgr };  /** TODO: Rename **/
+        parser::DummyParser parser { marketStateMgr };
         Processor processor {connector, parser };
         processor.run();
+        **/
     }
 }
 

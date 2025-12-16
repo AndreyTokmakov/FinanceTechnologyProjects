@@ -20,8 +20,8 @@ namespace price_engine
     }
 
     void MarketStateManager::push(common::Exchange exchange,
-                           BinanceMarketEvent& event) const
+                                  const std::string& eventData) const
     {
-        books[static_cast<uint32_t>(exchange)]->push(event);
+        books[static_cast<uint32_t>(exchange)]->push(eventData);
     }
 }

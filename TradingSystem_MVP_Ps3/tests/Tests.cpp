@@ -20,7 +20,6 @@ Description : Tests.cpp
 
 namespace connectors
 {
-    [[nodiscard]]
     bool DataFileDummyConnector::init()
     {
         data = utilities::readFile(utilities::getDataDir() / "depth.json");
@@ -51,6 +50,41 @@ namespace connectors
             std::memcpy(response->tail(bytes), message.data(), bytes);
             response->incrementLength(bytes);
             queue.commit();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds (250U));
+            ++readPost;
+        }
+    }
+}
+
+namespace connectors
+{
+    DataFileDummyConnector2::DataFileDummyConnector2(price_engine::MarketStateManager& marketStateManager):
+            marketStateManager { marketStateManager } {
+    }
+
+    bool DataFileDummyConnector2::init()
+    {
+        data = utilities::readFile(utilities::getDataDir() / "depth.json");
+        return !data.empty();
+    }
+
+    void DataFileDummyConnector2::run()
+    {
+        worker = std::jthread { &DataFileDummyConnector2::produceTestEvents, this};
+    }
+
+    void DataFileDummyConnector2::produceTestEvents()
+    {
+        while (true)
+        {
+            /*if (readPost == data.size()) {
+                std::println(std::cerr, "No more data to read");
+                std::terminate();
+            }*/
+
+            const std::string& message { data[readPost % data.size()] };
+            marketStateManager.push(common::Exchange::ByBit, message);
 
             std::this_thread::sleep_for(std::chrono::milliseconds (250U));
             ++readPost;

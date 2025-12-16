@@ -26,7 +26,7 @@ namespace price_engine
         std::array<ExchangeDataProcessor*, 2> books { &binanceDataProcessor, &byBitDataProcessor };
 
         void run() const;
-        void push(common::Exchange exchange, BinanceMarketEvent& event) const;
+        void push(common::Exchange exchange, const std::string& eventData) const;
     };
 }
 

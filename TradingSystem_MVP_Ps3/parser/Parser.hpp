@@ -16,13 +16,6 @@ Description : Parser.hpp
 #include "MarketData.hpp"
 #include "BinanceDataParser.hpp"
 
-template<typename T>
-concept MarketEventProcessor = requires(T& priceEngine,
-    common::Exchange exchange, market_data::binance::BinanceMarketEvent& event)
-{
-    { priceEngine.push(exchange, event) } -> std::same_as<void>;
-};
-
 namespace parser
 {
     using market_data::binance::BinanceMarketEvent;
@@ -30,7 +23,8 @@ namespace parser
     BinanceMarketEvent parseEventData(const nlohmann::json& jsonData);
     BinanceMarketEvent parseBuffer(const buffer::Buffer& buffer);
 
-    template<MarketEventProcessor _EventProcessor>
+    // template<MarketEventProcessor _EventProcessor>
+    template<typename _EventProcessor>
     struct DummyParser
     {
         _EventProcessor& marketStateManager;

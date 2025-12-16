@@ -9,7 +9,7 @@ Description : ExchangeDataProcessor.cpp
 
 #include <iostream>
 #include <print>
-
+#include <cstring>
 #include "ExchangeDataProcessor.hpp"
 #include "Formatting.hpp"
 #include "Utils.hpp"
@@ -86,19 +86,36 @@ namespace price_engine
             return;
         }
 
-        EventHandler eventHandler { marketDepthBook } ;
-        BinanceMarketEvent event;
-        while (true) {
-            if (queue.pop(event)) {
-                std::visit(eventHandler, event);
+        uint32_t misses { 0 };
+        buffer::Buffer* item { nullptr };
+        while (true)
+        {
+            if ((item = queue.pop()))
+            {
+                // parser.parse(*item);
+                const std::string_view data = std::string_view(item->head(), item->length());
+                std::cout << "Pricer [CPU: " << utilities::getCpu() << "] : " << data<< std::endl;
+
+                item->clear();
+                misses = 0;
+                continue;
             }
-            //std::this_thread::sleep_for(std::chrono::milliseconds (1u));
+
+            /** Sleep when do not have messages for some time **/
+            if (misses++ > maxSessionBeforeSleep) {
+                std::this_thread::sleep_for(std::chrono::microseconds (10U));
+            }
         }
     }
 
-    void ExchangeDataProcessor::push(BinanceMarketEvent& event)
+    void ExchangeDataProcessor::push(const std::string& eventData)
     {
-        const auto _ = queue.put(event);
+        buffer::Buffer* response = queue.getItem();
+        const size_t bytes = eventData.size();
+
+        std::memcpy(response->tail(bytes), eventData.data(), bytes);
+        response->incrementLength(bytes);
+        queue.commit();
     }
 }
 

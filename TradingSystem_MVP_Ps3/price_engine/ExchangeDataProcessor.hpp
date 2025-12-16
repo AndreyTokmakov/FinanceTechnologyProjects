@@ -20,18 +20,22 @@ Description : ExchangeDataProcessor.hpp
 namespace price_engine
 {
     using namespace market_data::binance;
+    using ring_buffer::two_phase_push::RingBuffer;
 
     struct ExchangeDataProcessor
     {
-        ring_buffer::basic::RingBuffer<BinanceMarketEvent, 1024> queue {};
+        constexpr static uint32_t maxSessionBeforeSleep { 10'000 };
+        constexpr static uint32_t bufferSize { 1024};
+
+        RingBuffer<bufferSize> queue;
         MarketDepthBook<Price, Quantity> marketDepthBook;
         std::jthread worker {};
 
         void run(uint32_t cpuId);
         void handleEvents(uint32_t cpuId);
 
-        /** TODO: Support move **/
-        void push(BinanceMarketEvent& event);
+        /** TODO: Support move ??? **/
+        void push(const std::string& eventData);
     };
 }
 

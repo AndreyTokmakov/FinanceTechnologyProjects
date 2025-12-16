@@ -13,10 +13,6 @@ Description : Connector.hpp
 #include <concepts>
 #include "RingBuffer.hpp"
 
-template<typename T>
-concept ConnectorType = requires(T& connector, ring_buffer::two_phase_push::RingBuffer<1024>& queue) {
-    { connector.run(queue) } -> std::same_as<void>;
-};
 
 namespace connectors
 {

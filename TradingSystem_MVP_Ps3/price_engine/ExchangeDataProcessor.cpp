@@ -94,7 +94,8 @@ namespace price_engine
             {
                 // parser.parse(*item);
                 const std::string_view data = std::string_view(item->head(), item->length());
-                std::cout << "Pricer [CPU: " << utilities::getCpu() << "] : " << data<< std::endl;
+                std::cout << "ExchangeDataProcessor [CPU: " << utilities::getCpu() << ", misses: " << misses << "] : "
+                    << data<< std::endl;
 
                 item->clear();
                 misses = 0;

@@ -84,7 +84,7 @@ namespace connectors
             }*/
 
             const std::string& message { data[readPost % data.size()] };
-            marketStateManager.push(common::Exchange::ByBit, message);
+            marketStateManager.push(common::Exchange::Binance, message);
 
             std::this_thread::sleep_for(std::chrono::milliseconds (250U));
             ++readPost;

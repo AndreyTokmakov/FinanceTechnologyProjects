@@ -10,7 +10,6 @@ Description : Parser.hpp
 #ifndef FINANCETECHNOLOGYPROJECTS_PARSER_HPP
 #define FINANCETECHNOLOGYPROJECTS_PARSER_HPP
 
-#include <concepts>
 #include "Buffer.hpp"
 #include "Exchange.hpp"
 #include "MarketData.hpp"
@@ -23,16 +22,9 @@ namespace parser
     BinanceMarketEvent parseEventData(const nlohmann::json& jsonData);
     BinanceMarketEvent parseBuffer(const buffer::Buffer& buffer);
 
-    // template<MarketEventProcessor _EventProcessor>
-    template<typename _EventProcessor>
     struct DummyParser
     {
-        _EventProcessor& marketStateManager;
-
-        explicit DummyParser(_EventProcessor& eventProcessor): marketStateManager { eventProcessor } {
-        }
-
-        void parse(const buffer::Buffer& buffer)
+        BinanceMarketEvent parse(const std::string_view& data)
         {
             BinanceMarketEvent event = parseBuffer(buffer);
 

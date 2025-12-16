@@ -14,6 +14,8 @@ Description : ExchangeDataProcessor.cpp
 #include "Formatting.hpp"
 #include "Utils.hpp"
 
+#include "Parser.hpp"
+
 namespace price_engine
 {
     template<class P, class Q>
@@ -86,16 +88,19 @@ namespace price_engine
             return;
         }
 
+        // TODO: Make parser as parameter for ExchangeDataProcessor
+        parser::DummyParser parser;
+
+        EventHandler eventHandler { marketDepthBook } ;
+
         uint32_t misses { 0 };
         buffer::Buffer* item { nullptr };
         while (true)
         {
             if ((item = queue.pop()))
             {
-                // parser.parse(*item);
-                const std::string_view data = std::string_view(item->head(), item->length());
-                std::cout << "ExchangeDataProcessor [CPU: " << utilities::getCpu() << ", misses: " << misses << "] : "
-                    << data<< std::endl;
+                const BinanceMarketEvent event = parser.parse(*item);
+                std::visit(eventHandler, event);
 
                 item->clear();
                 misses = 0;

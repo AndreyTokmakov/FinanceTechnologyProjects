@@ -10,28 +10,17 @@ Description : Parser.hpp
 #ifndef FINANCETECHNOLOGYPROJECTS_PARSER_HPP
 #define FINANCETECHNOLOGYPROJECTS_PARSER_HPP
 
-#include "Buffer.hpp"
-#include "Exchange.hpp"
 #include "MarketData.hpp"
+#include "Buffer.hpp"
 #include "BinanceDataParser.hpp"
 
 namespace parser
 {
     using market_data::binance::BinanceMarketEvent;
 
-    BinanceMarketEvent parseEventData(const nlohmann::json& jsonData);
-    BinanceMarketEvent parseBuffer(const buffer::Buffer& buffer);
-
     struct DummyParser
     {
-        BinanceMarketEvent parse(const std::string_view& data)
-        {
-            BinanceMarketEvent event = parseBuffer(buffer);
-
-            // FIXME: 1. Get Exchange Type
-            // FIXME: 2. Use right Exchange
-            marketStateManager.push(common::Exchange::Binance, event);
-        }
+        BinanceMarketEvent parse(const buffer::Buffer& buffer);
     };
 }
 

@@ -10,6 +10,7 @@ Description : Parser.cpp
 #include "Parser.hpp"
 #include "Formatting.hpp"
 #include "Utils.hpp"
+
 #include <iostream>
 
 namespace
@@ -23,7 +24,6 @@ namespace parser
     {
         std::string_view stream = jsonData[JsonParams::stream].get<std::string_view>();
         const size_t pos = stream.find('@');
-        // const std::string_view symbol ( stream.data(), pos);
         stream.remove_prefix(pos + 1);
 
         const nlohmann::json& data = jsonData[JsonParams::data];
@@ -41,12 +41,10 @@ namespace parser
         return NoYetImplemented { std::string(stream) };
     }
 
-    BinanceMarketEvent parseBuffer(const buffer::Buffer& buffer)
+    BinanceMarketEvent DummyParser::parse(const buffer::Buffer& buffer)
     {
         std::cout << "Parser [CPU: " << utilities::getCpu() << "] : " << buffer.length() << std::endl;
-
-        const std::string_view data = std::string_view(buffer.head(), buffer.length());
-        const nlohmann::json jsonData = nlohmann::json::parse(data);
+        const nlohmann::json jsonData = nlohmann::json::parse(buffer.head(), buffer.tail());
         return parseEventData(jsonData);
     }
 }

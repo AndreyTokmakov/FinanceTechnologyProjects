@@ -24,7 +24,9 @@ namespace utilities
         if (std::ifstream file(filePath); file.is_open() && file.good()){
             while (std::getline(file, lines.emplace_back())) { /** **/ }
         }
-        lines.pop_back();
+        if (!lines.empty()) {
+            lines.pop_back();
+        }
         return lines;
     }
 

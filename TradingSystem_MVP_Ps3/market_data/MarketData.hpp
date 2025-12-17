@@ -15,7 +15,8 @@ Description :
 #include <vector>
 #include <variant>
 
-#include "Types.hpp"
+
+#include "Common.hpp"
 
 namespace market_data::binance
 {

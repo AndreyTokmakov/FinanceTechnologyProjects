@@ -10,20 +10,34 @@ Description :
 #ifndef FINANCETECHNOLOGYPROJECTS_TYPES_HPP
 #define FINANCETECHNOLOGYPROJECTS_TYPES_HPP
 
-#include <cstdint>
+#include "RingBuffer.hpp"
+#include "MarketData.hpp"
+#include "Exchange.hpp"
 
-namespace common
+namespace types
 {
-    using Price     = double;
-    using Quantity  = double;
-    using Volume    = double;
-    using Timestamp = uint64_t;
-    using Number    = uint64_t;
+    using namespace ring_buffer::two_phase_push;
+    using BinanceMarketEvent = market_data::binance::BinanceMarketEvent;
 
-    struct PriceLevel
+    template<typename T>
+    concept ParserType = requires(T& parser,
+                                  const buffer::Buffer& buffer) {
+        { parser.parse(buffer) } -> std::same_as<BinanceMarketEvent>;
+    };
+
+
+    template<typename T>
+    concept ConnectorType = requires(T& connector,
+                                     RingBuffer<1024>& queue) {
+        { connector.run(queue) } -> std::same_as<void>;
+    };
+
+    template<typename T>
+    concept MarketEventProcessor = requires(T& eventProcessor,
+                                            common::Exchange exchange,
+                                            BinanceMarketEvent& event)
     {
-        Price price { 0.0 };
-        Quantity quantity { 0.0 };
+        { eventProcessor.push(exchange, event) } -> std::same_as<void>;
     };
 }
 

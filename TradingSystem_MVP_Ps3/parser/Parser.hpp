@@ -10,7 +10,6 @@ Description : Parser.hpp
 #ifndef FINANCETECHNOLOGYPROJECTS_PARSER_HPP
 #define FINANCETECHNOLOGYPROJECTS_PARSER_HPP
 
-#include "MarketData.hpp"
 #include "Buffer.hpp"
 #include "BinanceDataParser.hpp"
 
@@ -20,7 +19,7 @@ namespace parser
 
     struct DummyParser
     {
-        BinanceMarketEvent parse(const buffer::Buffer& buffer);
+        static BinanceMarketEvent parse(const buffer::Buffer& buffer);
     };
 }
 

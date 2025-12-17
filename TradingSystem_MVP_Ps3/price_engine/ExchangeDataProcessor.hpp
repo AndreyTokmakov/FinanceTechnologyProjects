@@ -25,7 +25,7 @@ namespace price_engine
     struct ExchangeDataProcessor
     {
         constexpr static uint32_t maxSessionBeforeSleep { 10'000 };
-        constexpr static uint32_t bufferSize { 1024};
+        constexpr static uint32_t bufferSize { 1024 };
 
         RingBuffer<bufferSize> queue;
         MarketDepthBook<Price, Quantity> marketDepthBook;

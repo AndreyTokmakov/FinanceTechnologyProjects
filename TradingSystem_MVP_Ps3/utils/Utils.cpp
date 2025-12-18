@@ -15,7 +15,7 @@ namespace utilities
 {
     std::filesystem::path getDataDir() noexcept
     {
-        return std::filesystem::current_path() / "../../Parsers_JSON/data/binance/";
+        return std::filesystem::path(TEST_DATA_PATH) / "binance";
     }
 
     std::vector<std::string> readFile(const std::filesystem::path &filePath)

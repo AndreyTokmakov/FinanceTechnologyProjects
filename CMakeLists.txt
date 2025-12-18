@@ -3,6 +3,9 @@ project(FinanceTechnologyProjects)
 
 set(CMAKE_CXX_STANDARD 26)
 
+set(ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+set(DATA_PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources/data)
+
 # 5.15 - My home Ubuntu-20.04
 if (CMAKE_SYSTEM_VERSION MATCHES "5.15")
     set(THIRD_PARTY_DIR /home/andtokm/DiskS/ProjectsUbuntu/third_party)

@@ -54,7 +54,7 @@ namespace demo
     {
         static market_data::binance::BinanceMarketEvent parse(const buffer::Buffer& buffer)
         {
-
+            return {};
         }
     };
 
@@ -77,8 +77,8 @@ int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
-    // demo::start();
-    demo::test();
+    demo::start();
+    // demo::test();
     // tests::pricerTests();
 
     return EXIT_SUCCESS;

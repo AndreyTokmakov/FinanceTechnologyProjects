@@ -65,3 +65,7 @@ target_link_libraries(${PROJECT_NAME}
         z
         ${EXTRA_LIBS}
 )
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+        TEST_DATA_PATH="${DATA_PATH}"
+)

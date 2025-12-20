@@ -17,9 +17,17 @@ namespace parser
 {
     using market_data::binance::BinanceMarketEvent;
 
-    struct DummyParser
+    // TODO: Create ::parse(buffer) concepts for Parser
+
+    struct BinanceParser
     {
-        static BinanceMarketEvent parse(const buffer::Buffer& buffer);
+        BinanceMarketEvent parse(const buffer::Buffer& buffer) const;
+    };
+
+    struct ByBitParser
+    {
+        // FIXME: Return different type
+        BinanceMarketEvent parse(const buffer::Buffer& buffer) const;
     };
 }
 

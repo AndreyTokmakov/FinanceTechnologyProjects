@@ -41,12 +41,21 @@ namespace parser
         return NoYetImplemented { std::string(stream) };
     }
 
-    BinanceMarketEvent DummyParser::parse(const buffer::Buffer& buffer)
+    BinanceMarketEvent BinanceParser::parse(const buffer::Buffer& buffer) const
     {
-        // std::cout << "Parser [CPU: " << utilities::getCpu() << "] : " << buffer.length() << std::endl;
+        std::cout << "BinanceParser [CPU: " << utilities::getCpu() << "] : " << buffer.length() << std::endl;
 
         // TODO: Need to be optimised --> SIMD-Json
         const nlohmann::json jsonData = nlohmann::json::parse(buffer.head(), buffer.tail());
         return parseEventData(jsonData);
+    }
+}
+
+namespace parser
+{
+    BinanceMarketEvent ByBitParser::parse(const buffer::Buffer&) const
+    {
+        std::cout << "ByBitParser [CPU: " << utilities::getCpu() << "] : 0"  << std::endl;
+        return {};
     }
 }

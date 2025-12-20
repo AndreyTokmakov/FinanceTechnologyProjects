@@ -76,6 +76,12 @@ namespace connectors
 
     void DataFileDummyConnector2::produceTestEvents()
     {
+
+        if (!utilities::setThreadCore(1)) {
+            std::cerr << "Failed to pin DataFileDummyConnector2 thread to  CPU " << 1  << std::endl;
+            return;
+        }
+
         while (true)
         {
             /*if (readPost == data.size()) {
@@ -84,6 +90,8 @@ namespace connectors
             }*/
 
             const std::string& message { data[readPost % data.size()] };
+
+            std::cout << "Connector [CPU: " << utilities::getCpu() << "] : " << message << std::endl;
             marketStateManager.push(common::Exchange::Binance, message);
 
             std::this_thread::sleep_for(std::chrono::milliseconds (250U));

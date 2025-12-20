@@ -11,6 +11,8 @@ Description : MarketStateManager.hpp
 #define FINANCETECHNOLOGYPROJECTS_MARKETSTATEMANAGER_HPP
 
 #include "Exchange.hpp"
+
+#include "Parser.hpp"
 #include "ExchangeDataProcessor.hpp"
 
 namespace price_engine
@@ -18,12 +20,15 @@ namespace price_engine
     struct MarketStateManager
     {
         /** For Exchange::Binance **/
-        ExchangeDataProcessor binanceDataProcessor;
+        ExchangeDataProcessor binanceDataProcessor { parser::BinanceParser{} };
 
         /** For Exchange::ByBit **/
-        ExchangeDataProcessor byBitDataProcessor;
+        ExchangeDataProcessor byBitDataProcessor { parser::ByBitParser{} };
 
-        std::array<ExchangeDataProcessor*, 2> books { &binanceDataProcessor, &byBitDataProcessor };
+        std::array<ExchangeDataProcessor*, 2> books {
+            &binanceDataProcessor,
+            &byBitDataProcessor
+        };
 
         void run() const;
         void push(common::Exchange exchange, const std::string& eventData) const;

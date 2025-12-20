@@ -30,3 +30,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
         simdjson
         ${EXTRA_LIBS}
 )
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+        TEST_DATA_PATH="${DATA_PATH}"
+)

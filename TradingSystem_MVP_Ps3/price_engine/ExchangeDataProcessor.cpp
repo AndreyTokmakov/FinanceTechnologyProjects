@@ -89,17 +89,19 @@ namespace price_engine
             return;
         }
 
+        buffer::Buffer* item { nullptr };
+        auto parseEvent = [&](const auto& parser) {
+            return parser.parse(*item);
+        };
+
         EventHandler eventHandler { marketDepthBook } ;
         uint32_t misses { 0 };
-        buffer::Buffer* item { nullptr };
+
         while (true)
         {
             if ((item = queue.pop()))
             {
-                const BinanceMarketEvent event = std::visit([&](const auto& parser) {
-                    return parser.parse(*item);
-                 },parser);
-
+                const BinanceMarketEvent event = std::visit(parseEvent,parser);
                 std::visit(eventHandler, event);
 
                 item->clear();

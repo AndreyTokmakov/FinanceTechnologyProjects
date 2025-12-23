@@ -66,7 +66,7 @@ High-Frequency Trading (HFT) Market Making system written in modern C++ (C++20/2
   - Adverse selection
   - Latency risk
 
-### Интуитивная модель котирования
+### Интуитивная модель квотирования
 
 ```
 mid_price ± (spread / 2

@@ -334,7 +334,7 @@ namespace
 }
 
 
-void collections::price_level_storage_1s::TestAll()
+void collections::price_level_storage_1::TestAll()
 {
 
     PriceLadder book(10000, 20000);

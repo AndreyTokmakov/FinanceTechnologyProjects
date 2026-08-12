@@ -22,7 +22,9 @@ int main([[maybe_unused]] int argc,
     // collections::MapWithConstantSize();
     // collections::StaticSortedArray();
     // collections::StaticSortedFlatMap();
-    collections::StaticSortedFlatMap_WithDeletion();
+    // collections::StaticSortedFlatMap_WithDeletion();
+
+    collections::price_level_storage::TestAll();
 
     /**
     std::map      :  0.268529 seconds.

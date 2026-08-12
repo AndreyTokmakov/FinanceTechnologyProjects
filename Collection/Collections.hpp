@@ -16,6 +16,9 @@ namespace collections
     void StaticSortedArray();
     void StaticSortedFlatMap();
     void StaticSortedFlatMap_WithDeletion();
+
+    namespace price_level_storage { void TestAll(); };
+
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_COLLECTIONS_HPP

@@ -17,6 +17,7 @@ add_executable(${PROJECT_NAME}
         StaticSortedFlatMap.cpp
         StaticSortedFlatMap_WithDeletion.cpp
         PriceLevels/PriceLevelStorage_1.cpp
+        PriceLevels/PriceLevelStorage_2.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

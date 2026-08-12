@@ -17,7 +17,8 @@ namespace collections
     void StaticSortedFlatMap();
     void StaticSortedFlatMap_WithDeletion();
 
-    namespace price_level_storage { void TestAll(); };
+    namespace price_level_storage_1 { void TestAll(); };
+    namespace price_level_storage_2 { void TestAll(); };
 
 }
 

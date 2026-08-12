@@ -24,7 +24,8 @@ int main([[maybe_unused]] int argc,
     // collections::StaticSortedFlatMap();
     // collections::StaticSortedFlatMap_WithDeletion();
 
-    collections::price_level_storage::TestAll();
+    // collections::price_level_storage_1::TestAll();
+    collections::price_level_storage_2::TestAll();
 
     /**
     std::map      :  0.268529 seconds.

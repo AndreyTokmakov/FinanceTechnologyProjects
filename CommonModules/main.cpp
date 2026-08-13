@@ -17,6 +17,7 @@ Description : Common modules
 #include "locking/SpinLock.h"
 #include "cryptography/Certificates.h"
 #include "consumers/UnixDomainSocketConsumer.h"
+#include "metrics/metrics.hpp"
 
 #include "buffer/Buffer.hpp"
 #include "ring_buffer/RingBuffer_SPSC.h"
@@ -47,7 +48,9 @@ int main([[maybe_unused]] int argc,
     // RingBuffer_SPSC_Two::TestAll();
     // RingBuffer_SpSc_Commit::TestAll();
     // RingBuffer_SpSc_Commit_Buffer::TestAll();
-    RingBuffer_SpSc_Pricer::TestAll();
+    // RingBuffer_SpSc_Pricer::TestAll();
+
+    metrics::TestAll();
 
     // SpinLock::TestAll();
 

@@ -24,6 +24,7 @@ add_library(common_modules
 
     metrics/metrics.cpp
     metrics/MetricsController.cpp
+    metrics/MetricsControllerEx.cpp
 )
 
 target_include_directories(common_modules PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

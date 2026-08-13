@@ -14,6 +14,7 @@ namespace metrics
 {
     void TestAll();
     namespace metrics_controller { void TestAll(); }
+    namespace metrics_controller_ex { void TestAll(); }
 }
 
 #endif //FINANCETECHNOLOGYPROJECTS_METRICS_HPP

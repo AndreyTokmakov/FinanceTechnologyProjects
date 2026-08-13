@@ -8,6 +8,7 @@ Description : PriceLevelStorage_2.cpp
 ============================================================================**/
 
 #include "../Collections.hpp"
+#include "Testing.hpp"
 
 #include <vector>
 #include <cstdint>
@@ -152,6 +153,11 @@ namespace
 
 namespace
 {
+    enum class OrderSide : uint8_t {
+        Buy,
+        Sell
+    };
+
     template<typename T>
     struct IntrusiveLink
     {
@@ -159,12 +165,13 @@ namespace
         T* next;
     };
 
-    struct Order : public IntrusiveLink<Order>
+    struct Order : IntrusiveLink<Order>
     {
-        OrderId   orderId;
-        Price     priceTick;
-        Volume    volume;
-        Timestamp timestampNs;
+        OrderId   orderId { 0 };
+        Price     priceTick { 0 };
+        Volume    volume { 0 };
+        Timestamp timestampNs { 0 };
+        OrderSide side { OrderSide::Buy };
         struct PriceLevel* level;
 
         void* operator new(const size_t size) {
@@ -191,11 +198,13 @@ namespace
             order->level = this;
             order->prev = tail;
             order->next = nullptr;
+
             if (tail) {
                 tail->next = order;
             } else {
                 head = order;
             }
+
             tail = order;
             totalVolume += order->volume;
         }
@@ -207,11 +216,13 @@ namespace
             } else {
                 head = order->next;
             }
+
             if (order->next) {
                 order->next->prev = order->prev;
             } else {
                 tail = order->prev;
             }
+
             totalVolume -= order->volume;
             order->level = nullptr;
             order->prev = nullptr;
@@ -227,8 +238,61 @@ namespace
         bool isEmpty() const noexcept {
             return head == nullptr;
         }
-    };
 
+        [[nodiscard]]
+        bool hasBuyOrders() const noexcept {
+            return hasOrdersOfSide<OrderSide::Buy>();
+        }
+
+        [[nodiscard]]
+        bool hasSellOrders() const noexcept {
+            return hasOrdersOfSide<OrderSide::Sell>();
+        }
+
+        [[nodiscard]]
+        Volume getBuyVolume() const noexcept {
+            return getVolumeBySide<OrderSide::Buy>();
+        }
+
+        [[nodiscard]]
+        Volume getSellVolume() const noexcept {
+            return getVolumeBySide<OrderSide::Sell>();
+        }
+
+    private:
+
+        template<OrderSide Side>
+        [[nodiscard]]
+        bool hasOrdersOfSide() const noexcept
+        {
+            for (const Order* current = head; current != nullptr; ) {
+                if (current->side == Side) {
+                    return true;
+                }
+                current = current->next;
+            }
+            return false;
+        }
+
+        template<OrderSide Side>
+        [[nodiscard]]
+        Volume getVolumeBySide() const noexcept
+        {
+            Volume volume = 0;
+            for (const Order* current = head; current != nullptr; ) {
+                if (current->side == Side) {
+                    volume += current->volume;
+                }
+                current = current->next;
+            }
+            return volume;
+        }
+    };
+}
+
+
+namespace
+{
     class PriceLadder
     {
     public:
@@ -236,19 +300,17 @@ namespace
             minPriceTick(minPriceTick), maxPriceTick(maxPriceTick), numLevels(maxPriceTick - minPriceTick + 1)
         {
             levels.reserve(numLevels);
-            for (uint64_t price = minPriceTick; price <= maxPriceTick; ++price) {
+            for (Price price = minPriceTick; price <= maxPriceTick; ++price) {
                 levels.emplace_back(price);
             }
 
-            // Build bid array: highest price first
             bidLevels.reserve(numLevels);
-            for (uint64_t price = maxPriceTick; price >= minPriceTick; --price) {
+            for (Price price = maxPriceTick; price >= minPriceTick; --price) {
                 bidLevels.push_back(&levels[price - minPriceTick]);
             }
 
-            // Build ask array: lowest price first
             askLevels.reserve(numLevels);
-            for (uint64_t price = minPriceTick; price <= maxPriceTick; ++price) {
+            for (Price price = minPriceTick; price <= maxPriceTick; ++price) {
                 askLevels.push_back(&levels[price - minPriceTick]);
             }
 
@@ -272,64 +334,77 @@ namespace
         [[nodiscard]]
         PriceLevel* getBidLevel(const size_t depth) noexcept
         {
-            if (depth >= bidLevels.size()) {
-                return nullptr;
+            size_t nonEmptyCount = 0;
+            for (size_t i = 0; i < bidLevels.size(); ++i) {
+                if (bidLevels[i] && bidLevels[i]->hasBuyOrders()) {
+                    if (nonEmptyCount == depth) {
+                        return bidLevels[i];
+                    }
+                    ++nonEmptyCount;
+                }
             }
-            return bidLevels[depth];
+            return nullptr;
         }
 
         [[nodiscard]]
         const PriceLevel* getBidLevel(const size_t depth) const noexcept
         {
-            if (depth >= bidLevels.size()) {
-                return nullptr;
+            size_t nonEmptyCount = 0;
+            for (size_t i = 0; i < bidLevels.size(); ++i) {
+                if (bidLevels[i] && bidLevels[i]->hasBuyOrders()) {
+                    if (nonEmptyCount == depth) {
+                        return bidLevels[i];
+                    }
+                    ++nonEmptyCount;
+                }
             }
-            return bidLevels[depth];
+            return nullptr;
         }
 
         [[nodiscard]]
         PriceLevel* getAskLevel(const size_t depth) noexcept
         {
-            if (depth >= askLevels.size()) {
-                return nullptr;
+            size_t nonEmptyCount = 0;
+            for (size_t i = 0; i < askLevels.size(); ++i) {
+                if (askLevels[i] && askLevels[i]->hasSellOrders()) {
+                    if (nonEmptyCount == depth) {
+                        return askLevels[i];
+                    }
+                    ++nonEmptyCount;
+                }
             }
-            return askLevels[depth];
+            return nullptr;
         }
 
         [[nodiscard]]
         const PriceLevel* getAskLevel(const size_t depth) const noexcept
         {
-            if (depth >= askLevels.size()) {
-                return nullptr;
+            size_t nonEmptyCount = 0;
+            for (size_t i = 0; i < askLevels.size(); ++i) {
+                if (askLevels[i] && askLevels[i]->hasSellOrders()) {
+                    if (nonEmptyCount == depth) {
+                        return askLevels[i];
+                    }
+                    ++nonEmptyCount;
+                }
             }
-            return askLevels[depth];
+            return nullptr;
         }
 
         void addOrder(Order* order) noexcept
         {
             PriceLevel* level = getLevel(order->priceTick);
-            const bool wasEmpty = level->isEmpty();
             level->addOrder(order);
             orderIndex.emplace(order->orderId, order);
-
-            if (wasEmpty) {
-                updateBestPointers(level);
-            }
         }
 
         void removeOrder(Order* order) noexcept
         {
-            PriceLevel* level = order->level;
-            const bool hadSingleOrder = (level->head == order && level->tail == order);
-            level->removeOrder(order);
+            order->level->removeOrder(order);
             orderIndex.erase(order->orderId);
-
-            if (hadSingleOrder && (level == getBestBidLevel() || level == getBestAskLevel())) {
-                updateBestPointersAfterRemoval(level);
-            }
         }
 
-        void modifyOrderVolume(Order* order, const Volume newVolume) noexcept
+        static void modifyOrderVolume(Order* order, const Volume newVolume) noexcept
         {
             order->level->totalVolume -= order->volume;
             order->level->totalVolume += newVolume;
@@ -337,15 +412,16 @@ namespace
         }
 
         [[nodiscard]]
-        Order* findOrder(uint64_t orderId) const noexcept {
+        Order* findOrder(const OrderId orderId) const noexcept {
             const auto it = orderIndex.find(orderId);
             return (it != orderIndex.end()) ? it->second : nullptr;
         }
 
         [[nodiscard]]
-        uint64_t getBestBid() const noexcept {
+        Price getBestBid() const noexcept
+        {
             for (size_t i = 0; i < bidLevels.size(); ++i) {
-                if (bidLevels[i] && !bidLevels[i]->isEmpty()) {
+                if (bidLevels[i] && bidLevels[i]->hasBuyOrders()) {
                     return bidLevels[i]->priceTick;
                 }
             }
@@ -353,19 +429,21 @@ namespace
         }
 
         [[nodiscard]]
-        uint64_t getBestAsk() const noexcept {
+        Price getBestAsk() const noexcept
+        {
             for (size_t i = 0; i < askLevels.size(); ++i) {
-                if (askLevels[i] && !askLevels[i]->isEmpty()) {
+                if (askLevels[i] && askLevels[i]->hasSellOrders()) {
                     return askLevels[i]->priceTick;
                 }
             }
-            return UINT64_MAX;
+            return std::numeric_limits<Price>::max();
         }
 
         [[nodiscard]]
-        PriceLevel* getBestBidLevel() const noexcept {
+        PriceLevel* getBestBidLevel() const noexcept
+        {
             for (size_t i = 0; i < bidLevels.size(); ++i) {
-                if (bidLevels[i] && !bidLevels[i]->isEmpty()) {
+                if (bidLevels[i] && bidLevels[i]->hasBuyOrders()) {
                     return bidLevels[i];
                 }
             }
@@ -373,9 +451,10 @@ namespace
         }
 
         [[nodiscard]]
-        PriceLevel* getBestAskLevel() const noexcept {
+        PriceLevel* getBestAskLevel() const noexcept
+        {
             for (size_t i = 0; i < askLevels.size(); ++i) {
-                if (askLevels[i] && !askLevels[i]->isEmpty()) {
+                if (askLevels[i] && askLevels[i]->hasSellOrders()) {
                     return askLevels[i];
                 }
             }
@@ -383,23 +462,24 @@ namespace
         }
 
         [[nodiscard]]
-        uint64_t getBestBidVolume() const noexcept {
-            PriceLevel* level = getBestBidLevel();
-            return level ? level->totalVolume : 0;
-        }
-
-        [[nodiscard]]
-        uint64_t getBestAskVolume() const noexcept {
-            PriceLevel* level = getBestAskLevel();
-            return level ? level->totalVolume : 0;
-        }
-
-        [[nodiscard]]
-        uint64_t getBidPriceAtDepth(const size_t depth) const noexcept
+        Volume getBestBidVolume() const noexcept
         {
+            const PriceLevel* level = getBestBidLevel();
+            return level ? level->getBuyVolume() : 0;
+        }
+
+        [[nodiscard]]
+        Volume getBestAskVolume() const noexcept
+        {
+            const PriceLevel* level = getBestAskLevel();
+            return level ? level->getSellVolume() : 0;
+        }
+
+        [[nodiscard]]
+        Price getBidPriceAtDepth(const size_t depth) const noexcept {
             size_t nonEmptyCount = 0;
             for (size_t i = 0; i < bidLevels.size(); ++i) {
-                if (bidLevels[i] && !bidLevels[i]->isEmpty()) {
+                if (bidLevels[i] && bidLevels[i]->hasBuyOrders()) {
                     if (nonEmptyCount == depth) {
                         return bidLevels[i]->priceTick;
                     }
@@ -410,28 +490,28 @@ namespace
         }
 
         [[nodiscard]]
-        uint64_t getAskPriceAtDepth(const size_t depth) const noexcept
+        Price getAskPriceAtDepth(const size_t depth) const noexcept
         {
             size_t nonEmptyCount = 0;
             for (size_t i = 0; i < askLevels.size(); ++i) {
-                if (askLevels[i] && !askLevels[i]->isEmpty()) {
+                if (askLevels[i] && askLevels[i]->hasSellOrders()) {
                     if (nonEmptyCount == depth) {
                         return askLevels[i]->priceTick;
                     }
                     ++nonEmptyCount;
                 }
             }
-            return UINT64_MAX;
+            return std::numeric_limits<Price>::max();
         }
 
         [[nodiscard]]
-        uint64_t getBidVolumeAtDepth(const size_t depth) const noexcept
+        Volume getBidVolumeAtDepth(const size_t depth) const noexcept
         {
             size_t nonEmptyCount = 0;
             for (size_t i = 0; i < bidLevels.size(); ++i) {
-                if (bidLevels[i] && !bidLevels[i]->isEmpty()) {
+                if (bidLevels[i] && bidLevels[i]->hasBuyOrders()) {
                     if (nonEmptyCount == depth) {
-                        return bidLevels[i]->totalVolume;
+                        return bidLevels[i]->getBuyVolume();
                     }
                     ++nonEmptyCount;
                 }
@@ -440,13 +520,13 @@ namespace
         }
 
         [[nodiscard]]
-        uint64_t getAskVolumeAtDepth(const size_t depth) const noexcept
+        Volume getAskVolumeAtDepth(const size_t depth) const noexcept
         {
             size_t nonEmptyCount = 0;
             for (size_t i = 0; i < askLevels.size(); ++i) {
-                if (askLevels[i] && !askLevels[i]->isEmpty()) {
+                if (askLevels[i] && askLevels[i]->hasSellOrders()) {
                     if (nonEmptyCount == depth) {
-                        return askLevels[i]->totalVolume;
+                        return askLevels[i]->getSellVolume();
                     }
                     ++nonEmptyCount;
                 }
@@ -465,12 +545,12 @@ namespace
         }
 
         [[nodiscard]]
-        uint64_t getMinPriceTick() const noexcept {
+        Price getMinPriceTick() const noexcept {
             return minPriceTick;
         }
 
         [[nodiscard]]
-        uint64_t getMaxPriceTick() const noexcept {
+        Price getMaxPriceTick() const noexcept {
             return maxPriceTick;
         }
 
@@ -492,78 +572,12 @@ namespace
     private:
         static constexpr size_t kDefaultReserveSize = 1000000;
 
-        void updateBestPointers(const PriceLevel* level) noexcept
-        {
-            const uint64_t price = level->priceTick;
-            const uint64_t midPrice = (minPriceTick + maxPriceTick) / 2;
-
-            if (price >= midPrice)
-            {
-                if (!askLevels.empty() && (!askLevels[0] || !askLevels[0]->isEmpty() ||
-                    price < askLevels[0]->priceTick)) {
-                    findBestAsk();
-                }
-            }
-            else
-            {
-                if (!bidLevels.empty() && (!bidLevels[0] || !bidLevels[0]->isEmpty() ||
-                    price > bidLevels[0]->priceTick)) {
-                    findBestBid();
-                }
-            }
-        }
-
-        void updateBestPointersAfterRemoval(const PriceLevel* level) noexcept
-        {
-            const uint64_t price = level->priceTick;
-            const uint64_t midPrice = (minPriceTick + maxPriceTick) / 2;
-
-            if (price >= midPrice) {
-                findBestAsk();
-            } else {
-                findBestBid();
-            }
-        }
-
-        void findBestBid() noexcept
-        {
-            for (size_t i = 0; i < bidLevels.size(); ++i) {
-                if (bidLevels[i] && !bidLevels[i]->isEmpty()) {
-                    if (i != 0) {
-                        std::swap(bidLevels[0], bidLevels[i]);
-                    }
-                    return;
-                }
-            }
-        }
-
-        void findBestAsk() noexcept {
-            for (size_t i = 0; i < askLevels.size(); ++i) {
-                if (askLevels[i] && !askLevels[i]->isEmpty()) {
-                    if (i != 0) {
-                        std::swap(askLevels[0], askLevels[i]);
-                    }
-                    return;
-                }
-            }
-        }
-
-        uint64_t minPriceTick;
-        uint64_t maxPriceTick;
+        Price minPriceTick;
+        Price maxPriceTick;
         size_t numLevels;
-
-        // All levels in price order (for general access)
         std::vector<PriceLevel> levels;
-
-        // Bid levels in descending order (highest price first)
-        // Best bid is always at index 0
         std::vector<PriceLevel*> bidLevels;
-
-        // Ask levels in ascending order (lowest price first)
-        // Best ask is always at index 0
         std::vector<PriceLevel*> askLevels;
-
-        // Order lookup by ID
     #if 1
             std::unordered_map<OrderId, Order*> orderIndex;
     #else
@@ -571,6 +585,7 @@ namespace
     #endif
     };
 }
+
 
 namespace collections::price_level_storage_2::tests
 {
@@ -583,13 +598,13 @@ namespace collections::price_level_storage_2::tests
             now.time_since_epoch()).count();
     }
 
-    static Order* createTestOrder(const uint64_t id, const uint64_t price, const uint64_t volume)
-    {
+    static Order* createTestOrder(const OrderId id, const Price price, const Volume volume, const OrderSide side) {
         Order* order = new Order();
         order->orderId = id;
         order->priceTick = price;
         order->volume = volume;
         order->timestampNs = getCurrentTimestampNs();
+        order->side = side;  // ВАЖНО: устанавливаем сторону!
         order->level = nullptr;
         order->prev = nullptr;
         order->next = nullptr;
@@ -614,513 +629,476 @@ namespace collections::price_level_storage_2::tests
         std::cout << "Total Orders: " << book.getOrderCount() << std::endl;
     }
 
-    void assert(bool b)
-    {
-        if (!b) {
-            std::terminate();
-        }
-    }
-
     static void testAddBuyOrders()
     {
-        std::cout << "\n=== Test 1: Adding BUY Orders ===" << std::endl;
         PriceLadder book(10000, 20000);
 
-        Order* buy1 = createTestOrder(1, 15000, 100);
+        Order* buy1 = createTestOrder(1, 15000, 100, OrderSide::Buy);
         book.addOrder(buy1);
 
-        Order* buy2 = createTestOrder(2, 15100, 200);
+        Order* buy2 = createTestOrder(2, 15100, 200, OrderSide::Buy);
         book.addOrder(buy2);
 
-        Order* buy3 = createTestOrder(3, 14900, 150);
+        Order* buy3 = createTestOrder(3, 14900, 150, OrderSide::Buy);
         book.addOrder(buy3);
 
-        assert(book.getOrderCount() == 3);
-        assert(book.getBestBid() == 15100);
-        assert(book.getBestBidVolume() == 200);
-        assert(book.getBidPriceAtDepth(0) == 15100);
-        assert(book.getBidPriceAtDepth(1) == 15000);
-        assert(book.getBidPriceAtDepth(2) == 14900);
+        testing::AssertTrue(book.getOrderCount() == 3);
+        testing::AssertTrue(book.getBestBid() == 15100);
+        testing::AssertTrue(book.getBestBidVolume() == 200);
+        testing::AssertTrue(book.getBidPriceAtDepth(0) == 15100);
+        testing::AssertTrue(book.getBidPriceAtDepth(1) == 15000);
+        testing::AssertTrue(book.getBidPriceAtDepth(2) == 14900);
 
-        std::cout << "PASS: All BUY orders added correctly" << std::endl;
         printBookState(book);
     }
 
     static void testAddSellOrders()
     {
-        std::cout << "\n=== Test 2: Adding SELL Orders ===" << std::endl;
-
         PriceLadder book(10000, 20000);
 
-        Order* sell1 = createTestOrder(101, 16000, 50);
+        Order* sell1 = createTestOrder(101, 16000, 50, OrderSide::Sell);
         book.addOrder(sell1);
 
-        Order* sell2 = createTestOrder(102, 15900, 80);
+        Order* sell2 = createTestOrder(102, 15900, 80, OrderSide::Sell);
         book.addOrder(sell2);
 
-        Order* sell3 = createTestOrder(103, 16100, 120);
+        Order* sell3 = createTestOrder(103, 16100, 120, OrderSide::Sell);
         book.addOrder(sell3);
 
-        assert(book.getOrderCount() == 3);
-        assert(book.getBestAsk() == 15900);
-        assert(book.getBestAskVolume() == 80);
-        assert(book.getAskPriceAtDepth(0) == 15900);
-        assert(book.getAskPriceAtDepth(1) == 16000);
-        assert(book.getAskPriceAtDepth(2) == 16100);
+        testing::AssertTrue(book.getOrderCount() == 3);
+        testing::AssertTrue(book.getBestAsk() == 15900);
+        testing::AssertTrue(book.getBestAskVolume() == 80);
+        testing::AssertTrue(book.getAskPriceAtDepth(0) == 15900);
+        testing::AssertTrue(book.getAskPriceAtDepth(1) == 16000);
+        testing::AssertTrue(book.getAskPriceAtDepth(2) == 16100);
 
-        std::cout << "PASS: All SELL orders added correctly" << std::endl;
         printBookState(book);
     }
 
-    void testMixedOrders() {
-        std::cout << "\n=== Test 3: Mixed BUY and SELL Orders ===" << std::endl;
 
+    static void testMixedOrders()
+    {
         PriceLadder book(10000, 20000);
 
-        Order* buy1 = createTestOrder(1, 15000, 100);
+        Order* buy1 = createTestOrder(1, 15000, 100, OrderSide::Buy);
         book.addOrder(buy1);
 
-        Order* buy2 = createTestOrder(2, 15100, 200);
+        Order* buy2 = createTestOrder(2, 15100, 200, OrderSide::Buy);
         book.addOrder(buy2);
 
-        Order* sell1 = createTestOrder(101, 16000, 50);
+        Order* sell1 = createTestOrder(101, 16000, 50, OrderSide::Sell);
         book.addOrder(sell1);
 
-        Order* sell2 = createTestOrder(102, 15900, 80);
+        Order* sell2 = createTestOrder(102, 15900, 80, OrderSide::Sell);
         book.addOrder(sell2);
 
-        assert(book.getOrderCount() == 4);
-        assert(book.getBestBid() == 15100);
-        assert(book.getBestAsk() == 15900);
-        assert(book.getBestBidVolume() == 200);
-        assert(book.getBestAskVolume() == 80);
+        testing::AssertTrue(book.getOrderCount() == 4);
+        testing::AssertTrue(book.getBestBid() == 15100);
+        testing::AssertTrue(book.getBestAsk() == 15900);
+        testing::AssertTrue(book.getBestBidVolume() == 200);
+        testing::AssertTrue(book.getBestAskVolume() == 80);
 
-        std::cout << "PASS: Mixed BUY and SELL orders working correctly" << std::endl;
         printBookState(book);
     }
 
-    void testTimePriority() {
-        std::cout << "\n=== Test 4: Time Priority at Same Price ===" << std::endl;
-
+    static void testTimePriority()
+    {
         PriceLadder book(10000, 20000);
 
-        Order* first = createTestOrder(1, 15100, 100);
+        Order* first = createTestOrder(1, 15100, 100, OrderSide::Buy);
         book.addOrder(first);
 
         std::this_thread::sleep_for(std::chrono::microseconds(1));
-        Order* second = createTestOrder(2, 15100, 200);
+        Order* second = createTestOrder(2, 15100, 200, OrderSide::Buy);
         book.addOrder(second);
 
         std::this_thread::sleep_for(std::chrono::microseconds(1));
-        Order* third = createTestOrder(3, 15100, 300);
+        Order* third = createTestOrder(3, 15100, 300, OrderSide::Buy);
         book.addOrder(third);
 
-        PriceLevel* level = book.getLevel(15100);
-        assert(level->head == first);
-        assert(level->head->next == second);
-        assert(level->head->next->next == third);
-        assert(level->tail == third);
-        assert(level->totalVolume == 600);
-        assert(countOrdersInLevel(level) == 3);
+        const PriceLevel* level = book.getLevel(15100);
+        testing::AssertTrue(level->head == first);
+        testing::AssertTrue(level->head->next == second);
+        testing::AssertTrue(level->head->next->next == third);
+        testing::AssertTrue(level->tail == third);
+        testing::AssertTrue(level->totalVolume == 600);
+        testing::AssertTrue(countOrdersInLevel(level) == 3);
 
-        std::cout << "PASS: Time priority maintained correctly" << std::endl;
         printBookState(book);
     }
 
     static void testOrderCancellation()
     {
-        std::cout << "\n=== Test 5: Order Cancellation ===" << std::endl;
-
         PriceLadder book(10000, 20000);
 
-        Order* buy1 = createTestOrder(1, 15100, 100);
+        Order* buy1 = createTestOrder(1, 15100, 100, OrderSide::Buy);
         book.addOrder(buy1);
 
-        Order* buy2 = createTestOrder(2, 15000, 200);
+        Order* buy2 = createTestOrder(2, 15000, 200, OrderSide::Buy);
         book.addOrder(buy2);
 
-        Order* sell1 = createTestOrder(101, 15900, 50);
+        Order* sell1 = createTestOrder(101, 15900, 50, OrderSide::Sell);
         book.addOrder(sell1);
 
-        assert(book.getOrderCount() == 3);
-        assert(book.getBestBid() == 15100);
-        assert(book.getBestAsk() == 15900);
+        testing::AssertTrue(book.getOrderCount() == 3);
+        testing::AssertTrue(book.getBestBid() == 15100);
+        testing::AssertTrue(book.getBestAsk() == 15900);
 
         // Cancel best bid
         Order* found = book.findOrder(1);
-        assert(found != nullptr);
+        testing::AssertTrue(found != nullptr);
         book.removeOrder(found);
 
-        assert(book.getOrderCount() == 2);
-        assert(book.getBestBid() == 15000);
-        assert(book.getBestAsk() == 15900);
+        testing::AssertTrue(book.getOrderCount() == 2);
+        testing::AssertTrue(book.getBestBid() == 15000);
+        testing::AssertTrue(book.getBestAsk() == 15900);
 
         // Cancel best ask
         found = book.findOrder(101);
-        assert(found != nullptr);
+        testing::AssertTrue(found != nullptr);
         book.removeOrder(found);
 
-        assert(book.getOrderCount() == 1);
-        assert(book.getBestBid() == 15000);
-        assert(book.getBestAsk() == UINT64_MAX);
+        testing::AssertTrue(book.getOrderCount() == 1);
+        testing::AssertTrue(book.getBestBid() == 15000);
+        testing::AssertTrue(book.getBestAsk() == std::numeric_limits<Price>::max());
 
         // Cancel remaining order
         found = book.findOrder(2);
-        assert(found != nullptr);
+        testing::AssertTrue(found != nullptr);
         book.removeOrder(found);
 
-        assert(book.getOrderCount() == 0);
-        assert(book.getBestBid() == 0);
-        assert(book.getBestAsk() == UINT64_MAX);
+        testing::AssertTrue(book.getOrderCount() == 0);
+        testing::AssertTrue(book.getBestBid() == 0);
+        testing::AssertTrue(book.getBestAsk() == std::numeric_limits<Price>::max());
 
-        std::cout << "PASS: Order cancellation working correctly" << std::endl;
         printBookState(book);
     }
 
     static void testOrderModification()
     {
-        std::cout << "\n=== Test 6: Order Modification ===" << std::endl;
         PriceLadder book(10000, 20000);
 
-        Order* buy1 = createTestOrder(1, 15100, 100);
+        Order* buy1 = createTestOrder(1, 15100, 100, OrderSide::Buy);
         book.addOrder(buy1);
 
-        Order* buy2 = createTestOrder(2, 15000, 200);
+        Order* buy2 = createTestOrder(2, 15000, 200, OrderSide::Buy);
         book.addOrder(buy2);
 
-        assert(book.getBestBidVolume() == 100);
-        assert(book.getBidVolumeAtDepth(1) == 200);
+        testing::AssertTrue(book.getBestBidVolume() == 100);
+        testing::AssertTrue(book.getBidVolumeAtDepth(1) == 200);
 
         // Modify volume of best bid
         book.modifyOrderVolume(buy1, 300);
-        assert(buy1->volume == 300);
-        assert(book.getBestBidVolume() == 300);
-        assert(book.getBidVolumeAtDepth(1) == 200);
-        assert(book.getLevel(15100)->totalVolume == 300);
+        testing::AssertTrue(buy1->volume == 300);
+        testing::AssertTrue(book.getBestBidVolume() == 300);
+        testing::AssertTrue(book.getBidVolumeAtDepth(1) == 200);
+        testing::AssertTrue(book.getLevel(15100)->totalVolume == 300);
 
         // Modify volume of second level
         book.modifyOrderVolume(buy2, 50);
-        assert(buy2->volume == 50);
-        assert(book.getBestBidVolume() == 300);
-        assert(book.getBidVolumeAtDepth(1) == 50);
-        assert(book.getLevel(15000)->totalVolume == 50);
+        testing::AssertTrue(buy2->volume == 50);
+        testing::AssertTrue(book.getBestBidVolume() == 300);
+        testing::AssertTrue(book.getBidVolumeAtDepth(1) == 50);
+        testing::AssertTrue(book.getLevel(15000)->totalVolume == 50);
 
-        std::cout << "PASS: Order modification working correctly" << std::endl;
         printBookState(book);
     }
 
     static void testPriceImprovement()
     {
-        std::cout << "\n=== Test 7: Price Improvement ===" << std::endl;
         PriceLadder book(10000, 20000);
 
-        Order* buy1 = createTestOrder(1, 15000, 100);
+        Order* buy1 = createTestOrder(1, 15000, 100, OrderSide::Buy);
         book.addOrder(buy1);
 
-        assert(book.getBestBid() == 15000);
+        testing::AssertTrue(book.getBestBid() == 15000);
 
         // Add better bid (higher price)
-        Order* buy2 = createTestOrder(2, 15100, 200);
+        Order* buy2 = createTestOrder(2, 15100, 200, OrderSide::Buy);
         book.addOrder(buy2);
-        assert(book.getBestBid() == 15100);
-        assert(book.getBidPriceAtDepth(0) == 15100);
-        assert(book.getBidPriceAtDepth(1) == 15000);
+        testing::AssertTrue(book.getBestBid() == 15100);
+        testing::AssertTrue(book.getBidPriceAtDepth(0) == 15100);
+        testing::AssertTrue(book.getBidPriceAtDepth(1) == 15000);
 
-        Order* sell1 = createTestOrder(101, 16000, 50);
+        Order* sell1 = createTestOrder(101, 16000, 50, OrderSide::Sell);
         book.addOrder(sell1);
-        assert(book.getBestAsk() == 16000);
+        testing::AssertTrue(book.getBestAsk() == 16000);
 
         // Add better ask (lower price)
-        Order* sell2 = createTestOrder(102, 15900, 80);
+        Order* sell2 = createTestOrder(102, 15900, 80, OrderSide::Sell);
         book.addOrder(sell2);
-        assert(book.getBestAsk() == 15900);
-        assert(book.getAskPriceAtDepth(0) == 15900);
-        assert(book.getAskPriceAtDepth(1) == 16000);
+        testing::AssertTrue(book.getBestAsk() == 15900);
+        testing::AssertTrue(book.getAskPriceAtDepth(0) == 15900);
+        testing::AssertTrue(book.getAskPriceAtDepth(1) == 16000);
 
-        std::cout << "PASS: Price improvement working correctly" << std::endl;
         printBookState(book);
     }
 
+
     static void testMarketOrderExecution()
     {
-        std::cout << "\n=== Test 8: Market Order Execution ===" << std::endl;
         PriceLadder book(10000, 20000);
 
-        Order* buy1 = createTestOrder(1, 15100, 100);
+        Order* buy1 = createTestOrder(1, 15100, 100, OrderSide::Buy);
         book.addOrder(buy1);
 
-        Order* buy2 = createTestOrder(2, 15000, 200);
+        Order* buy2 = createTestOrder(2, 15000, 200, OrderSide::Buy);
         book.addOrder(buy2);
 
-        Order* sell1 = createTestOrder(101, 15900, 50);
+        Order* sell1 = createTestOrder(101, 15900, 50, OrderSide::Sell);
         book.addOrder(sell1);
 
-        Order* sell2 = createTestOrder(102, 16000, 80);
+        Order* sell2 = createTestOrder(102, 16000, 80, OrderSide::Sell);
         book.addOrder(sell2);
 
-        assert(book.getOrderCount() == 4);
-        assert(book.getBestAsk() == 15900);
-        assert(book.getBestAskVolume() == 50);
+        testing::AssertTrue(book.getOrderCount() == 4);
+        testing::AssertTrue(book.getBestAsk() == 15900);
+        testing::AssertTrue(book.getBestAskVolume() == 50);
 
         // Market BUY: execute against best ask
-        PriceLevel* askLevel = book.getBestAskLevel();
+        const PriceLevel* askLevel = book.getBestAskLevel();
         Order* bestAskOrder = askLevel->head;
-        assert(bestAskOrder->orderId == 101);
+        testing::AssertTrue(bestAskOrder->orderId == 101);
         book.removeOrder(bestAskOrder);
 
-        assert(book.getOrderCount() == 3);
-        assert(book.getBestAsk() == 16000);
-        assert(book.getBestAskVolume() == 80);
+        testing::AssertTrue(book.getOrderCount() == 3);
+        testing::AssertTrue(book.getBestAsk() == 16000);
+        testing::AssertTrue(book.getBestAskVolume() == 80);
 
         // Market SELL: execute against best bid
-        PriceLevel* bidLevel = book.getBestBidLevel();
+        const PriceLevel* bidLevel = book.getBestBidLevel();
         Order* bestBidOrder = bidLevel->head;
-        assert(bestBidOrder->orderId == 1);
+        testing::AssertTrue(bestBidOrder->orderId == 1);
         book.removeOrder(bestBidOrder);
 
-        assert(book.getOrderCount() == 2);
-        assert(book.getBestBid() == 15000);
-        assert(book.getBestBidVolume() == 200);
+        testing::AssertTrue(book.getOrderCount() == 2);
+        testing::AssertTrue(book.getBestBid() == 15000);
+        testing::AssertTrue(book.getBestBidVolume() == 200);
 
-        std::cout << "PASS: Market order execution working correctly" << std::endl;
         printBookState(book);
     }
 
     static void testDepthLevelAccess()
     {
-        std::cout << "\n=== Test 9: Depth Level Access ===" << std::endl;
         PriceLadder book(10000, 20000);
 
         // Add multiple bid levels
-        Order* buy1 = createTestOrder(1, 15100, 100);
+        Order* buy1 = createTestOrder(1, 15100, 100, OrderSide::Buy);
         book.addOrder(buy1);
-        Order* buy2 = createTestOrder(2, 15050, 150);
+        Order* buy2 = createTestOrder(2, 15050, 150, OrderSide::Buy);
         book.addOrder(buy2);
-        Order* buy3 = createTestOrder(3, 15000, 200);
+        Order* buy3 = createTestOrder(3, 15000, 200, OrderSide::Buy);
         book.addOrder(buy3);
-        Order* buy4 = createTestOrder(4, 14900, 250);
+        Order* buy4 = createTestOrder(4, 14900, 250, OrderSide::Buy);
         book.addOrder(buy4);
 
         // Add multiple ask levels
-        Order* sell1 = createTestOrder(101, 15900, 50);
+        Order* sell1 = createTestOrder(101, 15900, 50, OrderSide::Sell);
         book.addOrder(sell1);
-        Order* sell2 = createTestOrder(102, 16000, 80);
+        Order* sell2 = createTestOrder(102, 16000, 80, OrderSide::Sell);
         book.addOrder(sell2);
-        Order* sell3 = createTestOrder(103, 16100, 120);
+        Order* sell3 = createTestOrder(103, 16100, 120, OrderSide::Sell);
         book.addOrder(sell3);
 
         // Test bid depth
-        assert(book.getBidPriceAtDepth(0) == 15100);
-        assert(book.getBidVolumeAtDepth(0) == 100);
-        assert(book.getBidPriceAtDepth(1) == 15050);
-        assert(book.getBidVolumeAtDepth(1) == 150);
-        assert(book.getBidPriceAtDepth(2) == 15000);
-        assert(book.getBidVolumeAtDepth(2) == 200);
-        assert(book.getBidPriceAtDepth(3) == 14900);
-        assert(book.getBidVolumeAtDepth(3) == 250);
-        assert(book.getBidPriceAtDepth(10) == 0);
+        testing::AssertTrue(book.getBidPriceAtDepth(0) == 15100);
+        testing::AssertTrue(book.getBidVolumeAtDepth(0) == 100);
+        testing::AssertTrue(book.getBidPriceAtDepth(1) == 15050);
+        testing::AssertTrue(book.getBidVolumeAtDepth(1) == 150);
+        testing::AssertTrue(book.getBidPriceAtDepth(2) == 15000);
+        testing::AssertTrue(book.getBidVolumeAtDepth(2) == 200);
+        testing::AssertTrue(book.getBidPriceAtDepth(3) == 14900);
+        testing::AssertTrue(book.getBidVolumeAtDepth(3) == 250);
+        testing::AssertTrue(book.getBidPriceAtDepth(10) == 0);
 
         // Test ask depth
-        assert(book.getAskPriceAtDepth(0) == 15900);
-        assert(book.getAskVolumeAtDepth(0) == 50);
-        assert(book.getAskPriceAtDepth(1) == 16000);
-        assert(book.getAskVolumeAtDepth(1) == 80);
-        assert(book.getAskPriceAtDepth(2) == 16100);
-        assert(book.getAskVolumeAtDepth(2) == 120);
-        assert(book.getAskPriceAtDepth(10) == UINT64_MAX);
+        testing::AssertTrue(book.getAskPriceAtDepth(0) == 15900);
+        testing::AssertTrue(book.getAskVolumeAtDepth(0) == 50);
+        testing::AssertTrue(book.getAskPriceAtDepth(1) == 16000);
+        testing::AssertTrue(book.getAskVolumeAtDepth(1) == 80);
+        testing::AssertTrue(book.getAskPriceAtDepth(2) == 16100);
+        testing::AssertTrue(book.getAskVolumeAtDepth(2) == 120);
+        testing::AssertTrue(book.getAskPriceAtDepth(10) == std::numeric_limits<Price>::max());
 
         // Test level pointers
         const PriceLevel* bidLevel0 = book.getBidLevel(0);
-        assert(bidLevel0 != nullptr);
-        assert(bidLevel0->priceTick == 15100);
+        testing::AssertTrue(bidLevel0 != nullptr);
+        testing::AssertTrue(bidLevel0->priceTick == 15100);
 
         const PriceLevel* askLevel0 = book.getAskLevel(0);
-        assert(askLevel0 != nullptr);
-        assert(askLevel0->priceTick == 15900);
+        testing::AssertTrue(askLevel0 != nullptr);
+        testing::AssertTrue(askLevel0->priceTick == 15900);
 
-        std::cout << "PASS: Depth level access working correctly" << std::endl;
         printBookState(book);
     }
 
     static void testEmptyBookOperations()
     {
-        std::cout << "\n=== Test 10: Empty Book Operations ===" << std::endl;
-        PriceLadder book(10000, 20000);
+        const PriceLadder book(10000, 20000);
 
-        assert(book.isEmpty());
-        assert(book.getOrderCount() == 0);
-        assert(book.getBestBid() == 0);
-        assert(book.getBestAsk() == UINT64_MAX);
-        assert(book.getBestBidLevel() == nullptr);
-        assert(book.getBestAskLevel() == nullptr);
-        assert(book.getBestBidVolume() == 0);
-        assert(book.getBestAskVolume() == 0);
-        assert(book.getBidPriceAtDepth(0) == 0);
-        assert(book.getAskPriceAtDepth(0) == UINT64_MAX);
-        assert(book.getNumBidLevels() > 0);
-        assert(book.getNumAskLevels() > 0);
+        testing::AssertTrue(book.isEmpty());
+        testing::AssertTrue(book.getOrderCount() == 0);
+        testing::AssertTrue(book.getBestBid() == 0);
+        testing::AssertTrue(book.getBestAsk() == std::numeric_limits<Price>::max());
+        testing::AssertTrue(book.getBestBidLevel() == nullptr);
+        testing::AssertTrue(book.getBestAskLevel() == nullptr);
+        testing::AssertTrue(book.getBestBidVolume() == 0);
+        testing::AssertTrue(book.getBestAskVolume() == 0);
+        testing::AssertTrue(book.getBidPriceAtDepth(0) == 0);
+        testing::AssertTrue(book.getAskPriceAtDepth(0) == std::numeric_limits<Price>::max());
+        testing::AssertTrue(book.getNumBidLevels() > 0);
+        testing::AssertTrue(book.getNumAskLevels() > 0);
 
-        std::cout << "PASS: Empty book operations working correctly" << std::endl;
         printBookState(book);
     }
 
     static void testLargeVolumeOperations()
     {
-        std::cout << "\n=== Test 11: Large Volume Operations ===" << std::endl;
         PriceLadder book(10000, 20000);
         constexpr uint64_t largeVolume = 1000000000ULL;
 
-        Order* buy1 = createTestOrder(1, 15000, largeVolume);
+        Order* buy1 = createTestOrder(1, 15000, largeVolume, OrderSide::Buy);
         book.addOrder(buy1);
 
-        assert(book.getBestBidVolume() == largeVolume);
-        assert(book.getLevel(15000)->totalVolume == largeVolume);
+        testing::AssertTrue(book.getBestBidVolume() == largeVolume);
+        testing::AssertTrue(book.getLevel(15000)->totalVolume == largeVolume);
 
-        Order* sell1 = createTestOrder(101, 16000, largeVolume * 2);
+        Order* sell1 = createTestOrder(101, 16000, largeVolume * 2, OrderSide::Sell);
         book.addOrder(sell1);
 
-        assert(book.getBestAskVolume() == largeVolume * 2);
-        assert(book.getLevel(16000)->totalVolume == largeVolume * 2);
+        testing::AssertTrue(book.getBestAskVolume() == largeVolume * 2);
+        testing::AssertTrue(book.getLevel(16000)->totalVolume == largeVolume * 2);
 
         // Modify to even larger volume
-        const uint64_t newVolume = largeVolume * 10;
+        constexpr uint64_t newVolume = largeVolume * 10;
         book.modifyOrderVolume(buy1, newVolume);
-        assert(buy1->volume == newVolume);
-        assert(book.getBestBidVolume() == newVolume);
-        assert(book.getLevel(15000)->totalVolume == newVolume);
+        testing::AssertTrue(buy1->volume == newVolume);
+        testing::AssertTrue(book.getBestBidVolume() == newVolume);
+        testing::AssertTrue(book.getLevel(15000)->totalVolume == newVolume);
 
-        std::cout << "PASS: Large volume operations working correctly" << std::endl;
         printBookState(book);
     }
 
     static void testFindOrderById()
     {
-        std::cout << "\n=== Test 12: Find Order by ID ===" << std::endl;
         PriceLadder book(10000, 20000);
 
-        Order* buy1 = createTestOrder(1001, 15000, 100);
+        Order* buy1 = createTestOrder(1001, 15000, 100, OrderSide::Buy);
         book.addOrder(buy1);
 
-        Order* buy2 = createTestOrder(1002, 15100, 200);
+        Order* buy2 = createTestOrder(1002, 15100, 200, OrderSide::Buy);
         book.addOrder(buy2);
 
-        Order* sell1 = createTestOrder(2001, 16000, 50);
+        Order* sell1 = createTestOrder(2001, 16000, 50, OrderSide::Sell);
         book.addOrder(sell1);
 
-        Order* found = book.findOrder(1002);
-        assert(found != nullptr);
-        assert(found->orderId == 1002);
-        assert(found->priceTick == 15100);
-        assert(found->volume == 200);
+        const Order* found = book.findOrder(1002);
+        testing::AssertTrue(found != nullptr);
+        testing::AssertTrue(found->orderId == 1002);
+        testing::AssertTrue(found->priceTick == 15100);
+        testing::AssertTrue(found->volume == 200);
 
         found = book.findOrder(2001);
-        assert(found != nullptr);
-        assert(found->orderId == 2001);
-        assert(found->priceTick == 16000);
-        assert(found->volume == 50);
+        testing::AssertTrue(found != nullptr);
+        testing::AssertTrue(found->orderId == 2001);
+        testing::AssertTrue(found->priceTick == 16000);
+        testing::AssertTrue(found->volume == 50);
 
         found = book.findOrder(9999);
-        assert(found == nullptr);
+        testing::AssertTrue(found == nullptr);
 
         // Remove order and verify cannot find it
         book.removeOrder(buy1);
         found = book.findOrder(1001);
-        assert(found == nullptr);
+        testing::AssertTrue(found == nullptr);
 
-        std::cout << "PASS: Order lookup by ID working correctly" << std::endl;
         printBookState(book);
     }
 
-    static void testRemoveFromMiddle()
-    {
-        std::cout << "\n=== Test 13: Remove Order from Middle of List ===" << std::endl;
+    static void testRemoveFromMiddle() {
         PriceLadder book(10000, 20000);
 
-        Order* first = createTestOrder(1, 15100, 100);
+        Order* first = createTestOrder(1, 15100, 100, OrderSide::Buy);
         book.addOrder(first);
 
-        Order* second = createTestOrder(2, 15100, 200);
+        Order* second = createTestOrder(2, 15100, 200, OrderSide::Buy);
         book.addOrder(second);
 
-        Order* third = createTestOrder(3, 15100, 300);
+        Order* third = createTestOrder(3, 15100, 300, OrderSide::Buy);
         book.addOrder(third);
 
-        PriceLevel* level = book.getLevel(15100);
-        assert(countOrdersInLevel(level) == 3);
-        assert(level->head == first);
-        assert(level->tail == third);
+        const PriceLevel* level = book.getLevel(15100);
+        testing::AssertTrue(countOrdersInLevel(level) == 3);
+        testing::AssertTrue(level->head == first);
+        testing::AssertTrue(level->tail == third);
 
         // Remove middle order
         book.removeOrder(second);
 
-        assert(countOrdersInLevel(level) == 2);
-        assert(level->head == first);
-        assert(level->head->next == third);
-        assert(level->tail == third);
-        assert(level->totalVolume == 400);
+        testing::AssertTrue(countOrdersInLevel(level) == 2);
+        testing::AssertTrue(level->head == first);
+        testing::AssertTrue(level->head->next == third);
+        testing::AssertTrue(level->tail == third);
+        testing::AssertTrue(level->totalVolume == 400);
 
         // Remove first order
         book.removeOrder(first);
-        assert(countOrdersInLevel(level) == 1);
-        assert(level->head == third);
-        assert(level->tail == third);
-        assert(level->totalVolume == 300);
+        testing::AssertTrue(countOrdersInLevel(level) == 1);
+        testing::AssertTrue(level->head == third);
+        testing::AssertTrue(level->tail == third);
+        testing::AssertTrue(level->totalVolume == 300);
 
         // Remove last order
         book.removeOrder(third);
-        assert(countOrdersInLevel(level) == 0);
-        assert(level->head == nullptr);
-        assert(level->tail == nullptr);
-        assert(level->totalVolume == 0);
+        testing::AssertTrue(countOrdersInLevel(level) == 0);
+        testing::AssertTrue(level->head == nullptr);
+        testing::AssertTrue(level->tail == nullptr);
+        testing::AssertTrue(level->totalVolume == 0);
 
-        std::cout << "PASS: Remove from middle of list working correctly" << std::endl;
         printBookState(book);
     }
 
     static void testGetLevelByPrice()
     {
-        std::cout << "\n=== Test 14: Get Level by Price ===" << std::endl;
         PriceLadder book(10000, 20000);
 
-        Order* buy1 = createTestOrder(1, 15000, 100);
+        Order* buy1 = createTestOrder(1, 15000, 100, OrderSide::Buy);
         book.addOrder(buy1);
 
-        Order* buy2 = createTestOrder(2, 15200, 200);
+        Order* buy2 = createTestOrder(2, 15200, 200, OrderSide::Buy);
         book.addOrder(buy2);
 
-        PriceLevel* level = book.getLevel(15000);
-        assert(level != nullptr);
-        assert(level->priceTick == 15000);
-        assert(level->totalVolume == 100);
-        assert(level->head == buy1);
-        assert(level->tail == buy1);
+        const PriceLevel* level = book.getLevel(15000);
+        testing::AssertTrue(level != nullptr);
+        testing::AssertTrue(level->priceTick == 15000);
+        testing::AssertTrue(level->totalVolume == 100);
+        testing::AssertTrue(level->head == buy1);
+        testing::AssertTrue(level->tail == buy1);
 
         level = book.getLevel(15200);
-        assert(level != nullptr);
-        assert(level->priceTick == 15200);
-        assert(level->totalVolume == 200);
-        assert(level->head == buy2);
-        assert(level->tail == buy2);
+        testing::AssertTrue(level != nullptr);
+        testing::AssertTrue(level->priceTick == 15200);
+        testing::AssertTrue(level->totalVolume == 200);
+        testing::AssertTrue(level->head == buy2);
+        testing::AssertTrue(level->tail == buy2);
 
         // Empty level
         level = book.getLevel(15100);
-        assert(level != nullptr);
-        assert(level->priceTick == 15100);
-        assert(level->totalVolume == 0);
-        assert(level->head == nullptr);
-        assert(level->tail == nullptr);
-        assert(level->isEmpty());
+        testing::AssertTrue(level != nullptr);
+        testing::AssertTrue(level->priceTick == 15100);
+        testing::AssertTrue(level->totalVolume == 0);
+        testing::AssertTrue(level->head == nullptr);
+        testing::AssertTrue(level->tail == nullptr);
+        testing::AssertTrue(level->isEmpty());
 
         // Const version
         const PriceLadder& constBook = book;
         const PriceLevel* constLevel = constBook.getLevel(15000);
-        assert(constLevel != nullptr);
-        assert(constLevel->priceTick == 15000);
+        testing::AssertTrue(constLevel != nullptr);
+        testing::AssertTrue(constLevel->priceTick == 15000);
 
-        std::cout << "PASS: Get level by price working correctly" << std::endl;
         printBookState(book);
     }
-
 }
 
 
@@ -1129,7 +1107,6 @@ void collections::price_level_storage_2::TestAll()
     using namespace tests;
 
     testAddBuyOrders();
-    /*
     testAddSellOrders();
     testMixedOrders();
     testTimePriority();
@@ -1142,5 +1119,5 @@ void collections::price_level_storage_2::TestAll()
     testLargeVolumeOperations();
     testFindOrderById();
     testRemoveFromMiddle();
-    testGetLevelByPrice();*/
+    testGetLevelByPrice();
 }

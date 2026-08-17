@@ -27,19 +27,20 @@ FetchContent_MakeAvailable(boost)
 #]]
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/${PROJECT_NAME})
-set(SRC ${PROJECT_DIR}/src)
-set(TESTS ${PROJECT_DIR}/tests)
-set(CORE ${SRC}/core)
-set(MARKET_DATA ${SRC}/market_data)
-set(TESTS ${PROJECT_DIR}/tests)
-# set(CONNECTORS ${PROJECT_DIR}/connectors)
-# set(MARKET_DATA ${PROJECT_DIR}/market_data)
+set(SOURCES  ${PROJECT_DIR}/src)
+set(TESTS    ${PROJECT_DIR}/tests)
+
+set(CORE        ${SOURCES}/core)
+set(MARKET_DATA ${SOURCES}/market_data)
+set(EXECUTION   ${SOURCES}/execution)
+set(EXCHANGES   ${SOURCES}/exchanges)
+set(STRATEGY    ${SOURCES}/strategy)
+set(BINANCE     ${EXCHANGES}/binance)
 
 include_directories(${CORE})
 include_directories(${MARKET_DATA})
-# include_directories(${CONNECTORS})
-# include_directories(${MARKET_DATA})
-# include_directories(${ENGINE})
+include_directories(${EXECUTION})
+include_directories(${STRATEGY})
 
 # include all components
 add_executable(${PROJECT_NAME}
@@ -49,12 +50,39 @@ add_executable(${PROJECT_NAME}
         ${CORE}/types.hpp
         ${CORE}/instrument.hpp
         ${CORE}/timestamp.hpp
+
         ${MARKET_DATA}/book_level.hpp
         ${MARKET_DATA}/book_update.hpp
         ${MARKET_DATA}/market_event.hpp
+        ${MARKET_DATA}/market_event_handler.hpp
+        ${MARKET_DATA}/market_data_parser.hpp
+        ${MARKET_DATA}/market_data_source.hpp
+        ${MARKET_DATA}/market_data_message_handler.cpp
+        ${MARKET_DATA}/market_data_message_handler.hpp
         ${MARKET_DATA}/order_book.hpp
         ${MARKET_DATA}/order_book.cpp
+        ${MARKET_DATA}/book_update_handler.hpp
+        ${MARKET_DATA}/book_builder.hpp
+        ${MARKET_DATA}/book_builder.cpp
+
+        ${EXECUTION}/order.hpp
+        ${EXECUTION}/execution_gateway.hpp
+        ${EXECUTION}/execution_report.hpp
+        ${EXECUTION}/order_manager.hpp
+        ${EXECUTION}/order_manager.cpp
+
+        ${BINANCE}/binance_market_data_source.hpp
+        ${BINANCE}/binance_market_data_source.cpp
+        ${BINANCE}/binance_market_data_parser.cpp
+        ${BINANCE}/binance_market_data_parser.hpp
+
+        ${STRATEGY}/strategy.hpp
+        ${STRATEGY}/imbalance_strategy.hpp
+        ${STRATEGY}/imbalance_strategy.cpp
+
         ${TESTS}/market_data/order_book_test.cpp
+        ${TESTS}/market_data/book_builder_test.cpp
+        ${TESTS}/execution/order_manager_test.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

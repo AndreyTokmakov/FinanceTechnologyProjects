@@ -28,6 +28,10 @@ using trading::execution::IExecutionGateway;
 using trading::execution::Order;
 using trading::execution::OrderManager;
 using trading::execution::OrderRequest;
+using trading::risk::IRiskManager;
+using trading::risk::RiskResult;
+using trading::risk::RiskReason;
+using trading::position::Position;
 
 namespace
 {
@@ -39,6 +43,27 @@ namespace
             std::terminate();
         }
     }
+
+    class TestRiskManager final : public IRiskManager
+    {
+    public:
+        RiskResult checkOrder(const OrderRequest&,
+                                             const Position&) override
+        {
+            checkCount++;
+            return result;
+        }
+
+        [[nodiscard]]
+        RiskReason lastReason() const noexcept override
+        {
+            return reason;
+        }
+
+        RiskResult result { RiskResult::Accepted };
+        RiskReason reason { RiskReason::None };
+        uint32_t checkCount { 0 };
+    };
 
     class TestExecutionGateway final : public IExecutionGateway
     {
@@ -89,7 +114,10 @@ namespace
     void testCreateOrder()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         constexpr OrderRequest request {
             .instrument = InstrumentId { 1 },
@@ -119,7 +147,10 @@ namespace
     void testOrderIdsAreUnique()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         constexpr OrderRequest request {
             .instrument = InstrumentId { 1 },
@@ -145,7 +176,10 @@ namespace
     void testOrderIsSentToGateway()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         constexpr OrderRequest request {
             .instrument = InstrumentId { 42 },
@@ -172,7 +206,10 @@ namespace
     void testFindUnknownOrder()
     {
         TestExecutionGateway gateway;
-        const OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        const OrderManager manager { gateway, riskManager, position };
         const Order* order = manager.find(OrderId { 42 });
 
         Assert(order == nullptr, "unknown order must not be found");
@@ -181,7 +218,10 @@ namespace
     void testApplyNewExecutionReport()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         constexpr OrderRequest request {
             .instrument = InstrumentId { 1 },
@@ -218,7 +258,10 @@ namespace
     void testApplyPartialFill()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         const OrderId orderId = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
@@ -254,7 +297,10 @@ namespace
     void testApplyFilled()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         const OrderId orderId = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
@@ -288,7 +334,10 @@ namespace
     void testApplyCancelled()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         const OrderId orderId = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
@@ -319,7 +368,10 @@ namespace
     void testApplyRejected()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         const OrderId orderId = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
@@ -350,7 +402,10 @@ namespace
     void testUnknownExecutionReport()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         const bool applied = manager.applyExecutionReport(ExecutionReport {
             .clientOrderId = OrderId { 42 },
@@ -368,7 +423,10 @@ namespace
     void testCancelOrder()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
+
+        OrderManager manager { gateway, riskManager, position };
 
         const OrderId orderId = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
@@ -390,8 +448,10 @@ namespace
     void testCancelUnknownOrder()
     {
         TestExecutionGateway gateway;
-        OrderManager manager { gateway };
+        TestRiskManager riskManager;
+        Position position { InstrumentId { 1 } };
 
+        OrderManager manager { gateway, riskManager, position };
         const bool cancelled = manager.cancel(OrderId { 42 });
 
         Assert(!cancelled, "cancel of unknown order must fail");

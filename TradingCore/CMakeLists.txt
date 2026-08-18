@@ -37,6 +37,7 @@ set(EXCHANGES   ${SOURCES}/exchanges)
 set(STRATEGY    ${SOURCES}/strategy)
 set(POSITION    ${SOURCES}/position)
 set(PNL         ${SOURCES}/pnl)
+set(RISK        ${SOURCES}/risk)
 set(BINANCE     ${EXCHANGES}/binance)
 
 include_directories(${CORE})
@@ -47,7 +48,7 @@ include_directories(${EXECUTION})
 include_directories(${STRATEGY})
 include_directories(${POSITION})
 include_directories(${PNL})
-include_directories(${PNL})
+include_directories(${RISK})
 
 # include all components
 add_executable(${PROJECT_NAME}
@@ -93,6 +94,11 @@ add_executable(${PROJECT_NAME}
         ${PNL}/pnl_calculator.hpp
         ${PNL}/pnl_calculator.cpp
 
+        ${RISK}/risk.hpp
+        ${RISK}/risk_limits.hpp
+        ${RISK}/risk_manager.hpp
+        ${RISK}/risk_manager.cpp
+
         ${STRATEGY}/strategy.hpp
         ${STRATEGY}/imbalance_strategy.hpp
         ${STRATEGY}/imbalance_strategy.cpp
@@ -101,6 +107,7 @@ add_executable(${PROJECT_NAME}
         ${TESTS}/market_data/book_builder_test.cpp
         ${TESTS}/execution/order_manager_test.cpp
         ${TESTS}/pnl/pnl_calculator_test.cpp
+        ${TESTS}/risk/risk_manager_test.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

@@ -4,25 +4,18 @@ Created on  : 15.08.2026
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : order_book.hpp
-============================================================================**/
-/**============================================================================
-Name        : order_book.hpp
-Created on  : 15.08.2026
-Author      : Andrei Tokmakov
-Version     : 1.0
-Copyright   : Your copyright notice
-Description : order_book.hpp
+Description : Order book state.
+              OrderBook stores current bid/ask levels and applies market-data
+              updates. It does not know about snapshots or market-data sources.
 ============================================================================**/
 
 #ifndef FINANCETECHNOLOGYPROJECTS_ORDER_BOOK_HPP
 #define FINANCETECHNOLOGYPROJECTS_ORDER_BOOK_HPP
 
-#include "book_level.hpp"
-#include "book_update.hpp"
+#include "model/book_level.hpp"
+#include "model/book_update.hpp"
 #include "price.hpp"
 #include "quantity.hpp"
-#include "types.hpp"
 
 #include <map>
 #include <optional>
@@ -42,9 +35,9 @@ namespace trading::market_data
 
         void clear() noexcept;
 
-        void applySnapshot(SequenceNumber sequence,
-                           const Levels& newBids,
-                           const Levels& newAsks);
+        void replace(const SequenceNumber sequence,
+                     const Levels& bids,
+                     const Levels& asks);
 
         [[nodiscard]]
         bool applyUpdate(const BookUpdate& update) noexcept;
@@ -56,10 +49,10 @@ namespace trading::market_data
         std::optional<BookLevel> bestAsk() const;
 
         [[nodiscard]]
-        Quantity bidVolume(Price price) const noexcept;
+        Quantity bidVolume(const Price price) const noexcept;
 
         [[nodiscard]]
-        Quantity askVolume(Price price) const noexcept;
+        Quantity askVolume(const Price price) const noexcept;
 
     private:
         Levels bids;

@@ -1,10 +1,10 @@
 /**============================================================================
 Name        : order_book.cpp
-Created on  : 15.08.2026
+Created on  : 16.08.2026
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : order_book.cpp
+Description : Order book state management.
 ============================================================================**/
 
 #include "order_book.hpp"
@@ -29,12 +29,12 @@ namespace trading::market_data
         valid = false;
     }
 
-    void OrderBook::applySnapshot(const SequenceNumber sequence,
-                                  const Levels& newBids,
-                                  const Levels& newAsks)
+    void OrderBook::replace(const SequenceNumber sequence,
+                            const Levels& spanBids,
+                            const Levels& spanAsks)
     {
-        bids = newBids;
-        asks = newAsks;
+        bids = spanBids;
+        asks = spanAsks;
         sequenceNumber = sequence;
         valid = true;
     }
@@ -65,29 +65,24 @@ namespace trading::market_data
     {
         if (bids.empty())
             return std::nullopt;
-        const auto& [price, quantity] = *bids.rbegin();
 
-        return BookLevel {
-            .price = price,
-            .quantity = quantity
-        };
+        const auto& [price, quantity] = *bids.rbegin();
+        return BookLevel { .price = price, .quantity = quantity };
     }
 
     std::optional<BookLevel> OrderBook::bestAsk() const
     {
         if (asks.empty())
             return std::nullopt;
-        const auto& [price, quantity] = *asks.begin();
 
-        return BookLevel {
-            .price = price,
-            .quantity = quantity
-        };
+        const auto& [price, quantity] = *asks.begin();
+        return BookLevel { .price = price, .quantity = quantity };
     }
 
     Quantity OrderBook::bidVolume(const Price price) const noexcept
     {
         const auto it = bids.find(price);
+
         if (it == bids.end())
             return {};
 
@@ -97,6 +92,7 @@ namespace trading::market_data
     Quantity OrderBook::askVolume(const Price price) const noexcept
     {
         const auto it = asks.find(price);
+
         if (it == asks.end())
             return {};
 

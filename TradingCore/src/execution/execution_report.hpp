@@ -20,6 +20,8 @@ namespace trading::execution
     {
         OrderId clientOrderId { 0 };
         ExchangeOrderId exchangeOrderId { 0 };
+        InstrumentId instrument { 0 };
+        Side side { Side::Buy };
         ExecType execType { ExecType::New };
         OrderStatus status { OrderStatus::New };
         Price price;

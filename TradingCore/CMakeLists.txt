@@ -35,12 +35,19 @@ set(MARKET_DATA ${SOURCES}/market_data)
 set(EXECUTION   ${SOURCES}/execution)
 set(EXCHANGES   ${SOURCES}/exchanges)
 set(STRATEGY    ${SOURCES}/strategy)
+set(POSITION    ${SOURCES}/position)
+set(PNL         ${SOURCES}/pnl)
 set(BINANCE     ${EXCHANGES}/binance)
 
 include_directories(${CORE})
 include_directories(${MARKET_DATA})
+include_directories(${MARKET_DATA}/model)
+include_directories(${MARKET_DATA}/interfaces)
 include_directories(${EXECUTION})
 include_directories(${STRATEGY})
+include_directories(${POSITION})
+include_directories(${PNL})
+include_directories(${PNL})
 
 # include all components
 add_executable(${PROJECT_NAME}
@@ -51,17 +58,18 @@ add_executable(${PROJECT_NAME}
         ${CORE}/instrument.hpp
         ${CORE}/timestamp.hpp
 
-        ${MARKET_DATA}/book_level.hpp
-        ${MARKET_DATA}/book_update.hpp
-        ${MARKET_DATA}/market_event.hpp
-        ${MARKET_DATA}/market_event_handler.hpp
-        ${MARKET_DATA}/market_data_parser.hpp
-        ${MARKET_DATA}/market_data_source.hpp
+        ${MARKET_DATA}/model/book_level.hpp
+        ${MARKET_DATA}/model/book_update.hpp
+        ${MARKET_DATA}/model/market_event.hpp
+        ${MARKET_DATA}/interfaces/market_event_handler.hpp
+        ${MARKET_DATA}/interfaces/market_data_parser.hpp
+        ${MARKET_DATA}/interfaces/market_data_source.hpp
+        ${MARKET_DATA}/interfaces/book_update_handler.hpp
+
         ${MARKET_DATA}/market_data_message_handler.cpp
         ${MARKET_DATA}/market_data_message_handler.hpp
         ${MARKET_DATA}/order_book.hpp
         ${MARKET_DATA}/order_book.cpp
-        ${MARKET_DATA}/book_update_handler.hpp
         ${MARKET_DATA}/book_builder.hpp
         ${MARKET_DATA}/book_builder.cpp
 
@@ -76,6 +84,15 @@ add_executable(${PROJECT_NAME}
         ${BINANCE}/binance_market_data_parser.cpp
         ${BINANCE}/binance_market_data_parser.hpp
 
+        ${POSITION}/position.hpp
+        ${POSITION}/position.cpp
+        ${POSITION}/position_manager.hpp
+        ${POSITION}/position_manager.cpp
+
+        ${PNL}/pnl.hpp
+        ${PNL}/pnl_calculator.hpp
+        ${PNL}/pnl_calculator.cpp
+
         ${STRATEGY}/strategy.hpp
         ${STRATEGY}/imbalance_strategy.hpp
         ${STRATEGY}/imbalance_strategy.cpp
@@ -83,6 +100,7 @@ add_executable(${PROJECT_NAME}
         ${TESTS}/market_data/order_book_test.cpp
         ${TESTS}/market_data/book_builder_test.cpp
         ${TESTS}/execution/order_manager_test.cpp
+        ${TESTS}/pnl/pnl_calculator_test.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

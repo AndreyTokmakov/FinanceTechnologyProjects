@@ -39,7 +39,7 @@ Description : Market event handler.
 #ifndef FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_HANDLER_HPP
 #define FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_HANDLER_HPP
 
-#include "market_event.hpp"
+#include "../model/market_event.hpp"
 
 namespace trading::market_data
 {

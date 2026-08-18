@@ -47,15 +47,21 @@ namespace
         }
 
         [[nodiscard]]
-        std::size_t eventCount() const noexcept
-        {
+        std::size_t eventCount() const noexcept {
             return events.size();
         }
 
         [[nodiscard]]
-        const MarketEvent& lastEvent() const noexcept
-        {
+        const MarketEvent& lastEvent() const noexcept {
             return events.back();
+        }
+
+        void clear() {
+            events.clear();
+        }
+
+        bool isEmpty() {
+            return events.empty();
         }
 
     private:
@@ -114,13 +120,10 @@ namespace
 
         const bool applied = builder.applySnapshot(
             SequenceNumber { 100 },
-            {
-                { Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }
-            },
-            {
-                { Price { 6'500'001'000'000 }, Quantity { 90'000'000 } }
-            },
-            exchangeTimestamp);
+            {{ Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }},
+            {{ Price { 6'500'001'000'000 }, Quantity { 90'000'000 } }},
+            exchangeTimestamp
+        );
 
         Assert(applied, "snapshot must be applied");
         Assert(eventHandler.eventCount() == 1,
@@ -149,19 +152,18 @@ namespace
     void testBookUpdatePublishesMarketEvent()
     {
         OrderBook orderBook;
-        orderBook.applySnapshot(SequenceNumber { 100 },
-            {
-                { Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }
-            },
-            {
-                { Price { 6'500'001'000'000 }, Quantity { 90'000'000 } }});
-
         TestMarketEventHandler eventHandler;
-
         constexpr InstrumentId instrument { 42 };
         BookBuilder builder { instrument, orderBook,eventHandler };
 
         constexpr Timestamp exchangeTimestamp { 2'000'000 };
+        const bool _ = builder.applySnapshot(SequenceNumber { 100 },
+        {
+            { Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }
+        },
+        {
+        { Price { 6'500'001'000'000 }, Quantity { 90'000'000 } }
+        }, Timestamp { 1'000 });
 
         builder.onBookUpdate(BookUpdate {
             .instrument = instrument,
@@ -172,44 +174,36 @@ namespace
             .quantity = Quantity { 200'000'000 }
         });
 
-        Assert(eventHandler.eventCount() == 1,
-            "book update must publish one market event");
+        Assert(eventHandler.eventCount() == 2,
+            "book update must publish 2 market events");
 
         const MarketEvent& event = eventHandler.lastEvent();
 
-        Assert(event.instrument == instrument,
-            "invalid event instrument");
-        Assert(event.sequence == SequenceNumber { 101 },
-            "invalid event sequence");
-        Assert(event.exchangeTimestamp == exchangeTimestamp,
-            "invalid exchange timestamp");
-        Assert(event.bestBid == Price { 6'500'000'000'000 },
-            "invalid best bid");
-        Assert(event.bestBidQuantity == Quantity { 200'000'000 },
-            "invalid best bid quantity");
-        Assert(event.bestAsk == Price { 6'500'001'000'000 },
-            "invalid best ask");
-        Assert(event.bestAskQuantity == Quantity { 90'000'000 },
-            "invalid best ask quantity");
+        Assert(event.instrument == instrument, "invalid event instrument");
+        Assert(event.sequence == SequenceNumber { 101 }, "invalid event sequence");
+        Assert(event.exchangeTimestamp == exchangeTimestamp, "invalid exchange timestamp");
+        Assert(event.bestBid == Price { 6'500'000'000'000 }, "invalid best bid");
+        Assert(event.bestBidQuantity == Quantity { 200'000'000 }, "invalid best bid quantity");
+        Assert(event.bestAsk == Price { 6'500'001'000'000 }, "invalid best ask");
+        Assert(event.bestAskQuantity == Quantity { 90'000'000 }, "invalid best ask quantity");
     }
 
     void testAskUpdate()
     {
         OrderBook orderBook;
-        orderBook.applySnapshot(SequenceNumber { 100 },
-            {
-                { Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }
-            },
-            {
-                { Price { 6'500'001'000'000 }, Quantity { 90'000'000 } }
-            });
-
         TestMarketEventHandler eventHandler;
-
         constexpr InstrumentId instrument { 42 };
         BookBuilder builder { instrument, orderBook,eventHandler };
 
         constexpr Timestamp exchangeTimestamp { 2'000'000 };
+
+        const bool _ = builder.applySnapshot(
+            SequenceNumber { 100 },
+            {{ Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }},
+            {{ Price { 6'500'001'000'000 }, Quantity { 90'000'000 } }},
+            exchangeTimestamp
+        );
+
         builder.onBookUpdate(BookUpdate {
             .instrument = instrument,
             .sequence = SequenceNumber { 101 },
@@ -219,36 +213,30 @@ namespace
             .quantity = Quantity { 150'000'000 }
         });
 
-        Assert(eventHandler.eventCount() == 1,
-            "ask update must publish one market event");
+        Assert(eventHandler.eventCount() == 2, "ask update must publish two market events");
 
         const MarketEvent& event = eventHandler.lastEvent();
 
-        Assert(event.bestBid == Price { 6'500'000'000'000 },
-            "best bid must remain unchanged");
-        Assert(event.bestBidQuantity == Quantity { 120'000'000 },
-            "best bid quantity must remain unchanged");
-        Assert(event.bestAsk == Price { 6'500'001'000'000 },
-            "invalid best ask");
-        Assert(event.bestAskQuantity == Quantity { 150'000'000 },
-            "invalid best ask quantity");
+        Assert(event.bestBid == Price { 6'500'000'000'000 }, "best bid must remain unchanged");
+        Assert(event.bestBidQuantity == Quantity { 120'000'000 }, "best bid quantity must remain unchanged");
+        Assert(event.bestAsk == Price { 6'500'001'000'000 }, "invalid best ask");
+        Assert(event.bestAskQuantity == Quantity { 150'000'000 }, "invalid best ask quantity");
     }
 
-    void testSequenceGapDoesNotPublishEvent()
+    void testSequenceGapDoes_PublishOneEvent()
     {
         OrderBook orderBook;
-
-        orderBook.applySnapshot(SequenceNumber { 100 },
-        {
-                { Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }
-            },
-            {});
-
         TestMarketEventHandler eventHandler;
 
         constexpr InstrumentId instrument { 42 };
 
         BookBuilder builder { instrument, orderBook,eventHandler };
+        const bool _ = builder.applySnapshot(
+            SequenceNumber { 100 },
+            {{ Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }},
+            { },
+            Timestamp { 1'000 }
+        );
 
         builder.onBookUpdate(BookUpdate {
             .instrument = instrument,
@@ -259,39 +247,26 @@ namespace
             .quantity = Quantity { 200'000'000 }
         });
 
-        Assert(eventHandler.eventCount() == 0,
-            "invalid update must not publish market event");
-        Assert(!orderBook.isValid(),
-            "order book must become invalid after sequence gap");
+        Assert(eventHandler.eventCount() == 1,"invalid update must publish 1 market event");
+        Assert(!orderBook.isValid(),"order book must become invalid after sequence gap");
     }
 
     void testUpdateAfterSnapshot()
     {
         OrderBook orderBook;
         TestMarketEventHandler eventHandler;
-
         constexpr InstrumentId instrument { 42 };
-
-        BookBuilder builder {
-            instrument,
-            orderBook,
-            eventHandler
-        };
+        BookBuilder builder {instrument,orderBook,eventHandler};
 
         const bool snapshotApplied = builder.applySnapshot(
             SequenceNumber { 100 },
-            {
-                { Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }
-            },
-            {
-                { Price { 6'500'001'000'000 }, Quantity { 90'000'000 } }
-            },
-            Timestamp { 1'000'000 });
+            {{ Price { 6'500'000'000'000 }, Quantity { 120'000'000 } }},
+            {{ Price { 6'500'001'000'000 }, Quantity { 90'000'000 } }},
+            Timestamp { 1'000'000 }
+        );
 
         Assert(snapshotApplied, "snapshot must be applied");
-        Assert(
-            eventHandler.eventCount() == 1,
-            "snapshot must publish one event");
+        Assert(eventHandler.eventCount() == 1,"snapshot must publish one event");
 
         builder.onBookUpdate(BookUpdate {
             .instrument = instrument,
@@ -302,17 +277,13 @@ namespace
             .quantity = Quantity { 200'000'000 }
         });
 
-        Assert(eventHandler.eventCount() == 2,
-            "update must publish second event");
+        Assert(eventHandler.eventCount() == 2,"update must publish second event");
 
         const MarketEvent& event = eventHandler.lastEvent();
 
-        Assert(event.sequence == SequenceNumber { 101 },
-            "invalid final sequence");
-        Assert(event.exchangeTimestamp == Timestamp { 2'000'000 },
-            "invalid final exchange timestamp");
-        Assert(event.bestBidQuantity == Quantity { 200'000'000 },
-            "invalid final best bid quantity");
+        Assert(event.sequence == SequenceNumber { 101 },"invalid final sequence");
+        Assert(event.exchangeTimestamp == Timestamp { 2'000'000 },"invalid final exchange timestamp");
+        Assert(event.bestBidQuantity == Quantity { 200'000'000 },"invalid final best bid quantity");
     }
 
     void testEmptySnapshot()
@@ -330,43 +301,51 @@ namespace
             Timestamp { 1'000'000 });
 
         Assert(applied, "empty snapshot must be applied");
-
-        Assert(
-            eventHandler.eventCount() == 1,
-            "empty snapshot must publish one event");
+        Assert(eventHandler.eventCount() == 1,"empty snapshot must publish one event");
 
         const MarketEvent& event = eventHandler.lastEvent();
 
-        Assert(
-            event.bestBid.isZero(),
-            "empty book must have zero best bid");
-
-        Assert(
-            event.bestBidQuantity.isZero(),
-            "empty book must have zero best bid quantity");
-
-        Assert(
-            event.bestAsk.isZero(),
-            "empty book must have zero best ask");
-
-        Assert(
-            event.bestAskQuantity.isZero(),
-            "empty book must have zero best ask quantity");
+        Assert(event.bestBid.isZero(),"empty book must have zero best bid");
+        Assert(event.bestBidQuantity.isZero(),"empty book must have zero best bid quantity");
+        Assert(event.bestAsk.isZero(),"empty book must have zero best ask");
+        Assert(event.bestAskQuantity.isZero(),"empty book must have zero best ask quantity");
     }
+
+    void testBookUpdateWithWrongInstrumentIsIgnored()
+    {
+        constexpr InstrumentId instrument { 1 };
+        OrderBook orderBook;
+        TestMarketEventHandler eventHandler;
+        BookBuilder builder {instrument, orderBook, eventHandler };
+
+        const bool _ = builder.applySnapshot(100,{},{},Timestamp { 1'000 });
+        eventHandler.clear();
+
+        builder.onBookUpdate(BookUpdate {
+            .instrument = InstrumentId { 2 },
+            .sequence = 101,
+            .exchangeTimestamp = Timestamp { 2'000 },
+            .side = Side::Buy,
+            .price = Price { 6'500'000'000'000 },
+            .quantity = Quantity { 100'000'000 }
+        });
+
+        Assert(eventHandler.isEmpty(),"update for another instrument must be ignored");
+        Assert(orderBook.sequence() == 100, "order book sequence must not change");
+    }
+
 }
 
 void book_builder_test()
 {
     testApplySnapshot();
     testSnapshotPublishesMarketEvent();
-
     testBookUpdatePublishesMarketEvent();
     testAskUpdate();
-
-    testSequenceGapDoesNotPublishEvent();
+    testSequenceGapDoes_PublishOneEvent();
     testUpdateAfterSnapshot();
-
     testEmptySnapshot();
+    testBookUpdateWithWrongInstrumentIsIgnored();
 
     std::cout << "All BookBuilder tests: OK\n";
 }

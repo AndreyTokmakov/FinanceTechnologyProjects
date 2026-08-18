@@ -41,8 +41,8 @@ Description : Binance market data parser.
 #ifndef FINANCETECHNOLOGYPROJECTS_BINANCE_MARKET_DATA_PARSER_HPP
 #define FINANCETECHNOLOGYPROJECTS_BINANCE_MARKET_DATA_PARSER_HPP
 
-#include "book_update_handler.hpp"
-#include "market_data_parser.hpp"
+#include "../../market_data/interfaces/book_update_handler.hpp"
+#include "../../market_data/interfaces/market_data_parser.hpp"
 
 #include <string_view>
 

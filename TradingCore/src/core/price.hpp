@@ -29,7 +29,8 @@ namespace trading
         explicit constexpr Price(const Value value) noexcept: value { value } {
         }
 
-        [[nodiscard]] static constexpr Price fromInteger(Value value) noexcept{
+        [[nodiscard]]
+        static constexpr Price fromInteger(const Value value) noexcept{
             return Price { value * Scale };
         }
 
@@ -69,7 +70,7 @@ namespace trading
             return *this;
         }
 
-        constexpr Price& operator-=(Price other) noexcept
+        constexpr Price& operator-=(const Price other) noexcept
         {
             value -= other.value;
             return *this;

@@ -34,7 +34,7 @@ Description : Order book imbalance trading strategy.
 #ifndef FINANCETECHNOLOGYPROJECTS_IMBALANCE_STRATEGY_HPP
 #define FINANCETECHNOLOGYPROJECTS_IMBALANCE_STRATEGY_HPP
 
-#include "market_event_handler.hpp"
+#include "../market_data/interfaces/market_event_handler.hpp"
 
 namespace trading::strategy
 {

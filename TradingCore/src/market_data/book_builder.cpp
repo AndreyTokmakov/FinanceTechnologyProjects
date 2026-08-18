@@ -51,24 +51,27 @@ namespace trading::market_data
     {
     }
 
-    void BookBuilder::onBookUpdate(const BookUpdate& update)
-    {
-        if (update.instrument != instrument)
-            return;
-        if (!orderBook.applyUpdate(update))
-            return;
-        publishMarketEvent(update.sequence, update.exchangeTimestamp);
-    }
-
     bool BookBuilder::applySnapshot(const SequenceNumber sequence,
                                     const OrderBook::Levels& bids,
                                     const OrderBook::Levels& asks,
                                     const Timestamp exchangeTimestamp) const
     {
-        orderBook.applySnapshot(sequence, bids, asks);
+        orderBook.replace(sequence, bids, asks);
+
         publishMarketEvent(sequence, exchangeTimestamp);
 
         return true;
+    }
+
+    void BookBuilder::onBookUpdate(const BookUpdate& update)
+    {
+        if (update.instrument != instrument)
+            return;
+
+        if (!orderBook.applyUpdate(update))
+            return;
+
+        publishMarketEvent(update.sequence, update.exchangeTimestamp);
     }
 
     void BookBuilder::publishMarketEvent(const SequenceNumber sequence,
@@ -77,7 +80,7 @@ namespace trading::market_data
         const auto bestBid = orderBook.bestBid();
         const auto bestAsk = orderBook.bestAsk();
 
-        const MarketEvent event {
+        eventHandler.onMarketEvent(MarketEvent {
             .instrument = instrument,
             .sequence = sequence,
             .exchangeTimestamp = exchangeTimestamp,
@@ -86,8 +89,6 @@ namespace trading::market_data
             .bestBidQuantity = bestBid ? bestBid->quantity : Quantity {},
             .bestAsk = bestAsk ? bestAsk->price : Price {},
             .bestAskQuantity = bestAsk ? bestAsk->quantity : Quantity {}
-        };
-
-        eventHandler.onMarketEvent(event);
+        });
     }
 }

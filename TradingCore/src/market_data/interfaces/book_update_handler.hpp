@@ -10,7 +10,7 @@ Description : book_update_handler.hpp
 #ifndef FINANCETECHNOLOGYPROJECTS_BOOK_UPDATE_HANDLER_HPP
 #define FINANCETECHNOLOGYPROJECTS_BOOK_UPDATE_HANDLER_HPP
 
-#include "book_update.hpp"
+#include "../model/book_update.hpp"
 
 namespace trading::market_data
 {

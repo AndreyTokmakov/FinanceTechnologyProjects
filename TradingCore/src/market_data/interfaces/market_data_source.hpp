@@ -49,9 +49,9 @@ Description : market_data_source.hpp
     The implementation may use WebSocket, TCP, UDP or another transport.
     Transport-specific details must remain inside the implementation.
 */
+
 #ifndef FINANCETECHNOLOGYPROJECTS_MARKET_DATA_SOURCE_HPP
 #define FINANCETECHNOLOGYPROJECTS_MARKET_DATA_SOURCE_HPP
-
 
 namespace trading::market_data
 {

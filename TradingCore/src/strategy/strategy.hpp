@@ -53,7 +53,7 @@ Description : Trading strategy interface.
 #ifndef FINANCETECHNOLOGYPROJECTS_STRATEGY_HPP
 #define FINANCETECHNOLOGYPROJECTS_STRATEGY_HPP
 
-#include "market_event.hpp"
+#include "../market_data/model/market_event.hpp"
 
 namespace trading::strategy
 {

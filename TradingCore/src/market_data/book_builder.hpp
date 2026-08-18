@@ -58,8 +58,8 @@ Description : book_builder.hpp
 #ifndef FINANCETECHNOLOGYPROJECTS_BOOK_BUILDER_HPP
 #define FINANCETECHNOLOGYPROJECTS_BOOK_BUILDER_HPP
 
-#include "book_update_handler.hpp"
-#include "market_event_handler.hpp"
+#include "interfaces/book_update_handler.hpp"
+#include "interfaces/market_event_handler.hpp"
 #include "order_book.hpp"
 #include "timestamp.hpp"
 #include "types.hpp"

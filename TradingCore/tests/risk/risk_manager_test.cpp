@@ -36,10 +36,10 @@ Description : risk_manager_test.cpp
 */
 
 #include "risk_manager.hpp"
+#include "test_support/testing.hpp"
 
 #include <cstdlib>
 #include <iostream>
-#include <string_view>
 
 using trading::InstrumentId;
 using trading::OrderType;
@@ -56,14 +56,7 @@ using trading::risk::RiskResult;
 
 namespace
 {
-    void Assert(const bool condition, const std::string_view message)
-    {
-        if (!condition)
-        {
-            std::cerr << "FAILED: " << message << '\n';
-            std::terminate();
-        }
-    }
+    using testing::Assert;
 
     [[nodiscard]]
     constexpr Price price(const int64_t value)

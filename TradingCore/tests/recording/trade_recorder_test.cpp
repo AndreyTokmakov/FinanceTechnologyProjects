@@ -8,8 +8,8 @@ Description : trade_recorder_test.cpp
 ============================================================================**/
 
 #include "trade_recorder.hpp"
+#include "test_support/testing.hpp"
 
-#include <cstdlib>
 #include <iostream>
 #include <string_view>
 
@@ -31,18 +31,11 @@ using trading::recording::TradeRecorder;
 
 namespace
 {
-    void Assert(const bool condition, const std::string_view message)
-    {
-        if (!condition)
-        {
-            std::cerr << "FAILED: " << message << '\n';
-            std::terminate();
-        }
-    }
+    using testing::Assert;
 
     void testEmptyRecorder()
     {
-        TradeRecorder recorder;
+        const TradeRecorder recorder;
 
         Assert(recorder.marketEventCount() == 0, "new recorder must contain no market events");
         Assert(recorder.executionReportCount() == 0, "new recorder must contain no execution reports");

@@ -1,7 +1,7 @@
 #include "order_book.hpp"
+#include "test_support/testing.hpp"
 
 #include <iostream>
-#include <string_view>
 
 namespace
 {
@@ -10,15 +10,8 @@ namespace
     using trading::Side;
     using trading::market_data::BookUpdate;
     using trading::market_data::OrderBook;
+    using testing::Assert;
 
-    void Assert(const bool condition, const std::string_view message)
-    {
-        if (!condition)
-        {
-            std::cerr << "FAILED: " << message << '\n';
-            std::terminate();
-        }
-    }
 
     void testEmptyBook()
     {

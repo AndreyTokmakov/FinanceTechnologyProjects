@@ -52,6 +52,7 @@ include_directories(${POSITION})
 include_directories(${RECORDING})
 include_directories(${PNL})
 include_directories(${RISK})
+include_directories(${TESTS})
 
 # include all components
 add_executable(${PROJECT_NAME}

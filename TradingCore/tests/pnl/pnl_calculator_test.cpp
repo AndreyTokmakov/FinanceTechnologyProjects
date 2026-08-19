@@ -38,10 +38,10 @@ Description : pnl_calculator_test.cpp
 */
 
 #include "pnl_calculator.hpp"
+#include "test_support/testing.hpp"
 
 #include <cstdlib>
 #include <iostream>
-#include <string_view>
 
 using trading::ExchangeOrderId;
 using trading::InstrumentId;
@@ -59,14 +59,7 @@ using trading::position::Position;
 
 namespace
 {
-    void Assert(const bool condition, const std::string_view message)
-    {
-        if (!condition)
-        {
-            std::cerr << "FAILED: " << message << '\n';
-            std::terminate();
-        }
-    }
+    using testing::Assert;
 
     [[nodiscard]]
     constexpr Price price(const int64_t value)

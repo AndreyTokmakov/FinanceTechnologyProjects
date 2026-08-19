@@ -8,10 +8,8 @@ Description : BookBuilder unit tests.
 ============================================================================**/
 
 #include "book_builder.hpp"
-
-#include <cstdlib>
+#include "test_support/testing.hpp"
 #include <iostream>
-#include <string_view>
 #include <vector>
 
 using trading::InstrumentId;
@@ -29,14 +27,7 @@ using trading::market_data::OrderBook;
 
 namespace
 {
-    void Assert(const bool condition, const std::string_view message)
-    {
-        if (!condition)
-        {
-            std::cerr << "FAILED: " << message << '\n';
-            std::terminate();
-        }
-    }
+    using testing::Assert;
 
     class TestMarketEventHandler final : public IMarketEventHandler
     {

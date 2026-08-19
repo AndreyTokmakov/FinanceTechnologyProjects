@@ -82,8 +82,8 @@ add_executable(${PROJECT_NAME}
         ${MARKET_DATA}/order_book.cpp
         ${MARKET_DATA}/book_builder.hpp
         ${MARKET_DATA}/book_builder.cpp
-        ${MARKET_DATA}/market_event_dispatcher.hpp
-        ${MARKET_DATA}/market_event_dispatcher.cpp
+        ${MARKET_DATA}/market_event_handler.hpp
+        ${MARKET_DATA}/market_event_handler.cpp
 
         ${EXECUTION}/order.hpp
         ${EXECUTION}/execution_gateway.hpp

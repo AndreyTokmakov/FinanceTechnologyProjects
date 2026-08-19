@@ -1,15 +1,17 @@
 /**============================================================================
-Name        : market_event_dispatcher.hpp
+Name        : market_event_handler.hpp
 Created on  : 19.08.2026
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : market_event_dispatcher.hpp
+Description : market_event_handler.hpp
 ============================================================================**/
 
 /*
-    MarketEventDispatcher distributes MarketEvent instances to the components interested in market-data events.
-    The dispatcher separates the producer of MarketEvent from its consumers.
+    MarketEventHandler is the application-level consumer of MarketEvent.
+
+    It receives MarketEvent instances produced by BookBuilder and forwards
+    them to the components interested in market-data events.
 
     Data Flow:
 
@@ -30,7 +32,7 @@ Description : market_event_dispatcher.hpp
            |
            | MarketEvent
            v
-        MarketEventDispatcher
+        MarketEventHandler
            |
            +----------------------+
            |                      |
@@ -40,34 +42,36 @@ Description : market_event_dispatcher.hpp
     Responsibilities:
 
         - receive MarketEvent from BookBuilder;
-        - forward MarketEvent to the configured strategy;
+        - forward MarketEvent to the strategy;
         - forward MarketEvent to the recorder.
 
-    The dispatcher does not:
+    MarketEventHandler does not:
 
         - create MarketEvent;
         - modify OrderBook;
         - generate trading signals;
         - perform risk validation;
-        - modify positions;
+        - manage orders;
+        - manage positions;
         - calculate PnL.
 
-    This class is part of the application event-distribution layer.
+    The IMarketEventHandler interface defines the contract used by BookBuilder.
+    MarketEventHandler provides the concrete implementation of that contract.
 */
 
-#ifndef FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_DISPATCHER_HPP
-#define FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_DISPATCHER_HPP
+#ifndef FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_HANDLER_HPP
+#define FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_HANDLER_HPP
 
-#include "market_event_handler.hpp"
+#include "interfaces/market_event_handler.hpp"
 #include "recorder.hpp"
 
 namespace trading::market_data
 {
-    class MarketEventDispatcher final : public IMarketEventHandler
+    class MarketEventHandler final : public IMarketEventHandler
     {
     public:
-        MarketEventDispatcher(IMarketEventHandler& strategy,
-                              recording::IRecorder& recorder) noexcept;
+        MarketEventHandler(IMarketEventHandler& strategy,
+                           recording::IRecorder& recorder) noexcept;
 
         void onMarketEvent(const MarketEvent& event) override;
 
@@ -77,4 +81,4 @@ namespace trading::market_data
     };
 }
 
-#endif //FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_DISPATCHER_HPP
+#endif //FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_HANDLER_HPP

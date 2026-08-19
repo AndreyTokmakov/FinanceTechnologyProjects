@@ -9,7 +9,6 @@ Description : application.cpp
 
 /*
     Application implementation.
-
     Application constructs and wires the market-data components.
 
     Data Flow:
@@ -51,8 +50,8 @@ namespace trading::app
         orderBook {},
         recorder {},
         strategy {},
-        marketEventDispatcher { strategy, recorder },
-        bookBuilder { InstrumentId { 1 }, orderBook, marketEventDispatcher },
+        marketEventHandler { strategy, recorder },
+        bookBuilder { InstrumentId { 1 }, orderBook, marketEventHandler },
         marketDataParser { bookBuilder },
         marketDataMessageHandler { marketDataParser },
         marketDataSource {}

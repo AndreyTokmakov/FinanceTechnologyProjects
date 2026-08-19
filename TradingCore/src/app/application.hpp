@@ -62,7 +62,7 @@ Description : application.hpp
 #include "book_builder.hpp"
 #include "imbalance_strategy.hpp"
 #include "market_data_message_handler.hpp"
-#include "market_event_dispatcher.hpp"
+#include "market_event_handler.hpp"
 #include "order_book.hpp"
 #include "trade_recorder.hpp"
 
@@ -91,7 +91,7 @@ namespace trading::app
         recording::TradeRecorder recorder;
         strategy::ImbalanceStrategy strategy;
 
-        market_data::MarketEventDispatcher marketEventDispatcher;
+        market_data::MarketEventHandler marketEventHandler;
         market_data::BookBuilder bookBuilder;
 
         exchanges::binance::BinanceMarketDataParser marketDataParser;

@@ -36,10 +36,10 @@ Description : Market event handler.
     It does not modify the OrderBook and does not create MarketEvent objects.
 */
 
-#ifndef FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_HANDLER_HPP
-#define FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_HANDLER_HPP
+#ifndef FINANCETECHNOLOGYPROJECTS_I_MARKET_EVENT_HANDLER_HPP
+#define FINANCETECHNOLOGYPROJECTS_I_MARKET_EVENT_HANDLER_HPP
 
-#include "../model/market_event.hpp"
+#include "model/market_event.hpp"
 
 namespace trading::market_data
 {
@@ -49,15 +49,6 @@ namespace trading::market_data
         virtual void onMarketEvent(const MarketEvent& event) = 0;
     };
 
-    class MarketEventHandler final : public IMarketEventHandler
-    {
-    public:
-        explicit MarketEventHandler(IMarketEventHandler& handler) noexcept;
-        void onMarketEvent(const MarketEvent& event) override;
-
-    private:
-        IMarketEventHandler& handler;
-    };
 }
 
-#endif //FINANCETECHNOLOGYPROJECTS_MARKET_EVENT_HANDLER_HPP
+#endif //FINANCETECHNOLOGYPROJECTS_I_MARKET_EVENT_HANDLER_HPP

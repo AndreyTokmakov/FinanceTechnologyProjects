@@ -36,8 +36,10 @@ set(EXECUTION   ${SOURCES}/execution)
 set(EXCHANGES   ${SOURCES}/exchanges)
 set(STRATEGY    ${SOURCES}/strategy)
 set(POSITION    ${SOURCES}/position)
+set(RECORDING   ${SOURCES}/recording)
 set(PNL         ${SOURCES}/pnl)
 set(RISK        ${SOURCES}/risk)
+
 set(BINANCE     ${EXCHANGES}/binance)
 
 include_directories(${CORE})
@@ -47,6 +49,7 @@ include_directories(${MARKET_DATA}/interfaces)
 include_directories(${EXECUTION})
 include_directories(${STRATEGY})
 include_directories(${POSITION})
+include_directories(${RECORDING})
 include_directories(${PNL})
 include_directories(${RISK})
 
@@ -79,6 +82,8 @@ add_executable(${PROJECT_NAME}
         ${EXECUTION}/execution_report.hpp
         ${EXECUTION}/order_manager.hpp
         ${EXECUTION}/order_manager.cpp
+        ${EXECUTION}/execution_report_handler.cpp
+        ${EXECUTION}/execution_report_handler.hpp
 
         ${BINANCE}/binance_market_data_source.hpp
         ${BINANCE}/binance_market_data_source.cpp
@@ -89,6 +94,11 @@ add_executable(${PROJECT_NAME}
         ${POSITION}/position.cpp
         ${POSITION}/position_manager.hpp
         ${POSITION}/position_manager.cpp
+
+        ${RECORDING}/recorder.hpp
+        ${RECORDING}/recording_event.hpp
+        ${RECORDING}/trade_recorder.hpp
+        ${RECORDING}/trade_recorder.cpp
 
         ${PNL}/pnl.hpp
         ${PNL}/pnl_calculator.hpp
@@ -108,6 +118,7 @@ add_executable(${PROJECT_NAME}
         ${TESTS}/execution/order_manager_test.cpp
         ${TESTS}/pnl/pnl_calculator_test.cpp
         ${TESTS}/risk/risk_manager_test.cpp
+        ${TESTS}/recording/trade_recorder_test.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

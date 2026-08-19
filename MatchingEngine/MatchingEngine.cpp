@@ -18,6 +18,7 @@ Description : MatchingEngine.cpp
 #include <ranges>
 #include <vector>
 #include <map>
+#include <cmath>
 #include <unordered_map>
 
 #include <boost/container/flat_map.hpp>

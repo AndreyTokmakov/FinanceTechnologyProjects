@@ -76,7 +76,7 @@ namespace trading::execution
         return orderId;
     }
 
-    bool OrderManager::applyExecutionReport(const ExecutionReport& report)
+    bool OrderManager::applyExecution(const ExecutionReport& report)
     {
         const auto it = orders.find(report.clientOrderId);
         if (it == orders.end())

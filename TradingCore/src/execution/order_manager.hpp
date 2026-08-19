@@ -78,7 +78,7 @@ namespace trading::execution
         OrderId createOrder(const OrderRequest& request);
 
         [[nodiscard]]
-        bool applyExecutionReport(const ExecutionReport& report);
+        bool applyExecution(const ExecutionReport& report);
 
         [[nodiscard]]
         const Order* find(OrderId orderId) const noexcept;

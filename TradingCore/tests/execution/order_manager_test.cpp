@@ -233,7 +233,7 @@ namespace
 
         const OrderId orderId = manager.createOrder(request);
 
-        const bool applied = manager.applyExecutionReport(ExecutionReport {
+        const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
             .exchangeOrderId = ExchangeOrderId { 1001 },
             .execType = ExecType::New,
@@ -271,7 +271,7 @@ namespace
             .quantity = Quantity { 100'000'000 }
         });
 
-        const bool applied = manager.applyExecutionReport(ExecutionReport {
+        const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
             .exchangeOrderId = ExchangeOrderId { 1001 },
             .execType = ExecType::Trade,
@@ -310,7 +310,7 @@ namespace
             .quantity = Quantity { 100'000'000 }
         });
 
-        const bool applied = manager.applyExecutionReport(ExecutionReport {
+        const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
             .exchangeOrderId = ExchangeOrderId { 1001 },
             .execType = ExecType::Trade,
@@ -347,7 +347,7 @@ namespace
             .quantity = Quantity { 100'000'000 }
         });
 
-        const bool applied = manager.applyExecutionReport(ExecutionReport {
+        const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
             .exchangeOrderId = ExchangeOrderId { 1001 },
             .execType = ExecType::Cancel,
@@ -381,7 +381,7 @@ namespace
             .quantity = Quantity { 100'000'000 }
         });
 
-        const bool applied = manager.applyExecutionReport(ExecutionReport {
+        const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
             .exchangeOrderId = ExchangeOrderId { 1001 },
             .execType = ExecType::Reject,
@@ -407,7 +407,7 @@ namespace
 
         OrderManager manager { gateway, riskManager, position };
 
-        const bool applied = manager.applyExecutionReport(ExecutionReport {
+        const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = OrderId { 42 },
             .exchangeOrderId = ExchangeOrderId { 1001 },
             .execType = ExecType::Trade,

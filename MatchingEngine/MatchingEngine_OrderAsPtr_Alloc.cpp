@@ -16,6 +16,7 @@ Description : MatchingEngine_OrderAsPtr_Alloc.cpp
 #include <numeric>
 #include <list>
 #include <vector>
+#include <cmath>
 #include <unordered_map>
 
 #include <boost/container/flat_map.hpp>

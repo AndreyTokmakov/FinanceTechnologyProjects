@@ -15,7 +15,7 @@ Description : PriceEngine.cpp
 #include <ranges>
 #include <memory>
 #include <functional>
-
+#include <cmath>
 #include <vector>
 #include <map>
 #include <list>

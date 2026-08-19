@@ -17,6 +17,7 @@ void order_manager_test();
 void book_builder_test();
 void pnl_calculator_test();
 void risk_manager_test();
+void trade_recorder_test();
 
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
@@ -28,6 +29,7 @@ int main([[maybe_unused]] const int argc,
     book_builder_test();
     pnl_calculator_test();
     risk_manager_test();
+    trade_recorder_test();
 
     return EXIT_SUCCESS;
 }

@@ -101,12 +101,9 @@ namespace
             }
         };
 
-        Position position { InstrumentId { 1 } };
-
-        const auto request =
-            limitOrder(Side::Buy, price(100), quantity(10));
-
-        const auto result = manager.checkOrder(request, position);
+        constexpr Position position { InstrumentId { 1 } };
+        constexpr auto request = limitOrder(Side::Buy, price(100), quantity(10));
+        const RiskResult result = manager.checkOrder(request, position);
 
         Assert(result == RiskResult::Accepted, "valid order must be accepted");
         Assert(manager.lastReason() == RiskReason::None, "reason must be None");
@@ -122,17 +119,12 @@ namespace
             }
         };
 
-        Position position { InstrumentId { 1 } };
-
-        const auto request =
-            limitOrder(Side::Buy, price(100), quantity(101));
-
-        const auto result = manager.checkOrder(request, position);
+        constexpr Position position { InstrumentId { 1 } };
+        constexpr auto request = limitOrder(Side::Buy, price(100), quantity(101));
+        const RiskResult result = manager.checkOrder(request, position);
 
         Assert(result == RiskResult::Rejected, "oversized order must be rejected");
-        Assert(
-            manager.lastReason() == RiskReason::MaxOrderQuantity,
-            "invalid rejection reason");
+        Assert(manager.lastReason() == RiskReason::MaxOrderQuantity, "invalid rejection reason");
     }
 
     void testRejectMaxLongPosition()
@@ -148,15 +140,11 @@ namespace
         Position position { InstrumentId { 1 } };
         position.applyTrade(Side::Buy, price(100), quantity(80));
 
-        const auto request =
-            limitOrder(Side::Buy, price(100), quantity(30));
-
-        const auto result = manager.checkOrder(request, position);
+        constexpr auto request = limitOrder(Side::Buy, price(100), quantity(30));
+        const RiskResult result = manager.checkOrder(request, position);
 
         Assert(result == RiskResult::Rejected, "position limit must reject order");
-        Assert(
-            manager.lastReason() == RiskReason::MaxPositionQuantity,
-            "invalid position rejection reason");
+        Assert(manager.lastReason() == RiskReason::MaxPositionQuantity, "invalid position rejection reason");
     }
 
     void testAcceptReducingLongPosition()
@@ -171,11 +159,8 @@ namespace
 
         Position position { InstrumentId { 1 } };
         position.applyTrade(Side::Buy, price(100), quantity(80));
-
-        const auto request =
-            limitOrder(Side::Sell, price(100), quantity(30));
-
-        const auto result = manager.checkOrder(request, position);
+        constexpr auto request = limitOrder(Side::Sell, price(100), quantity(30));
+        const RiskResult result = manager.checkOrder(request, position);
 
         Assert(result == RiskResult::Accepted, "position reduction must be accepted");
     }
@@ -193,14 +178,11 @@ namespace
         Position position { InstrumentId { 1 } };
         position.applyTrade(Side::Sell, price(100), quantity(80));
 
-        const auto request =
-            limitOrder(Side::Sell, price(100), quantity(30));
-
-        const auto result = manager.checkOrder(request, position);
+        constexpr OrderRequest request = limitOrder(Side::Sell, price(100), quantity(30));
+        const RiskResult result = manager.checkOrder(request, position);
 
         Assert(result == RiskResult::Rejected, "short position limit must reject order");
-        Assert(
-            manager.lastReason() == RiskReason::MaxPositionQuantity,
+        Assert(manager.lastReason() == RiskReason::MaxPositionQuantity,
             "invalid short position rejection reason");
     }
 
@@ -217,11 +199,8 @@ namespace
         Position position { InstrumentId { 1 } };
         position.applyTrade(Side::Sell, price(100), quantity(80));
 
-        const auto request =
-            limitOrder(Side::Buy, price(100), quantity(30));
-
+        constexpr OrderRequest request = limitOrder(Side::Buy, price(100), quantity(30));
         const auto result = manager.checkOrder(request, position);
-
         Assert(result == RiskResult::Accepted, "position reduction must be accepted");
     }
 
@@ -235,17 +214,12 @@ namespace
             }
         };
 
-        Position position { InstrumentId { 1 } };
-
-        const auto request =
-            limitOrder(Side::Buy, price(200), quantity(60));
-
+        constexpr Position position { InstrumentId { 1 } };
+        constexpr OrderRequest request = limitOrder(Side::Buy, price(200), quantity(60));
         const auto result = manager.checkOrder(request, position);
 
         Assert(result == RiskResult::Rejected, "large notional must be rejected");
-        Assert(
-            manager.lastReason() == RiskReason::MaxNotional,
-            "invalid notional rejection reason");
+        Assert(manager.lastReason() == RiskReason::MaxNotional,"invalid notional rejection reason");
     }
 
     void testAcceptOrderAtNotionalLimit()
@@ -258,11 +232,8 @@ namespace
             }
         };
 
-        Position position { InstrumentId { 1 } };
-
-        const auto request =
-            limitOrder(Side::Buy, price(100), quantity(100));
-
+        constexpr Position position { InstrumentId { 1 } };
+        constexpr OrderRequest request = limitOrder(Side::Buy, price(100), quantity(100));
         const auto result = manager.checkOrder(request, position);
 
         Assert(result == RiskResult::Accepted, "order at limit must be accepted");
@@ -274,11 +245,8 @@ namespace
             RiskLimits {}
         };
 
-        Position position { InstrumentId { 1 } };
-
-        const auto request =
-            limitOrder(Side::Buy, price(1'000'000), quantity(1'000'000));
-
+        constexpr Position position { InstrumentId { 1 } };
+        constexpr OrderRequest request = limitOrder(Side::Buy, price(1'000'000), quantity(1'000'000));
         const auto result = manager.checkOrder(request, position);
 
         Assert(result == RiskResult::Accepted, "disabled limits must accept order");
@@ -295,28 +263,20 @@ namespace
             }
         };
 
-        Position position { InstrumentId { 1 } };
+        constexpr Position position { InstrumentId { 1 } };
+        constexpr auto rejected =limitOrder(Side::Buy, price(100), quantity(101));
 
-        const auto rejected =
-            limitOrder(Side::Buy, price(100), quantity(101));
-
-        Assert(
-            manager.checkOrder(rejected, position) == RiskResult::Rejected,
+        Assert(manager.checkOrder(rejected, position) == RiskResult::Rejected,
             "first order must be rejected");
-
-        Assert(
-            manager.lastReason() == RiskReason::MaxOrderQuantity,
+        Assert(manager.lastReason() == RiskReason::MaxOrderQuantity,
             "invalid first rejection reason");
 
-        const auto accepted =
+        constexpr auto accepted =
             limitOrder(Side::Buy, price(100), quantity(10));
 
-        Assert(
-            manager.checkOrder(accepted, position) == RiskResult::Accepted,
+        Assert(manager.checkOrder(accepted, position) == RiskResult::Accepted,
             "second order must be accepted");
-
-        Assert(
-            manager.lastReason() == RiskReason::None,
+        Assert(manager.lastReason() == RiskReason::None,
             "reason must be reset after accepted order");
     }
 }

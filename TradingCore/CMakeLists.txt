@@ -27,9 +27,10 @@ FetchContent_MakeAvailable(boost)
 #]]
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/${PROJECT_NAME})
-set(SOURCES  ${PROJECT_DIR}/src)
-set(TESTS    ${PROJECT_DIR}/tests)
+set(SOURCES     ${PROJECT_DIR}/src)
+set(TESTS       ${PROJECT_DIR}/tests)
 
+set(APP         ${SOURCES}/app)
 set(CORE        ${SOURCES}/core)
 set(MARKET_DATA ${SOURCES}/market_data)
 set(EXECUTION   ${SOURCES}/execution)
@@ -53,10 +54,14 @@ include_directories(${RECORDING})
 include_directories(${PNL})
 include_directories(${RISK})
 include_directories(${TESTS})
+include_directories(${BINANCE})
 
 # include all components
 add_executable(${PROJECT_NAME}
         main.cpp
+        ${APP}/application.hpp
+        ${APP}/application.cpp
+
         ${CORE}/price.hpp
         ${CORE}/quantity.hpp
         ${CORE}/types.hpp
@@ -77,6 +82,8 @@ add_executable(${PROJECT_NAME}
         ${MARKET_DATA}/order_book.cpp
         ${MARKET_DATA}/book_builder.hpp
         ${MARKET_DATA}/book_builder.cpp
+        ${MARKET_DATA}/market_event_dispatcher.hpp
+        ${MARKET_DATA}/market_event_dispatcher.cpp
 
         ${EXECUTION}/order.hpp
         ${EXECUTION}/execution_gateway.hpp

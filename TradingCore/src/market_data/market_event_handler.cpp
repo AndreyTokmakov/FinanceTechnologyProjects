@@ -31,8 +31,7 @@ Description : market_event_handler.cpp
 
 namespace trading::market_data
 {
-    MarketEventHandler::MarketEventHandler(
-        IMarketEventHandler& strategy,
+    MarketEventHandler::MarketEventHandler(IMarketEventHandler& strategy,
         recording::IRecorder& recorder) noexcept
         : strategy { strategy },
           recorder { recorder }

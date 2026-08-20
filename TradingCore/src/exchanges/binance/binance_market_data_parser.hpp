@@ -1,63 +1,73 @@
 /**============================================================================
 Name        : binance_market_data_parser.hpp
-Created on  : 17.08.2026
+Created on  : 20.08.2026
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : Binance market data parser.
+Description : binance_market_data_parser.hpp
 ============================================================================**/
 
 /*
-    BinanceMarketDataParser converts Binance market data messages into the
-    normalized market_data representation used by the trading engine.
-
-    Binance-specific JSON and protocol details remain inside this class.
+    BinanceMarketDataParser converts Binance-specific raw market-data
+    messages into domain-level BookUpdate objects.
 
     Data Flow:
 
         BinanceMarketDataSource
-                  |
-                  | raw Binance message
-                  v
+               |
+               | raw Binance message
+               v
         MarketDataMessageHandler
-                  |
-                  v
+               |
+               v
         BinanceMarketDataParser
-                  |
-                  | BookUpdate
-                  v
-        IBookUpdateHandler
-                  |
-                  v
-              BookBuilder
+               |
+               | std::expected<std::vector<BookUpdate>, ParseError>
+               |
+          +----+----+
+          |         |
+          v         v
+      BookUpdates ParseError
+          |
+          v
+    IBookUpdateHandler
+          |
+          v
+      BookBuilder
 
-    BinanceMarketDataParser does not know about OrderBook and does not modify
-    market state directly.
+    Responsibilities:
 
-    Its responsibility ends after converting Binance messages into one or more
-    normalized market data events.
+        - parse Binance market-data messages;
+        - validate Binance-specific fields;
+        - convert Binance prices and quantities into domain types;
+        - convert Binance sequence and timestamp information;
+        - produce BookUpdate instances.
+
+    BinanceMarketDataParser does not:
+
+        - know about BookBuilder;
+        - know about IBookUpdateHandler;
+        - forward BookUpdate objects;
+        - modify OrderBook;
+        - interact with Strategy or Execution.
+
+    The parser is therefore a pure transformation component:
+
+        Binance raw message -> domain model
 */
 
 #ifndef FINANCETECHNOLOGYPROJECTS_BINANCE_MARKET_DATA_PARSER_HPP
 #define FINANCETECHNOLOGYPROJECTS_BINANCE_MARKET_DATA_PARSER_HPP
 
-#include "../../market_data/interfaces/book_update_handler.hpp"
-#include "../../market_data/interfaces/market_data_parser.hpp"
-
-#include <string_view>
+#include "market_data_parser.hpp"
 
 namespace trading::exchanges::binance
 {
     class BinanceMarketDataParser final : public market_data::IMarketDataParser
     {
     public:
-        explicit BinanceMarketDataParser(
-            trading::market_data::IBookUpdateHandler& handler) noexcept;
-
-        void parse(std::string_view message) override;
-
-    private:
-        trading::market_data::IBookUpdateHandler& handler;
+        [[nodiscard]]
+        market_data::MarketDataParseResult parse(std::string_view message) const override;
     };
 }
 

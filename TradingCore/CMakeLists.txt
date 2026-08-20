@@ -71,6 +71,7 @@ add_executable(${PROJECT_NAME}
         ${MARKET_DATA}/model/book_level.hpp
         ${MARKET_DATA}/model/book_update.hpp
         ${MARKET_DATA}/model/market_event.hpp
+        ${MARKET_DATA}/model/parse_error.hpp
         ${MARKET_DATA}/interfaces/market_event_handler.hpp
         ${MARKET_DATA}/interfaces/market_data_parser.hpp
         ${MARKET_DATA}/interfaces/market_data_source.hpp

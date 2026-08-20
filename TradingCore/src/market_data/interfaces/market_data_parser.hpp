@@ -1,53 +1,81 @@
 /**============================================================================
 Name        : market_data_parser.hpp
-Created on  : 17.08.2026
+Created on  : 20.08.2026
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : Market data parser interface.
+Description : market_data_parser.hpp
 ============================================================================**/
 
 /*
-    IMarketDataParser converts a raw market data message into normalized
-    market data events.
+    IMarketDataParser converts raw market-data messages into domain-level
+    market-data objects.
 
-    The parser is responsible for understanding the protocol and message
-    format used by a particular market data provider.
+    The parser is intentionally independent from all consumers of the parsed
+    data.
 
     Data Flow:
 
-        Raw market data message
-                   |
-                   v
-            IMarketDataParser
-                   |
-                   | BookUpdate
-                   v
-            IBookUpdateHandler
-                   |
-                   v
-              BookBuilder
+        Raw Market Data
+               |
+               v
+        IMarketDataParser
+               |
+               | std::expected<std::vector<BookUpdate>, ParseError>
+               |
+          +----+----+
+          |         |
+          v         v
+      BookUpdates ParseError
+          |
+          v
+    MarketDataMessageHandler
+          |
+          v
+    IBookUpdateHandler
 
-    The parser does not know anything about OrderBook or MarketEvent.
+    Responsibilities:
 
-    Exchange-specific implementations are responsible for converting their
-    native protocol representation into the common market_data types used by
-    the rest of the application.
+        - parse a raw market-data message;
+        - validate the message format;
+        - convert exchange-specific fields into domain objects;
+        - report parsing errors.
+
+    IMarketDataParser does not:
+
+        - know about IBookUpdateHandler;
+        - forward BookUpdate instances;
+        - modify OrderBook;
+        - generate MarketEvent;
+        - interact with Strategy;
+        - interact with Risk or Execution modules.
+
+    Concrete implementations contain exchange-specific parsing logic.
 */
 
 #ifndef FINANCETECHNOLOGYPROJECTS_MARKET_DATA_PARSER_HPP
 #define FINANCETECHNOLOGYPROJECTS_MARKET_DATA_PARSER_HPP
 
+#include <expected>
 #include <string_view>
+#include <vector>
+
+#include "book_update.hpp"
+#include "parse_error.hpp"
 
 namespace trading::market_data
 {
-    class IMarketDataParser
+    using MarketDataParseResult = std::expected<
+        std::vector<BookUpdate>,
+        ParseError
+    >;
+
+    struct IMarketDataParser
     {
-    public:
         virtual ~IMarketDataParser() = default;
 
-        virtual void parse(std::string_view message) = 0;
+        [[nodiscard]]
+        virtual MarketDataParseResult parse(std::string_view message) const = 0;
     };
 }
 

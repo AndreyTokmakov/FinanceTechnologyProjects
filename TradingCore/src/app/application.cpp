@@ -52,8 +52,8 @@ namespace trading::app
         strategy {},
         marketEventHandler { strategy, recorder },
         bookBuilder { InstrumentId { 1 }, orderBook, marketEventHandler },
-        marketDataParser { bookBuilder },
-        marketDataMessageHandler { marketDataParser },
+        marketDataParser {  },
+        marketDataMessageHandler { marketDataParser, bookBuilder },
         marketDataSource {}
     {
         configureMarketData();

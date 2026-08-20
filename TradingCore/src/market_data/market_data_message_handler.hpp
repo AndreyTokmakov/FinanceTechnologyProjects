@@ -1,48 +1,63 @@
 /**============================================================================
 Name        : market_data_message_handler.hpp
-Created on  : 17.08.2026
+Created on  : 20.08.2026
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : Market data message handler.
+Description : market_data_message_handler.hpp
 ============================================================================**/
 
 /*
-    MarketDataMessageHandler receives raw market data messages from a market
-    data source and forwards them to a market data parser.
-
-    The handler is intentionally unaware of the message format.
+    MarketDataMessageHandler coordinates parsing of raw market-data messages
+    and delivery of parsed BookUpdate instances.
 
     Data Flow:
 
-        MarketDataSource
+        IMarketDataSource
                |
                | raw message
                v
         MarketDataMessageHandler
                |
-               | raw message
-               v
-        IMarketDataParser
-               |
-               | BookUpdate
-               v
-        IBookUpdateHandler
+               +----------------------+
+               |                      |
+               v                      v
+        IMarketDataParser      IBookUpdateHandler
+               |                      |
+               | BookUpdates           |
+               +----------+-----------+
+                          |
+                          v
+                      BookBuilder
 
-    The parser is responsible for understanding the exchange-specific
-    protocol. The message handler is responsible only for forwarding the
-    message to the parser.
+    Responsibilities:
 
-    This separation allows the same message handling mechanism to be used
-    with different exchanges and protocols.
+        - receive raw market-data messages;
+        - invoke IMarketDataParser;
+        - handle parser success/failure;
+        - forward successfully parsed BookUpdate instances to
+          IBookUpdateHandler.
+
+    MarketDataMessageHandler is an orchestration component.
+
+    It does not:
+
+        - know exchange-specific message formats;
+        - parse JSON itself;
+        - modify OrderBook;
+        - create MarketEvent.
+
+    Parser responsibility ends at producing domain objects.
+    BookUpdateHandler responsibility begins at consuming those objects.
 */
 
 #ifndef FINANCETECHNOLOGYPROJECTS_MARKET_DATA_MESSAGE_HANDLER_HPP
 #define FINANCETECHNOLOGYPROJECTS_MARKET_DATA_MESSAGE_HANDLER_HPP
 
-#include "interfaces/market_data_parser.hpp"
-
 #include <string_view>
+
+#include "interfaces/book_update_handler.hpp"
+#include "interfaces/market_data_parser.hpp"
 
 namespace trading::market_data
 {
@@ -56,12 +71,13 @@ namespace trading::market_data
     class MarketDataMessageHandler final : public IMarketDataMessageHandler
     {
     public:
-        explicit MarketDataMessageHandler(IMarketDataParser& parser) noexcept;
+        MarketDataMessageHandler(IMarketDataParser& parser, IBookUpdateHandler& bookUpdateHandler) noexcept;
 
         void onMessage(std::string_view message) override;
 
     private:
         IMarketDataParser& parser;
+        IBookUpdateHandler& bookUpdateHandler;
     };
 }
 

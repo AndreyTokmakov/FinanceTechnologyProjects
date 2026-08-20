@@ -17,43 +17,35 @@ Description : binance_market_data_parser.hpp
                |
                | raw Binance message
                v
-        MarketDataMessageHandler
+        IMarketDataMessageHandler
                |
                v
         BinanceMarketDataParser
                |
-               | std::expected<std::vector<BookUpdate>, ParseError>
-               |
-          +----+----+
-          |         |
-          v         v
-      BookUpdates ParseError
+               | fills reusable BookUpdates
+               v
+        BookUpdates
           |
           v
     IBookUpdateHandler
           |
           v
       BookBuilder
+               |
+               v
+        OrderBook
 
     Responsibilities:
 
         - parse Binance market-data messages;
         - validate Binance-specific fields;
-        - convert Binance prices and quantities into domain types;
-        - convert Binance sequence and timestamp information;
-        - produce BookUpdate instances.
+        - convert Binance data into BookUpdate objects;
+        - return the parsing result.
 
-    BinanceMarketDataParser does not:
+    The parser does not know about IBookUpdateHandler or BookBuilder.
 
-        - know about BookBuilder;
-        - know about IBookUpdateHandler;
-        - forward BookUpdate objects;
-        - modify OrderBook;
-        - interact with Strategy or Execution.
-
-    The parser is therefore a pure transformation component:
-
-        Binance raw message -> domain model
+    The supplied BookUpdates buffer is reused between calls. The parser must
+    clear it before adding new updates.
 */
 
 #ifndef FINANCETECHNOLOGYPROJECTS_BINANCE_MARKET_DATA_PARSER_HPP
@@ -67,7 +59,8 @@ namespace trading::exchanges::binance
     {
     public:
         [[nodiscard]]
-        market_data::MarketDataParseResult parse(std::string_view message) const override;
+        market_data::ParseResult parse(std::string_view message,
+                                       market_data::BookUpdates& bookUpdates) const override;
     };
 }
 

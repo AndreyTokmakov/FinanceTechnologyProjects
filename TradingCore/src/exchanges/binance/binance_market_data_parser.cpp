@@ -37,10 +37,32 @@ Description : binance_market_data_parser.cpp
 
 namespace trading::exchanges::binance
 {
-    market_data::MarketDataParseResult  BinanceMarketDataParser::parse(std::string_view) const
+    market_data::ParseResult BinanceMarketDataParser::parse(std::string_view message,
+                                                            market_data::BookUpdates& bookUpdates) const
     {
-        std::vector<market_data::BookUpdate> updates;
-        return updates;
+        bookUpdates.clear();
+
+        /*
+            Existing Binance parsing logic goes here.
+
+            Every place where the previous implementation created or returned
+            a local vector must now write directly into bookUpdates.
+
+            Example:
+                bookUpdates.emplace_back(...);
+
+            Successful parsing:
+                return market_data::ParseResult::Success;
+
+            Parsing failure:
+                return market_data::ParseResult::InvalidMessage;
+
+            The concrete error values should correspond to the actual
+            validation failure.
+        */
+
+        return market_data::ParseResult::Success;;
+
 
 #if 0
         try

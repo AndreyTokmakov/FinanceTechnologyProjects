@@ -17,38 +17,56 @@ Description : market_data_message_handler.hpp
                |
                | raw message
                v
+        IMarketDataMessageHandler
+               |
+               v
         MarketDataMessageHandler
                |
-               +----------------------+
-               |                      |
-               v                      v
-        IMarketDataParser      IBookUpdateHandler
-               |                      |
-               | BookUpdates           |
-               +----------+-----------+
-                          |
-                          v
-                      BookBuilder
+               | parse(message, bookUpdates)
+               v
+        IMarketDataParser
+               |
+               | fills reusable buffer
+               v
+        BookUpdates
+               |
+               | onBookUpdate()
+               v
+        IBookUpdateHandler
+               |
+               v
+        BookBuilder
+               |
+               v
+        OrderBook
 
     Responsibilities:
 
         - receive raw market-data messages;
+        - provide a reusable BookUpdates buffer to the parser;
         - invoke IMarketDataParser;
-        - handle parser success/failure;
-        - forward successfully parsed BookUpdate instances to
-          IBookUpdateHandler.
+        - handle the ParseResult;
+        - forward parsed BookUpdate instances to IBookUpdateHandler.
+
+    The BookUpdates buffer is owned by MarketDataMessageHandler and reused
+    between messages.
+
+    This is intentional because onMessage() belongs to the market-data hot
+    path. Returning a new std::vector from every parse operation could cause
+    unnecessary allocations.
+
+    std::vector::clear() does not release its allocated storage. Therefore,
+    after the buffer reaches its normal working capacity, subsequent messages
+    can reuse the same memory.
 
     MarketDataMessageHandler is an orchestration component.
 
     It does not:
 
         - know exchange-specific message formats;
-        - parse JSON itself;
-        - modify OrderBook;
-        - create MarketEvent.
-
-    Parser responsibility ends at producing domain objects.
-    BookUpdateHandler responsibility begins at consuming those objects.
+        - parse JSON;
+        - modify OrderBook directly;
+        - generate MarketEvent.
 */
 
 #ifndef FINANCETECHNOLOGYPROJECTS_MARKET_DATA_MESSAGE_HANDLER_HPP
@@ -64,18 +82,19 @@ namespace trading::market_data
     struct IMarketDataMessageHandler
     {
         virtual ~IMarketDataMessageHandler() = default;
-
         virtual void onMessage(std::string_view message) = 0;
     };
 
     class MarketDataMessageHandler final : public IMarketDataMessageHandler
     {
     public:
-        MarketDataMessageHandler(IMarketDataParser& parser, IBookUpdateHandler& bookUpdateHandler) noexcept;
+        MarketDataMessageHandler(IMarketDataParser& parser,
+                                 IBookUpdateHandler& bookUpdateHandler) noexcept;
 
         void onMessage(std::string_view message) override;
 
     private:
+        BookUpdates bookUpdates;
         IMarketDataParser& parser;
         IBookUpdateHandler& bookUpdateHandler;
     };

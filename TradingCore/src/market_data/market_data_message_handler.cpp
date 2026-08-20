@@ -1,13 +1,11 @@
 /**============================================================================
 Name        : market_data_message_handler.cpp
-Created on  : 17.08.2026
+Created on  : 20.08.2026
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
-Description : Market data message handler implementation.
+Description : market_data_message_handler.cpp
 ============================================================================**/
-
-#include "market_data_message_handler.hpp"
 
 /*
     MarketDataMessageHandler implementation.
@@ -19,18 +17,22 @@ Description : Market data message handler implementation.
                v
         MarketDataMessageHandler
                |
+               | parse(message, bookUpdates)
                v
         IMarketDataParser
                |
-               | BookUpdates
+               | fills reusable buffer
+               v
+        BookUpdates
+               |
                v
         IBookUpdateHandler
                |
                v
-           BookBuilder
+        BookBuilder
 
-    The handler is responsible only for connecting the parser output with the
-    BookUpdate processing pipeline.
+    The BookUpdates buffer is reused between messages to avoid allocations
+    on the market-data hot path.
 */
 
 #include "market_data_message_handler.hpp"
@@ -38,17 +40,20 @@ Description : Market data message handler implementation.
 namespace trading::market_data
 {
     MarketDataMessageHandler::MarketDataMessageHandler(IMarketDataParser& parser,
-                                                       IBookUpdateHandler& bookUpdateHandler) noexcept
-        : parser { parser }, bookUpdateHandler { bookUpdateHandler }
+                                                       IBookUpdateHandler& bookUpdateHandler) noexcept:
+        bookUpdates {},
+        parser { parser },
+        bookUpdateHandler { bookUpdateHandler }
     {
     }
 
-    void MarketDataMessageHandler::onMessage(const std::string_view message)
+    void MarketDataMessageHandler::onMessage(std::string_view message)
     {
-        const auto result = parser.parse(message);
-        if (!result)
+        const ParseResult result = parser.parse(message, bookUpdates);
+
+        if (result != ParseResult::Success)
             return;
-        for (const auto& update : *result)
+        for (const auto& update : bookUpdates)
             bookUpdateHandler.onBookUpdate(update);
     }
 }

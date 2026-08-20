@@ -30,8 +30,7 @@ namespace trading
         [[nodiscard]]
         static Timestamp now() noexcept
         {
-            const auto now = std::chrono::steady_clock::now();
-            const auto duration = now.time_since_epoch();
+            const auto duration = std::chrono::steady_clock::now().time_since_epoch();
             return Timestamp { static_cast<Value>( std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count()) };
         }
 

@@ -66,16 +66,9 @@ Description : scaled_value.hpp
         Price - Quantity
         Price == Quantity
 
-    Price and Quantity therefore share implementation but do not share their
-    domain type.
-
-
-    The number of decimal places is configurable through the DecimalPlaces
-    template parameter.
-
-    The default value is 8 decimal places, which is currently used by Price
-    and Quantity.
-
+    Price and Quantity therefore share implementation but do not share their domain type.
+    The number of decimal places is configurable through the DecimalPlaces template parameter.
+    The default value is 8 decimal places, which is currently used by Price  and Quantity.
 
     ScaledValue is an implementation detail of the core numeric types.
 

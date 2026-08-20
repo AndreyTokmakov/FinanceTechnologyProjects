@@ -1,6 +1,6 @@
 /**============================================================================
 Name        : execution_report_handler.cpp
-Created on  : 19.08.2026
+Created on  : 16.08.2026
 Author      : Andrei Tokmakov
 Version     : 1.0
 Copyright   : Your copyright notice
@@ -10,37 +10,42 @@ Description : execution_report_handler.cpp
 /*
     ExecutionReportHandler implementation.
 
-    Data Flow:
+    This module coordinates the inbound ExecutionReport processing pipeline.
+
+    Event Flow:
 
         ExecutionReport
                |
                v
-        ExecutionReportHandler
+        IRecorder::record()
                |
-               +-----> OrderManager
+               v
+        OrderManager::applyExecution()
                |
-               +-----> PositionManager
+               v
+        PositionManager::applyExecution()
 
-    The handler does not interpret the execution report. Each consumer decides
-    how the report affects its own domain state.
+    ExecutionReportHandler does not contain execution-domain business logic.
+    It only coordinates the components responsible for recording and applying
+    the execution event.
 */
 
 #include "execution_report_handler.hpp"
 
-#include "order_manager.hpp"
-#include "position_manager.hpp"
-
 namespace trading::execution
 {
     ExecutionReportHandler::ExecutionReportHandler(OrderManager& orderManager,
-                                                   position::PositionManager& positionManager) noexcept
-        : orderManager { orderManager },
-          positionManager { positionManager }
+                                                   position::PositionManager& positionManager,
+                                                   recording::IRecorder& recorder) noexcept:
+        orderManager { orderManager },
+        positionManager { positionManager },
+        recorder { recorder }
     {
     }
 
     bool ExecutionReportHandler::onExecutionReport(const ExecutionReport& report) const
     {
+        recorder.record(report);
         if (!orderManager.applyExecution(report))
             return false;
         return positionManager.applyExecution(report);

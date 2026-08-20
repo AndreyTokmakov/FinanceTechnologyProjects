@@ -129,6 +129,8 @@ add_executable(${PROJECT_NAME}
         ${TESTS}/pnl/pnl_calculator_test.cpp
         ${TESTS}/risk/risk_manager_test.cpp
         ${TESTS}/recording/trade_recorder_test.cpp
+        ${TESTS}/position/position_test.cpp
+        ${TESTS}/position/position_manager_test.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

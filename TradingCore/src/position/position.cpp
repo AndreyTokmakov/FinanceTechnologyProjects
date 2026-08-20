@@ -59,20 +59,16 @@ namespace trading::position
                               const Price price,
                               const Quantity quantity) noexcept
     {
+        if (quantity.isZero())
+            return;
+
         const Value executionQuantity = quantity.raw();
         const Value signedQuantity = side == Side::Buy ? executionQuantity : -executionQuantity;
-
-        if (currentQuantity == 0)
-        {
-            currentQuantity = signedQuantity;
-            averageEntryPrice = price;
-            return;
-        }
 
         const bool sameDirection = (currentQuantity > 0 && signedQuantity > 0) ||
             (currentQuantity < 0 && signedQuantity < 0);
 
-        if (sameDirection)
+        /* if (sameDirection)
         {
             const Value absoluteCurrentQuantity = currentQuantity > 0 ? currentQuantity : -currentQuantity;
             const Value absoluteExecutionQuantity = signedQuantity > 0 ? signedQuantity : -signedQuantity;
@@ -82,6 +78,19 @@ namespace trading::position
 
             currentQuantity += signedQuantity;
             averageEntryPrice = Price { weightedPrice };
+            return;
+        }*/
+
+        if (sameDirection)
+        {
+            const Value absoluteCurrentQuantity = currentQuantity > 0 ? currentQuantity : -currentQuantity;
+            const Value absoluteExecutionQuantity = signedQuantity > 0 ? signedQuantity : -signedQuantity;
+            const Value totalQuantity = absoluteCurrentQuantity + absoluteExecutionQuantity;
+            const __int128 weightedPrice =
+                static_cast<__int128>(averageEntryPrice.raw()) * absoluteCurrentQuantity +
+                static_cast<__int128>(price.raw()) * absoluteExecutionQuantity;
+            currentQuantity += signedQuantity;
+            averageEntryPrice = Price { static_cast<Value>(weightedPrice / totalQuantity)};
             return;
         }
 

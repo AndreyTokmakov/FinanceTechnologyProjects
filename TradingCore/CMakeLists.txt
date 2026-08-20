@@ -71,7 +71,7 @@ add_executable(${PROJECT_NAME}
         ${MARKET_DATA}/model/book_level.hpp
         ${MARKET_DATA}/model/book_update.hpp
         ${MARKET_DATA}/model/market_event.hpp
-        ${MARKET_DATA}/model/parse_error.hpp
+        ${MARKET_DATA}/model/parse_result.hpp
         ${MARKET_DATA}/interfaces/market_event_handler.hpp
         ${MARKET_DATA}/interfaces/market_data_parser.hpp
         ${MARKET_DATA}/interfaces/market_data_source.hpp
@@ -125,6 +125,7 @@ add_executable(${PROJECT_NAME}
         ${TESTS}/market_data/order_book_test.cpp
         ${TESTS}/market_data/book_builder_test.cpp
         ${TESTS}/execution/order_manager_test.cpp
+        ${TESTS}/execution/execution_report_handler_test.cpp
         ${TESTS}/pnl/pnl_calculator_test.cpp
         ${TESTS}/risk/risk_manager_test.cpp
         ${TESTS}/recording/trade_recorder_test.cpp

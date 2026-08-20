@@ -7,76 +7,58 @@ Copyright   : Your copyright notice
 Description : quantity.hpp
 ============================================================================**/
 
+/*
+    Quantity represents a fixed-point quantity value used throughout the
+    trading core.
+
+    Quantity uses ScaledValue as its underlying numeric representation with
+    8 decimal places.
+
+    The type is intentionally distinct from Price even though both use the
+    same fixed-point representation.
+
+    Data Flow:
+
+        Order Request / Execution Report / Position
+                         |
+                         v
+                      Quantity
+                         |
+                         v
+                    ScaledValue
+                         |
+                         v
+                      int64_t
+
+    Responsibilities:
+        - represent a quantity value;
+        - provide type-safe quantity arithmetic;
+        - provide fixed-point conversion and raw representation.
+
+    Quantity does not:
+        - validate instrument-specific lot size;
+        - perform quantity normalization;
+        - communicate with exchanges;
+        - parse market data;
+        - calculate Position;
+        - represent price.
+
+
+    Quantity and Price intentionally remain separate types even though they
+    share the same implementation.
+*/
+
 #ifndef FINANCETECHNOLOGYPROJECTS_QUANTITY_HPP
 #define FINANCETECHNOLOGYPROJECTS_QUANTITY_HPP
 
-#include <compare>
-#include <cstdint>
+#include "scaled_value.hpp"
 
 namespace trading
 {
-    class Quantity
+    class Quantity final : public details::ScaledValue<Quantity>
     {
     public:
-        using Value = int64_t;
-
-        static constexpr int DecimalPlaces = 8;
-        static constexpr Value Scale = 100'000'000;
-
-        constexpr Quantity() noexcept = default;
-
-        explicit constexpr Quantity(const Value value) noexcept: value { value }{
-        }
-
-        [[nodiscard]]
-        static constexpr Quantity fromInteger(const Value value) noexcept {
-            return Quantity { value * Scale };
-        }
-
-        [[nodiscard]]
-        constexpr Value raw() const noexcept {
-            return value;
-        }
-
-        [[nodiscard]]
-        constexpr bool isZero() const noexcept {
-            return value == 0;
-        }
-
-        [[nodiscard]]
-        constexpr bool isPositive() const noexcept {
-            return value > 0;
-        }
-
-        [[nodiscard]]
-        constexpr Quantity operator+(const Quantity other) const noexcept {
-            return Quantity { value + other.value };
-        }
-
-        [[nodiscard]]
-        constexpr Quantity operator-(const Quantity other) const noexcept{
-            return Quantity { value - other.value };
-        }
-
-        [[nodiscard]]
-        constexpr Quantity operator*(const Value multiplier) const noexcept {
-            return Quantity { value * multiplier };
-        }
-
-        constexpr Quantity& operator+=(const Quantity other) noexcept {
-            value += other.value;
-            return *this;
-        }
-
-        constexpr Quantity& operator-=(const Quantity other) noexcept {
-            value -= other.value;
-            return *this;
-        }
-
-        constexpr auto operator<=>(const Quantity&) const noexcept = default;
-
-    private:
-        Value value { 0 };
+        using details::ScaledValue<Quantity>::ScaledValue;
     };
 }
 

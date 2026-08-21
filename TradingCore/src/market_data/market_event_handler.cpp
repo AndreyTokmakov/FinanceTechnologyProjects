@@ -31,16 +31,20 @@ Description : market_event_handler.cpp
 
 namespace trading::market_data
 {
-    MarketEventHandler::MarketEventHandler(IMarketEventHandler& strategy,
-        recording::IRecorder& recorder) noexcept
-        : strategy { strategy },
-          recorder { recorder }
+    MarketEventHandler::MarketEventHandler(strategy::IStrategy& strategy,
+                                           strategy::StrategyExecutor& executor,
+                                           recording::IRecorder& recorder) noexcept :
+        strategy { strategy },
+        executor { executor },
+        recorder { recorder }
     {
     }
 
     void MarketEventHandler::onMarketEvent(const MarketEvent& event)
     {
-        strategy.onMarketEvent(event);
         recorder.record(event);
+
+        const strategy::Signal signal = strategy.evaluate(event);
+        executor.execute(signal, event);
     }
 }

@@ -98,6 +98,8 @@ add_executable(${PROJECT_NAME}
         ${BINANCE}/binance_market_data_source.cpp
         ${BINANCE}/binance_market_data_parser.cpp
         ${BINANCE}/binance_market_data_parser.hpp
+        ${BINANCE}/binance_execution_gateway.hpp
+        ${BINANCE}/binance_execution_gateway.cpp
 
         ${POSITION}/position.hpp
         ${POSITION}/position.cpp
@@ -119,8 +121,11 @@ add_executable(${PROJECT_NAME}
         ${RISK}/risk_manager.cpp
 
         ${STRATEGY}/strategy.hpp
+        ${STRATEGY}/signal.hpp
         ${STRATEGY}/imbalance_strategy.hpp
         ${STRATEGY}/imbalance_strategy.cpp
+        ${STRATEGY}/strategy_executor.cpp
+        ${STRATEGY}/strategy_executor.cpp
 
         ${TESTS}/market_data/order_book_test.cpp
         ${TESTS}/market_data/book_builder_test.cpp
@@ -131,6 +136,7 @@ add_executable(${PROJECT_NAME}
         ${TESTS}/recording/trade_recorder_test.cpp
         ${TESTS}/position/position_test.cpp
         ${TESTS}/position/position_manager_test.cpp
+        ${TESTS}/strategy/imbalance_strategy_test.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

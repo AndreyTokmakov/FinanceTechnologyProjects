@@ -21,11 +21,19 @@ void risk_manager_test();
 void trade_recorder_test();
 void position_test();
 void position_manager_test();
+void imbalance_strategy_test();
+
+// TODO:
+//   Config
+//   Metrics
+//   Logging
+//   CPU
 
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
     const std::vector<std::string_view> args(argv + 1, argv + argc);
+
 
     order_book_test();
     order_manager_test();
@@ -36,6 +44,7 @@ int main([[maybe_unused]] const int argc,
     trade_recorder_test();
     position_test();
     position_manager_test();
+    imbalance_strategy_test();
 
     return EXIT_SUCCESS;
 }

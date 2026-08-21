@@ -242,6 +242,7 @@ Description : order_manager.hpp
 #ifndef FINANCETECHNOLOGYPROJECTS_ORDER_MANAGER_HPP
 #define FINANCETECHNOLOGYPROJECTS_ORDER_MANAGER_HPP
 
+#include <expected>
 #include <map>
 
 #include "execution_gateway.hpp"
@@ -252,6 +253,14 @@ Description : order_manager.hpp
 
 namespace trading::execution
 {
+    enum class OrderCreationError: uint8_t
+    {
+        RiskRejected,
+        InvalidRequest
+    };
+
+    using OrderCreationResult = std::expected<OrderId, OrderCreationError>;
+
     class OrderManager
     {
     public:
@@ -260,7 +269,7 @@ namespace trading::execution
                      position::Position& position) noexcept;
 
         [[nodiscard]]
-        OrderId createOrder(const OrderRequest& request);
+        OrderCreationResult createOrder(const OrderRequest& request);
 
         [[nodiscard]]
         bool applyExecution(const ExecutionReport& report);

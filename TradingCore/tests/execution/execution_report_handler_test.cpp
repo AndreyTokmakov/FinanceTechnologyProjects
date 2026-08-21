@@ -150,7 +150,7 @@ namespace
         PositionManager positionManager { };
         const ExecutionReportHandler handler {orderManager,positionManager,recorder};
 
-        const OrderId orderId = orderManager.createOrder(OrderRequest {
+        const auto orderId = orderManager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
             .type = OrderType::Limit,
@@ -158,7 +158,7 @@ namespace
             .quantity = Quantity { 100'000'000 }
         });
 
-        const ExecutionReport report = createExecutionReport(orderId);
+        const ExecutionReport report = createExecutionReport(orderId.value());
         const bool applied = handler.onExecutionReport(report);
         Assert(applied, "execution report must be applied");
     }
@@ -175,7 +175,7 @@ namespace
         PositionManager positionManager { };
         const ExecutionReportHandler handler {orderManager, positionManager,recorder};
 
-        const OrderId orderId = orderManager.createOrder(OrderRequest {
+        const auto orderId = orderManager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
             .type = OrderType::Limit,
@@ -183,7 +183,7 @@ namespace
             .quantity = Quantity { 100'000'000 }
         });
 
-        const ExecutionReport report = createExecutionReport(orderId);
+        const ExecutionReport report = createExecutionReport(orderId.value());
 
         const auto _ = handler.onExecutionReport(report);
         Assert(recorder.executionReportRecordCount() == 1, "execution report must be recorded once");
@@ -201,7 +201,7 @@ namespace
         PositionManager positionManager { };
 
         const ExecutionReportHandler handler {orderManager, positionManager, recorder};
-        const OrderId orderId = orderManager.createOrder(OrderRequest {
+        const auto orderId = orderManager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
             .type = OrderType::Limit,
@@ -209,7 +209,7 @@ namespace
             .quantity = Quantity { 100'000'000 }
         });
 
-        const ExecutionReport report = createExecutionReport(orderId);
+        const ExecutionReport report = createExecutionReport(orderId.value());
         const auto _ = handler.onExecutionReport(report);
 
         const ExecutionReport& recorded = recorder.executionReport();
@@ -244,7 +244,7 @@ namespace
         PositionManager positionManager { };
 
         const ExecutionReportHandler handler {orderManager,positionManager,recorder};
-        const OrderId orderId = orderManager.createOrder(OrderRequest {
+        const auto orderId = orderManager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
             .type = OrderType::Limit,
@@ -252,8 +252,8 @@ namespace
             .quantity = Quantity { 100'000'000 }
         });
 
-        const auto _ = handler.onExecutionReport(createExecutionReport(orderId));
-        const Order* order = orderManager.find(orderId);
+        const auto _ = handler.onExecutionReport(createExecutionReport(orderId.value()));
+        const Order* order = orderManager.find(orderId.value());
 
         Assert(order != nullptr, "order must exist");
         Assert(order->exchangeOrderId == ExchangeOrderId { 1001 },

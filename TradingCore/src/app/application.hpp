@@ -59,6 +59,7 @@ Description : application.hpp
 
 #include "binance_market_data_parser.hpp"
 #include "binance_market_data_source.hpp"
+#include "binance_execution_gateway.hpp"
 #include "book_builder.hpp"
 #include "imbalance_strategy.hpp"
 #include "market_data_message_handler.hpp"
@@ -84,16 +85,19 @@ namespace trading::app
         void stop();
 
     private:
+        void configureRisk();
         void configureMarketData();
 
         market_data::OrderBook orderBook;
-
         recording::TradeRecorder recorder;
+        position::Position position;
+        risk::RiskManager riskManager;
         strategy::ImbalanceStrategy strategy;
-
+        exchanges::binance::BinanceExecutionGateway binanceExecutionGateway;
+        execution::OrderManager orderManager;
+        strategy::StrategyExecutor strategyExecutor;
         market_data::MarketEventHandler marketEventHandler;
         market_data::BookBuilder bookBuilder;
-
         exchanges::binance::BinanceMarketDataParser marketDataParser;
         market_data::MarketDataMessageHandler marketDataMessageHandler;
         exchanges::binance::BinanceMarketDataSource marketDataSource;

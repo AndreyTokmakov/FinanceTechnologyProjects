@@ -64,19 +64,23 @@ Description : market_event_handler.hpp
 
 #include "interfaces/market_event_handler.hpp"
 #include "recorder.hpp"
+#include "strategy.hpp"
+#include "strategy_executor.hpp"
 
 namespace trading::market_data
 {
     class MarketEventHandler final : public IMarketEventHandler
     {
     public:
-        MarketEventHandler(IMarketEventHandler& strategy,
+        MarketEventHandler(strategy::IStrategy& strategy,
+                           strategy::StrategyExecutor& executor,
                            recording::IRecorder& recorder) noexcept;
 
         void onMarketEvent(const MarketEvent& event) override;
 
     private:
-        IMarketEventHandler& strategy;
+        strategy::IStrategy& strategy;
+        strategy::StrategyExecutor& executor;
         recording::IRecorder& recorder;
     };
 }

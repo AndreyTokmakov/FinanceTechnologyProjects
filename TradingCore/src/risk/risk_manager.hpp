@@ -78,23 +78,29 @@ namespace trading::risk
         [[nodiscard]]
         virtual RiskResult checkOrder(const execution::OrderRequest& request,
                                       const position::Position& position) = 0;
+
         [[nodiscard]]
         virtual RiskReason lastReason() const noexcept = 0;
     };
 
+
     class RiskManager final : public IRiskManager
     {
     public:
+        RiskManager() noexcept;
         explicit RiskManager(const RiskLimits& limits) noexcept;
+
+        void setLimits(const RiskLimits& newLimits) noexcept;
 
         [[nodiscard]]
         RiskResult checkOrder(const execution::OrderRequest& request,
                               const position::Position& position) override;
+
         [[nodiscard]]
         RiskReason lastReason() const noexcept override;
 
     private:
-        RiskLimits limits;
+        RiskLimits limits {};
         RiskReason reason { RiskReason::None };
     };
 }

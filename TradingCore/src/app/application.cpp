@@ -49,19 +49,36 @@ namespace trading::app
     Application::Application():
         orderBook {},
         recorder {},
+        position { InstrumentId { 1 } },
+        riskManager {},
         strategy {},
-        marketEventHandler { strategy, recorder },
+        binanceExecutionGateway {},
+        orderManager { binanceExecutionGateway, riskManager, position },
+        strategyExecutor { orderManager, Quantity { 100'000'000 } },
+        marketEventHandler { strategy, strategyExecutor, recorder },
         bookBuilder { InstrumentId { 1 }, orderBook, marketEventHandler },
-        marketDataParser {  },
+        marketDataParser {},
         marketDataMessageHandler { marketDataParser, bookBuilder },
         marketDataSource {}
     {
+        configureRisk();
         configureMarketData();
     }
 
     Application::~Application()
     {
         stop();
+    }
+
+    void Application::configureRisk()
+    {
+        constexpr risk::RiskLimits limits {
+            .maxOrderQuantity = Quantity { 100'000'000 },
+            .maxPositionQuantity = Quantity { 500'000'000 },
+            .maxNotional = Price { 100'000'000'000'000 }
+        };
+
+        riskManager.setLimits(limits);
     }
 
     void Application::configureMarketData()
@@ -73,6 +90,7 @@ namespace trading::app
     {
         if (running)
             return;
+
         running = true;
         marketDataSource.start();
     }
@@ -81,6 +99,7 @@ namespace trading::app
     {
         if (!running)
             return;
+
         marketDataSource.stop();
         running = false;
     }

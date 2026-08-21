@@ -51,27 +51,42 @@ namespace trading::execution
     {
     }
 
-    OrderId OrderManager::createOrder(const OrderRequest& request)
+    OrderCreationResult OrderManager::createOrder(const OrderRequest& request)
     {
-        if (riskManager.checkOrder(request, position) == risk::RiskResult::Rejected)
-            return {};
+        if (request.instrument == InstrumentId { 0 } ||
+            request.quantity.isZero() ||
+            !request.quantity.isPositive() ||
+            request.price.isZero() ||
+            !request.price.isPositive())
+        {
+            return std::unexpected(OrderCreationError::InvalidRequest);
+        }
+
+        const risk::RiskResult riskResult = riskManager.checkOrder(request, position);
+
+        if (riskResult != risk::RiskResult::Accepted)
+            return std::unexpected(OrderCreationError::RiskRejected);
 
         const OrderId orderId = nextOrderId++;
 
         Order order {
             .clientOrderId = orderId,
-            .exchangeOrderId = 0,
+            .exchangeOrderId = ExchangeOrderId { 0 },
             .instrument = request.instrument,
             .side = request.side,
             .type = request.type,
             .price = request.price,
             .quantity = request.quantity,
-            .filledQuantity = {},
+            .filledQuantity = Quantity {},
             .status = OrderStatus::New
         };
 
-        orders.emplace(orderId, order);
-        gateway.send(order);
+        const auto [it, inserted] = orders.emplace(orderId, order);
+
+        if (!inserted)
+            return std::unexpected(OrderCreationError::InvalidRequest);
+
+        gateway.send(it->second);
 
         return orderId;
     }
@@ -87,6 +102,9 @@ namespace trading::execution
         order.exchangeOrderId = report.exchangeOrderId;
         order.status = report.status;
         order.filledQuantity = report.filledQuantity;
+
+        if (report.execType == ExecType::Trade)
+            position.applyTrade(report.side, report.price, report.quantity);
 
         return true;
     }

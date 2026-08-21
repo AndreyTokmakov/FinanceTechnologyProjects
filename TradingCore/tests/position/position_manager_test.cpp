@@ -29,7 +29,6 @@ namespace
 {
     using testing::Assert;
 
-
     ExecutionReport createTradeReport(const InstrumentId instrument,
                                       const Side side,
                                       const Price price,
@@ -48,14 +47,28 @@ namespace
         };
     }
 
+    /*
+        Input:
+            Newly created PositionManager with no executions.
+
+        Expected:
+            No position exists for an instrument that has never received a trade.
+    */
     void testInitialState()
     {
         const PositionManager manager {};
         const Position* position = manager.find(InstrumentId { 1 });
+
         Assert(position == nullptr, "position must not exist initially");
     }
 
-#if 0
+    /*
+        Input:
+            Buy 100 units of instrument 1 at price 6500.
+
+        Expected:
+            A long position is created with quantity 100 and average price 6500.
+    */
     void testApplyBuyTradeCreatesPosition()
     {
         PositionManager manager {};
@@ -73,14 +86,17 @@ namespace
         const Position* position = manager.find(InstrumentId { 1 });
 
         Assert(position != nullptr, "position must be created");
-        Assert(position->quantity() == Quantity { 100'000'000 }.raw(),
-            "invalid position quantity");
-        std::cout << position->averagePrice().raw() << std::endl;
-        Assert(position->averagePrice() == Price { 6'500'000'000 },
-            "invalid average entry price");
+        Assert(position->quantity() == Quantity { 100'000'000 }.raw(), "invalid position quantity");
+        Assert(position->averagePrice() == Price { 6'500'000'000'000 }, "invalid average entry price");
     }
 
+    /*
+        Input:
+            Sell 100 units of instrument 1 at price 6500.
 
+        Expected:
+            A short position is created with quantity -100 and average price 6500.
+    */
     void testApplySellTradeCreatesShortPosition()
     {
         PositionManager manager {};
@@ -98,16 +114,18 @@ namespace
         const Position* position = manager.find(InstrumentId { 1 });
 
         Assert(position != nullptr, "position must be created");
-        Assert(
-            position->quantity() == Quantity { -100'000'000 }.raw(),
-            "invalid short position quantity");
-
-        Assert(
-            position->averagePrice() == Price { 6'500'000'000'000 },
-            "invalid short position entry price");
+        Assert(position->quantity() == Quantity { -100'000'000 }.raw(), "invalid short position quantity");
+        Assert(position->averagePrice() == Price { 6'500'000'000'000 }, "invalid short position entry price");
     }
 
+    /*
+        Input:
+            Two Buy trades for the same instrument:
+            100 units at 6000 and 100 units at 7000.
 
+        Expected:
+            Existing position is updated to 200 units with weighted average price 6500.
+    */
     void testMultipleTradesUpdateExistingPosition()
     {
         PositionManager manager {};
@@ -132,16 +150,17 @@ namespace
         const Position* position = manager.find(InstrumentId { 1 });
 
         Assert(position != nullptr, "position must exist");
-        Assert(
-            position->quantity() == Quantity { 200'000'000 }.raw(),
-            "invalid accumulated position quantity");
-
-        Assert(
-            position->averagePrice() == Price { 6'500'000'000'000 },
-            "invalid weighted average entry price");
+        Assert(position->quantity() == Quantity { 200'000'000 }.raw(), "invalid accumulated position quantity");
+        Assert(position->averagePrice() == Price { 6'500'000'000'000 }, "invalid weighted average entry price");
     }
 
+    /*
+        Input:
+            Buy 100 units of instrument 1 and Buy 200 units of instrument 2.
 
+        Expected:
+            Two independent positions are created and maintained separately.
+    */
     void testTradesForDifferentInstrumentsCreateDifferentPositions()
     {
         PositionManager manager {};
@@ -168,17 +187,17 @@ namespace
 
         Assert(firstPosition != nullptr, "first position must exist");
         Assert(secondPosition != nullptr, "second position must exist");
-
-        Assert(
-            firstPosition->quantity() == Quantity { 100'000'000 }.raw(),
-            "invalid first position quantity");
-
-        Assert(
-            secondPosition->quantity() == Quantity { 200'000'000 }.raw(),
-            "invalid second position quantity");
+        Assert(firstPosition->quantity() == Quantity { 100'000'000 }.raw(), "invalid first position quantity");
+        Assert(secondPosition->quantity() == Quantity { 200'000'000 }.raw(), "invalid second position quantity");
     }
 
+    /*
+        Input:
+            ExecutionReport with ExecType::New instead of ExecType::Trade.
 
+        Expected:
+            Execution is rejected and no position is created.
+    */
     void testNonTradeExecutionIsRejected()
     {
         PositionManager manager {};
@@ -201,12 +220,16 @@ namespace
 
         const Position* position = manager.find(InstrumentId { 1 });
 
-        Assert(
-            position == nullptr,
-            "non-trade execution must not create a position");
+        Assert(position == nullptr, "non-trade execution must not create a position");
     }
 
+    /*
+        Input:
+            Trade execution with zero quantity.
 
+        Expected:
+            Execution is rejected and no position is created.
+    */
     void testZeroQuantityTradeIsRejected()
     {
         PositionManager manager {};
@@ -223,17 +246,21 @@ namespace
 
         const Position* position = manager.find(InstrumentId { 1 });
 
-        Assert(
-            position == nullptr,
-            "zero quantity trade must not create a position");
+        Assert(position == nullptr, "zero quantity trade must not create a position");
     }
 
+    /*
+        Input:
+            Buy 100 units at 6500 followed by Sell 40 units at 7000.
 
+        Expected:
+            Position is reduced to 60 units and average entry price remains 6500.
+    */
     void testPartialReductionPreservesAverageEntryPrice()
     {
         PositionManager manager {};
 
-        manager.applyExecution(
+        const auto _ = manager.applyExecution(
             createTradeReport(
                 InstrumentId { 1 },
                 Side::Buy,
@@ -252,22 +279,22 @@ namespace
         const Position* position = manager.find(InstrumentId { 1 });
 
         Assert(position != nullptr, "position must exist");
-
-        Assert(
-            position->quantity() == Quantity { 60'000'000 }.raw(),
-            "invalid reduced position quantity");
-
-        Assert(
-            position->averagePrice() == Price { 6'500'000'000'000 },
-            "average entry price must be preserved");
+        Assert(position->quantity() == Quantity { 60'000'000 }.raw(), "invalid reduced position quantity");
+        Assert(position->averagePrice() == Price { 6'500'000'000'000 }, "average entry price must be preserved");
     }
 
+    /*
+        Input:
+            Buy 100 units at 6500 followed by Sell 100 units at 7000.
 
+        Expected:
+            Position becomes flat and average entry price is reset to zero.
+    */
     void testClosingPositionResetsAverageEntryPrice()
     {
         PositionManager manager {};
 
-        manager.applyExecution(
+        const auto _ = manager.applyExecution(
             createTradeReport(
                 InstrumentId { 1 },
                 Side::Buy,
@@ -286,22 +313,22 @@ namespace
         const Position* position = manager.find(InstrumentId { 1 });
 
         Assert(position != nullptr, "position must exist");
-
-        Assert(
-            position->quantity() == 0,
-            "position must become flat");
-
-        Assert(
-            position->averagePrice().isZero(),
-            "average entry price must be reset");
+        Assert(position->quantity() == 0, "position must become flat");
+        Assert(position->averagePrice().isZero(), "average entry price must be reset");
     }
 
+    /*
+        Input:
+            Buy 100 units at 6500 followed by Sell 150 units at 7000.
 
+        Expected:
+            Position reverses to -50 units and new average entry price becomes 7000.
+    */
     void testPositionReversalUsesExecutionPrice()
     {
         PositionManager manager {};
 
-        manager.applyExecution(
+        const auto _ = manager.applyExecution(
             createTradeReport(
                 InstrumentId { 1 },
                 Side::Buy,
@@ -320,22 +347,22 @@ namespace
         const Position* position = manager.find(InstrumentId { 1 });
 
         Assert(position != nullptr, "position must exist");
-
-        Assert(
-            position->quantity() == Quantity { -50'000'000 }.raw(),
-            "invalid reversed position quantity");
-
-        Assert(
-            position->averagePrice() == Price { 7'000'000'000'000 },
-            "reversed position must use execution price");
+        Assert(position->quantity() == Quantity { -50'000'000 }.raw(), "invalid reversed position quantity");
+        Assert(position->averagePrice() == Price { 7'000'000'000'000 }, "reversed position must use execution price");
     }
 
+    /*
+        Input:
+            A position exists for instrument 1. Search for instrument 2.
 
+        Expected:
+            find() returns nullptr for an instrument without a position.
+    */
     void testFindUnknownInstrument()
     {
         PositionManager manager {};
 
-        manager.applyExecution(
+        const auto _ = manager.applyExecution(
             createTradeReport(
                 InstrumentId { 1 },
                 Side::Buy,
@@ -344,20 +371,17 @@ namespace
 
         const Position* position = manager.find(InstrumentId { 2 });
 
-        Assert(
-            position == nullptr,
-            "unknown instrument must not be found");
+        Assert(position == nullptr, "unknown instrument must not be found");
     }
-#endif
 }
-
 
 void position_manager_test()
 {
-#if 0
     testInitialState();
+
     testApplyBuyTradeCreatesPosition();
     testApplySellTradeCreatesShortPosition();
+
     testMultipleTradesUpdateExistingPosition();
     testTradesForDifferentInstrumentsCreateDifferentPositions();
 
@@ -369,8 +393,6 @@ void position_manager_test()
     testPositionReversalUsesExecutionPrice();
 
     testFindUnknownInstrument();
-#endif
-
 
     std::cout << "All PositionManager tests: OK\n";
 }

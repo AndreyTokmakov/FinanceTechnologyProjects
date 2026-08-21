@@ -64,9 +64,17 @@ namespace trading::risk
         }
     }
 
-    RiskManager::RiskManager(const RiskLimits& limits) noexcept
-        : limits { limits }
+    RiskManager::RiskManager() noexcept = default;
+
+    RiskManager::RiskManager(const RiskLimits& limits) noexcept :
+        limits { limits }
     {
+    }
+
+    void RiskManager::setLimits(const RiskLimits& newLimits) noexcept
+    {
+        this->limits = newLimits;
+        reason = RiskReason::None;
     }
 
     RiskResult RiskManager::checkOrder(const execution::OrderRequest& request,

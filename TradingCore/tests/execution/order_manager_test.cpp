@@ -35,6 +35,7 @@ using trading::position::Position;
 namespace
 {
     using testing::Assert;
+    using trading::execution::OrderCreationResult;
 
     class TestRiskManager final : public IRiskManager
     {
@@ -119,8 +120,10 @@ namespace
             .quantity = Quantity { 100'000'000 }
         };
 
-        const OrderId orderId = manager.createOrder(request);
+        const OrderCreationResult result = manager.createOrder(request);
+        Assert(result.has_value(), "order creation must succeed");
 
+        const OrderId orderId = *result;
         Assert(orderId == 1, "first order id must be one");
 
         const Order* order = manager.find(orderId);
@@ -152,18 +155,23 @@ namespace
             .quantity = Quantity { 100'000'000 }
         };
 
-        const OrderId first = manager.createOrder(request);
-        const OrderId second = manager.createOrder(request);
-        const OrderId third = manager.createOrder(request);
+        const OrderCreationResult first = manager.createOrder(request);
+        const OrderCreationResult second = manager.createOrder(request);
+        const OrderCreationResult third = manager.createOrder(request);
 
-        Assert(first == 1, "first order id must be one");
-        Assert(second == 2, "second order id must be two");
-        Assert(third == 3, "third order id must be three");
+        Assert(first.has_value(), "Should have value");
+        Assert(second.has_value(), "Should have value");
+        Assert(third.has_value(), "Should have value");
 
-        Assert(manager.find(first) != nullptr, "first order must exist");
-        Assert(manager.find(second) != nullptr, "second order must exist");
-        Assert(manager.find(third) != nullptr, "third order must exist");
+        Assert(first.value() == 1, "first order id must be one");
+        Assert(second.value() == 2, "second order id must be two");
+        Assert(third .value()== 3, "third order id must be three");
+
+        Assert(manager.find(first.value()) != nullptr, "first order must exist");
+        Assert(manager.find(second.value()) != nullptr, "second order must exist");
+        Assert(manager.find(third.value()) != nullptr, "third order must exist");
     }
+
 
     void testOrderIsSentToGateway()
     {
@@ -173,6 +181,8 @@ namespace
 
         OrderManager manager { gateway, riskManager, position };
 
+        // Input: valid Sell Limit order for instrument 42 with price 65000 and quantity 2.
+        // Expected: order is created successfully and the complete order is sent to the gateway.
         constexpr OrderRequest request {
             .instrument = InstrumentId { 42 },
             .side = Side::Sell,
@@ -181,8 +191,10 @@ namespace
             .quantity = Quantity { 200'000'000 }
         };
 
-        const OrderId orderId = manager.createOrder(request);
+        const OrderCreationResult result = manager.createOrder(request);
+        Assert(result.has_value(), "order creation must succeed");
 
+        const OrderId orderId = result.value();
         Assert(gateway.sendCount() == 1, "gateway send must be called once");
 
         const Order& sentOrder = gateway.sentOrder();
@@ -215,6 +227,8 @@ namespace
 
         OrderManager manager { gateway, riskManager, position };
 
+        // Input: valid Buy Limit order followed by a New execution report from the exchange.
+        // Expected: order is created, execution is applied, and exchange order state is updated.
         constexpr OrderRequest request {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
@@ -223,8 +237,10 @@ namespace
             .quantity = Quantity { 100'000'000 }
         };
 
-        const OrderId orderId = manager.createOrder(request);
+        const OrderCreationResult result = manager.createOrder(request);
+        Assert(result.has_value(), "order creation must succeed");
 
+        const OrderId orderId = result.value();
         const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
             .exchangeOrderId = ExchangeOrderId { 1001 },
@@ -240,9 +256,7 @@ namespace
         const Order* order = manager.find(orderId);
 
         Assert(order != nullptr, "order must exist");
-        Assert(
-            order->exchangeOrderId == ExchangeOrderId { 1001 },
-            "exchange order id must be updated");
+        Assert(order->exchangeOrderId == ExchangeOrderId { 1001 }, "exchange order id must be updated");
         Assert(order->status == OrderStatus::New, "invalid order status");
         Assert(order->filledQuantity.isZero(), "filled quantity must be zero");
     }
@@ -255,13 +269,19 @@ namespace
 
         OrderManager manager { gateway, riskManager, position };
 
-        const OrderId orderId = manager.createOrder(OrderRequest {
+        // Input: Buy Limit order for 100 units followed by a 40-unit partial fill.
+        // Expected: execution is applied, status becomes PartiallyFilled, and filled quantity is 40.
+        const OrderCreationResult result = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
             .type = OrderType::Limit,
             .price = Price { 6'500'000'000'000 },
             .quantity = Quantity { 100'000'000 }
         });
+
+        Assert(result.has_value(), "order creation must succeed");
+
+        const OrderId orderId = result.value();
 
         const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
@@ -278,12 +298,8 @@ namespace
         const Order* order = manager.find(orderId);
 
         Assert(order != nullptr, "order must exist");
-        Assert(
-            order->status == OrderStatus::PartiallyFilled,
-            "order must be partially filled");
-        Assert(
-            order->filledQuantity == Quantity { 40'000'000 },
-            "invalid filled quantity");
+        Assert(order->status == OrderStatus::PartiallyFilled, "order must be partially filled");
+        Assert(order->filledQuantity == Quantity { 40'000'000 }, "invalid filled quantity");
     }
 
     void testApplyFilled()
@@ -294,13 +310,19 @@ namespace
 
         OrderManager manager { gateway, riskManager, position };
 
-        const OrderId orderId = manager.createOrder(OrderRequest {
+        // Input: Buy Limit order for 100 units followed by a complete 100-unit fill.
+        // Expected: execution is applied, status becomes Filled, and filled quantity is 100.
+        const OrderCreationResult result = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
             .type = OrderType::Limit,
             .price = Price { 6'500'000'000'000 },
             .quantity = Quantity { 100'000'000 }
         });
+
+        Assert(result.has_value(), "order creation must succeed");
+
+        const OrderId orderId = result.value();
 
         const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
@@ -318,9 +340,7 @@ namespace
 
         Assert(order != nullptr, "order must exist");
         Assert(order->status == OrderStatus::Filled, "order must be filled");
-        Assert(
-            order->filledQuantity == Quantity { 100'000'000 },
-            "invalid filled quantity");
+        Assert(order->filledQuantity == Quantity { 100'000'000 }, "invalid filled quantity");
     }
 
     void testApplyCancelled()
@@ -331,13 +351,19 @@ namespace
 
         OrderManager manager { gateway, riskManager, position };
 
-        const OrderId orderId = manager.createOrder(OrderRequest {
+        // Input: active Buy Limit order followed by a Cancel execution report.
+        // Expected: cancellation is applied and order status becomes Cancelled.
+        const OrderCreationResult result = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
             .type = OrderType::Limit,
             .price = Price { 6'500'000'000'000 },
             .quantity = Quantity { 100'000'000 }
         });
+
+        Assert(result.has_value(), "order creation must succeed");
+
+        const OrderId orderId = result.value();
 
         const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
@@ -365,13 +391,19 @@ namespace
 
         OrderManager manager { gateway, riskManager, position };
 
-        const OrderId orderId = manager.createOrder(OrderRequest {
+        // Input: Buy Limit order followed by an exchange Reject execution report.
+        // Expected: rejection is applied and order status becomes Rejected.
+        const OrderCreationResult result = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
             .type = OrderType::Limit,
             .price = Price { 6'500'000'000'000 },
             .quantity = Quantity { 100'000'000 }
         });
+
+        Assert(result.has_value(), "order creation must succeed");
+
+        const OrderId orderId = result.value();
 
         const bool applied = manager.applyExecution(ExecutionReport {
             .clientOrderId = orderId,
@@ -420,7 +452,9 @@ namespace
 
         OrderManager manager { gateway, riskManager, position };
 
-        const OrderId orderId = manager.createOrder(OrderRequest {
+        // Input: valid Buy Limit order followed by a cancel request.
+        // Expected: cancellation succeeds and the gateway receives the created order ID.
+        const OrderCreationResult result = manager.createOrder(OrderRequest {
             .instrument = InstrumentId { 1 },
             .side = Side::Buy,
             .type = OrderType::Limit,
@@ -428,13 +462,15 @@ namespace
             .quantity = Quantity { 100'000'000 }
         });
 
+        Assert(result.has_value(), "order creation must succeed");
+
+        const OrderId orderId = result.value();
+
         const bool cancelled = manager.cancel(orderId);
 
         Assert(cancelled, "cancel must succeed");
         Assert(gateway.cancelCount() == 1, "gateway cancel must be called once");
-        Assert(
-            gateway.cancelledOrderId() == orderId,
-            "gateway must receive correct order id");
+        Assert(gateway.cancelledOrderId() == orderId, "gateway must receive correct order id");
     }
 
     void testCancelUnknownOrder()
@@ -449,7 +485,6 @@ namespace
         Assert(!cancelled, "cancel of unknown order must fail");
         Assert(gateway.cancelCount() == 0, "gateway cancel must not be called");
     }
-
 }
 
 void order_manager_test()
@@ -458,14 +493,12 @@ void order_manager_test()
     testOrderIdsAreUnique();
     testOrderIsSentToGateway();
     testFindUnknownOrder();
-
     testApplyNewExecutionReport();
     testApplyPartialFill();
     testApplyFilled();
     testApplyCancelled();
     testApplyRejected();
     testUnknownExecutionReport();
-
     testCancelOrder();
     testCancelUnknownOrder();
 

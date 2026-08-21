@@ -45,6 +45,19 @@ namespace trading::market_data
         recorder.record(event);
 
         const strategy::Signal signal = strategy.evaluate(event);
-        executor.execute(signal, event);
+        const strategy::StrategyExecutionResult result = executor.execute(signal, event);
+
+        if (!result) {
+            // TODO:  Order creation failed.  log / metrics / risk event.
+            return;
+        }
+
+        if (!result->has_value())
+            return;
+
+        const OrderId orderId = result->value();
+
+        // Order was successfully created.
+        // TODO: log / metrics.
     }
 }

@@ -129,6 +129,7 @@ add_executable(${PROJECT_NAME}
 
         ${TESTS}/market_data/order_book_test.cpp
         ${TESTS}/market_data/book_builder_test.cpp
+        ${TESTS}/market_data/market_event_handler_test.cpp
         ${TESTS}/execution/order_manager_test.cpp
         ${TESTS}/execution/execution_report_handler_test.cpp
         ${TESTS}/pnl/pnl_calculator_test.cpp
@@ -137,6 +138,7 @@ add_executable(${PROJECT_NAME}
         ${TESTS}/position/position_test.cpp
         ${TESTS}/position/position_manager_test.cpp
         ${TESTS}/strategy/imbalance_strategy_test.cpp
+        ${TESTS}/strategy/strategy_executor_test.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Utilities")

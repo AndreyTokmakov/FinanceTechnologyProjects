@@ -50,14 +50,12 @@ namespace
 {
     using testing::Assert;
 
-
     constexpr InstrumentId INSTRUMENT { 42 };
     constexpr Price BEST_BID { 6'500'000'000'000 };
     constexpr Price BEST_ASK { 6'500'100'000'000 };
 
     constexpr Quantity BEST_BID_QUANTITY { 700'000'000 };
     constexpr Quantity BEST_ASK_QUANTITY { 300'000'000 };
-
     constexpr Quantity ORDER_QUANTITY { 100'000'000 };
 
 
@@ -99,7 +97,6 @@ namespace
         Signal signal;
     };
 
-
     class TestRecorder final : public IRecorder
     {
     public:
@@ -118,7 +115,6 @@ namespace
         std::size_t executionReportCount { 0 };
         const MarketEvent* lastMarketEvent { nullptr };
     };
-
 
     class TestExecutionGateway final : public IExecutionGateway
     {
@@ -153,7 +149,6 @@ namespace
         Order lastOrder {};
         OrderId lastCancelledOrderId {};
     };
-
 
     class TestRiskManager final : public IRiskManager
     {
@@ -244,11 +239,11 @@ namespace
 
         TestExecutionGateway gateway;
         TestRiskManager riskManager;
-        Position position { INSTRUMENT };
-        OrderManager orderManager { gateway, riskManager, position };
-
         TestStrategy strategy { Signal::Buy };
         TestRecorder recorder;
+
+        Position position { INSTRUMENT };
+        OrderManager orderManager { gateway, riskManager, position };
 
         StrategyExecutor executor { orderManager, ORDER_QUANTITY };
         MarketEventHandler handler { strategy, executor, recorder };
@@ -389,13 +384,10 @@ void market_event_handler_test()
 {
     testMarketEventIsRecorded();
     testStrategyReceivesMarketEvent();
-
     testBuySignalCreatesBuyOrder();
     testSellSignalCreatesSellOrder();
     testNoneSignalDoesNotCreateOrder();
-
     testRiskRejectionDoesNotSendOrder();
-
     testMultipleMarketEventsAreProcessed();
 
     std::cout << "All MarketEventHandler tests: OK\n";

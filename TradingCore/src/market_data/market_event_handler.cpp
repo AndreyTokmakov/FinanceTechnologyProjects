@@ -55,6 +55,7 @@ namespace trading::market_data
         if (!result->has_value())
             return;
 
+        [[maybe_unused]]
         const OrderId orderId = result->value();
 
         // Order was successfully created.

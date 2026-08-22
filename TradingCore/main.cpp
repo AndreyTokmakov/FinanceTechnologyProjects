@@ -61,7 +61,6 @@ int main([[maybe_unused]] const int argc,
     position_test();
     position_manager_test();
     imbalance_strategy_test();
-
     strategy_executor_test();
 
     return EXIT_SUCCESS;

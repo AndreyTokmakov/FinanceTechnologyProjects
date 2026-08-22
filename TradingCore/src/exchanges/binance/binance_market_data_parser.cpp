@@ -37,8 +37,9 @@ Description : binance_market_data_parser.cpp
 
 namespace trading::exchanges::binance
 {
-    market_data::ParseResult BinanceMarketDataParser::parse(std::string_view message,
-                                                            market_data::BookUpdates& bookUpdates) const
+    market_data::ParseResult
+    BinanceMarketDataParser::parse([[maybe_unused]] std::string_view message,
+                                    market_data::BookUpdates& bookUpdates) const
     {
         bookUpdates.clear();
 

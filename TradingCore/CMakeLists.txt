@@ -26,11 +26,16 @@ FetchContent_Declare(boost
 FetchContent_MakeAvailable(boost)
 #]]
 
+# Nlohmann JSON
+include_directories(${THIRD_PARTY_DIR}/json/include)
+
+
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/${PROJECT_NAME})
 set(SOURCES     ${PROJECT_DIR}/src)
 set(TESTS       ${PROJECT_DIR}/tests)
 
 set(APP         ${SOURCES}/app)
+set(CONFIG      ${SOURCES}/config)
 set(CORE        ${SOURCES}/core)
 set(MARKET_DATA ${SOURCES}/market_data)
 set(EXECUTION   ${SOURCES}/execution)
@@ -44,6 +49,7 @@ set(RISK        ${SOURCES}/risk)
 set(BINANCE     ${EXCHANGES}/binance)
 
 include_directories(${CORE})
+include_directories(${CONFIG})
 include_directories(${MARKET_DATA})
 include_directories(${MARKET_DATA}/model)
 include_directories(${MARKET_DATA}/interfaces)
@@ -61,6 +67,10 @@ add_executable(${PROJECT_NAME}
         main.cpp
         ${APP}/application.hpp
         ${APP}/application.cpp
+
+        ${CONFIG}/config.hpp
+        ${CONFIG}/json_config_loader.hpp
+        ${CONFIG}/json_config_loader.cpp
 
         ${CORE}/price.hpp
         ${CORE}/quantity.hpp
